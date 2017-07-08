@@ -1,0 +1,124 @@
+%% start of file `template.tex'.
+%% Copyright 2006-2013 Xavier Danaux (xdanaux@gmail.com).
+%
+% This work may be distributed and/or modified under the
+% conditions of the LaTeX Project Public License version 1.3c,
+% available at http://www.latex-project.org/lppl/.
+%Version for spanish users, by dgarhdez
+
+\documentclass[11pt,a4paper,colorlinks,linkcolor=brown]{moderncv}        % possible options include font size ('10pt', '11pt' and '12pt'), paper size ('a4paper', 'letterpaper', 'a5paper', 'legalpaper', 'executivepaper' and 'landscape') and font family ('sans' and 'roman')
+\usepackage[canadian,USenglish]{babel}
+
+
+% moderncv themes
+\moderncvstyle{casual}                            % style options are 'casual' (default), 'classic', 'oldstyle' and 'banking'
+\moderncvcolor{blue}                              % color options 'blue' (default), 'orange', 'green', 'red', 'purple', 'grey' and 'black'
+%\renewcommand{\familydefault}{\sfdefault}         % to set the default font; use '\sfdefault' for the default sans serif font, '\rmdefault' for the default roman one, or any tex font name
+%\nopagenumbers{}                                  % uncomment to suppress automatic page numbering for CVs longer than one page
+%\usepackage[usenames,dvipsnames,svgnames,table]{xcolor}
+%\usepackage{hyperref}
+%\hypersetup{
+%	bookmarks=true,         % show bookmarks bar?
+%	unicode=false,          % non-Latin characters in Acrobat’s bookmarks
+%	pdftoolbar=true,        % show Acrobat’s toolbar?
+%	pdfmenubar=true,        % show Acrobat’s menu?
+%	pdffitwindow=false,     % window fit to page when opened
+%	pdfstartview={FitH},    % fits the width of the page to the window
+%	pdftitle={My title},    % title
+%	pdfauthor={Author},     % author
+%	pdfsubject={Subject},   % subject of the document
+%	pdfcreator={Creator},   % creator of the document
+%	pdfproducer={Producer}, % producer of the document
+%	pdfkeywords={keyword1, key2, key3}, % list of keywords
+%	pdfnewwindow=true,      % links in new PDF window
+%	colorlinks=true,       % false: boxed links; true: colored links
+%	linkcolor=RoyalBlue,          % color of internal links (change box color with linkbordercolor)
+%	citecolor=ForestGreen,        % color of links to bibliography
+%	filecolor=magenta,      % color of file links
+%	urlcolor=cyan           % color of external links
+%	bookmarksopen=true,
+%	breaklinks=true,bookmarksnumbered,
+%	%    urlcolor=Brown, linkcolor=RoyalBlue, citecolor=ForestGreen % Link colors
+%}
+% character encoding
+\usepackage[utf8]{inputenc}                       % if you are not using xelatex ou lualatex, replace by the encoding you are using
+%\usepackage{CJKutf8}                              % if you need to use CJK to typeset your resume in Chinese, Japanese or Korean
+
+% adjust the page margins
+\usepackage[scale=0.75]{geometry}
+%\setlength{\hintscolumnwidth}{3cm}                % if you want to change the width of the column with the dates
+%\setlength{\makecvtitlenamewidth}{10cm}           % for the 'classic' style, if you want to force the width allocated to your name and avoid line breaks. be careful though, the length is normally calculated to avoid any overlap with your personal info; use this at your own typographical risks...
+\usepackage{hyphenat}
+\hyphenation{intern-ship hy-phen-ation multi-object oppor-tunity ap-peared}
+% personal data
+\name{Xinglu}{Wang}
+%\title{Resumé}                               % optional, remove / comment the line if not wanted
+\address{5-515 YuQuan Campus}{Zhejiang University}{Hangzhou, China}% optional, remove / comment the line if not wanted; the "postcode city" and and "country" arguments can be omitted or provided empty
+\phone[mobile]{(+86)-17816872816}                   % optional, remove / comment the line if not wanted
+%\phone[fixed]{+2~(345)~678~901}                    % optional, remove / comment the line if not wanted
+%\phone[fax]{+3~(456)~789~012}                      % optional, remove / comment the line if not wanted
+\email{3140102282@zju.edu.cn}                               % optional, remove / comment the line if not wanted
+%\homepage{www.johndoe.com}                         % optional, remove / comment the line if not wanted
+%\extrainfo{additional information}                 % optional, remove / comment the line if not wanted
+%\photo[64pt][0.4pt]{picture}                       % optional, remove / comment the line if not wanted; '64pt' is the height the picture must be resized to, 0.4pt is the thickness of the frame around it (put it to 0pt for no frame) and 'picture' is the name of the picture file
+%\quote{Some quote}                                 % optional, remove / comment the line if not wanted
+
+% to show numerical labels in the bibliography (default is to show no labels); only useful if you make citations in your resume
+\makeatletter
+\renewcommand*{\bibliographyitemlabel}{\@biblabel{\arabic{enumiv}}}
+%\renewcommand*{\bibliographyitemlabel}{[\arabic{enumiv}]}% CONSIDER REPLACING THE ABOVE BY THIS
+\makeatother
+
+%\newcommand\Colorhref[3][cyan]{\href{#2}{\small\color{#1}#3}}
+
+% bibliography with mutiple entries
+%\usepackage{multibib}
+%\newcites{book,misc}{{Books},{Others}}
+%----------------------------------------------------------------------------------
+%            content
+%----------------------------------------------------------------------------------
+\begin{document}
+	%-----       letter       ---------------------------------------------------------
+	% recipient data
+	\recipient{To Dear Prof. Lin and Dear Prof. Loy}{\textit{Information Engineering, CUHK}}
+	\date{\today}
+	\opening{Dear Professors,}
+	\closing{Thanks a lot for your careful reading, I am looking forward to hearing from you!}
+	%	\enclosure[Adjunto]{CV}          % use an optional argument to use a string other than "Enclosure", or redefine \enclname
+	\makelettertitle
+	I admire MMLAB a lot and want to devote diligently.  May I state my tentative research interest?
+	
+	\underline{Attention Mechanism:}
+	
+	From signal processing perspective, Nyquist–Shannon Sampling Theorem (Fixed sample frequency) has been a traditional rule. Guided by attention, we utilize the sparsity of real-world signals and extract meaningful semantic messages. 
+	
+	TSN \cite{tsn} sparsely samples video snippets from segments and then weight the importance according to its content, which is equivalent to non-uniform sampling if following a re-sample step. But random sparse sample may miss some important information.  Can we sample weight and re-sample iteratively or predict locations of important snippets while make sure the network can be trained end-to-end? 
+	
+	Scale-friendly Detection \cite{scale} use multi-scale classifiers and shared features.  We may ask why simply fusing feature map still cannot prevent performance drop?  Before reading \cite{scale}, I am thinking a way to choose the most important feature map adaptively from redundant different scales and use a shared classifier. \cite{scale} proposes a excellent idea to make sure network differentiable! Meanwhile, we can refer to Deformable Conv \cite{deform}  using data-driven attention to guide Pool and Conv  so that receptive field change adaptively while the attention (offset field) is differentiable with regard to parameters. 
+		
+	\underline{DNN Design:} \hypersetup{urlcolor=brown}
+	
+	PolyNet \cite{poly} explore the structure diversity in polynomial form and there may be other structure diversity to explore, such as where to branch and where to merge. In spite of great expressive power, DNN still needs some hand-crafted and explicit design for specific task. This research topic is difficult but valuable. Google Brain \cite{rl} use Reinforce Learning to train a Policy Network(A RNN) to predict hyper-parameter and structure of DNN, consuming many resource even on Cifar-10. \href{https://github.com/luzai/NetworkCompress}{Project at ZJU} may pay more attention to trade-off between model complexity and accuracy. 
+	
+	
+	\underline{A Question about DRNet:}	
+	
+	DRNet \cite{drnet} models the statistical relations. The released code implements predicate recognition but I feel $\mathbf{q'_r}=\sigma(\mathbf{W_r} \mathbf{q_r} + \mathbf{W_{rs}} \mathbf{q_s} + \mathbf{W_{ro}} \mathbf{q_o})$ slight different with  $\mathbf{q'_r}=\sigma(\mathbf{W_r} \mathbf{x_r} + \mathbf{W_{rs}} \mathbf{q_s} + \mathbf{W_{ro}} \mathbf{q_o})$ in the paper. I may missing some key points and the slide for my tentative talk can be found at \href{https://github.com/luzai/Curriculum_Artificial_Intelligence/blob/master/seminar_July3/VisualRelationDetection.pdf}{github/seminar}. Meanwhile, I guess implement a costumed inference unit mentioned in \cite{drnet} and  design   network based on this unit may further boost performance.
+	
+	%	\vspace{0.5cm}
+	
+	\makeletterclosing
+	\begin{thebibliography}{999}
+		\bibitem{tsn} Wang L, Xiong Y, Wang Z, et al. Temporal segment networks: Towards good practices for deep action recognition[J]. arXiv preprint arXiv:1608.00859, 2016.
+		Publishing Company , 1984-1986.
+		\bibitem{scale} Yang, Shuo, et al. "Face Detection through Scale-Friendly Deep Convolutional Networks." arXiv preprint arXiv:1706.02863 (2017).
+		\bibitem{drnet} Dai, Bo, Yuqi Zhang, and Dahua Lin. "Detecting Visual Relationships with Deep Relational Networks." arXiv preprint arXiv:1704.03114 (2017).
+		\bibitem{poly} Zhang, Xingcheng, et al. "Polynet: A pursuit of structural diversity in very deep networks." arXiv preprint arXiv:1611.05725 (2016).
+		\bibitem{deform} Dai, Jifeng, et al. "Deformable Convolutional Networks." arXiv preprint arXiv:1703.06211 (2017).  
+		\bibitem{rl} Zoph B, Le Q V. Neural architecture search with reinforcement learning[J]. arXiv preprint arXiv:1611.01578, 2016.
+	\end{thebibliography}
+	
+\end{document}
+
+
+%% end of file `template.tex'.

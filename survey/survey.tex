@@ -1,0 +1,108 @@
+% !Mode:: "TeX:UTF-8"
+% !TeX encoding = UTF-8
+% !TEX program = pdflatex
+
+\documentclass{mcmthesis}
+%\usepackage[UTF8]{CTEX}
+
+%\usepackage{fontspec,xltxtra,xunicode}
+%\usepackage[slantfont,boldfont]{xeCJK}
+%\setCJKmainfont[BoldFont=Adobe Heiti Std,ItalicFont=Adobe Kaiti Std]{Adobe Song Std}
+%\setCJKsansfont{Adobe Heiti Std}
+%\setCJKmonofont{Adobe Song Std}
+
+\mcmsetup{CTeX = false,   % 使用 CTeX 套装时，设置为 true
+	tcn = {\color{red}67859}, problem = {\color{red}D}
+%	        }
+	,
+	sheet = false, titleinsheet = false, keywordsinsheet = false,
+	titlepage = false, abstract = false}
+\usepackage{palatino}
+\usepackage{enumitem} % Required for manipulating the whitespace between and within lists
+\usepackage{listings}
+\usepackage{multirow}
+\usepackage{nicefrac}
+\usepackage{sectsty}
+\sectionfont{\color{MidnightBlue}\selectfont}
+\subsectionfont{\color{MidnightBlue!50!RoyalBlue}\selectfont}
+\subsubsectionfont{\color{SkyBlue!5!RoyalBlue}\selectfont}
+\usepackage{booktabs}
+\usepackage{pgf}
+\usepackage{tikz}
+\usetikzlibrary{arrows,automata}
+\usepackage{varioref} % More descriptive referencing
+%\setlength\parindent{0pt}
+\usepackage{subfig}
+
+\usepackage[subfigure]{tocloft}
+%\renewcommand\cftsecfont{\bfseries\textbf{\color{MidnightBlue}}}
+%\renewcommand\cftpartpagefont{\color{RoyalBlue}}
+
+%\usepackage[round]{natbib}
+\usepackage[square,sort,comma,numbers]{natbib}
+%\bibliographystyle{ieeetr}
+\bibliographystyle{plainnat}
+
+\usepackage{soul}
+\definecolor{Light}{gray}{.90}
+\sethlcolor{Light}
+\let\OldTexttt\texttt
+\renewcommand{\texttt}[1]{\OldTexttt{\hl{#1}}}% will affect all \texttt
+%\newcommand{\hltexttt}[1]{\texttt{\hl{#1}}}% comment above \renewcommand if want this
+
+\hypersetup{	unicode=false,          % non-Latin characters in Acrobat’s bookmarks
+	pdftoolbar=true,        % show Acrobat’s toolbar?
+	pdfmenubar=true,        % show Acrobat’s menu?
+	pdffitwindow=false,     % window fit to page when opened
+	pdfstartview={FitH},    % fits the width of the page to the window
+	pdftitle={AI-hw2},    % title
+	pdfauthor={Xinglu Wang},     % author
+	pdfsubject={AI assignments},   % subject of the document
+	pdfcreator={},   % creator of the document
+	pdfproducer={}, % producer of the document
+	pdfkeywords={}, % list of keywords
+	pdfnewwindow=true,      % links in new PDF window
+	colorlinks=true,       % false: boxed links; true: colored links
+	linkcolor=RoyalBlue,          % color of internal links (change box color with linkbordercolor)
+	citecolor=ForestGreen,        % color of links to bibliography
+	filecolor=magenta,      % color of file links
+	urlcolor=Brown,           % color of external links
+%	allcolors=Black,
+	bookmarksopen=true,
+	breaklinks=true,
+	bookmarksnumbered
+}
+
+\begin{document}
+%		\maketitle
+\begin{center}
+	\textbf{\LARGE{A Survey of Performance Prediction}} \\
+%	\vspace{0.2em}
+%	\large{A Tentative Survey} \\
+	\vspace{1em}
+	{\itshape Xinglu Wang} %\quad {\itshape ISEE, ZJU} 
+\end{center}
+%		\tableofcontents
+
+\section{Feasibility}
+Human Experts are quite adept at recognition and terminating suboptimal model architecture according to 1). Its architecture 2). Its partially observed learning curve. 3). Statistic of weights and biases, historical pattern, information transmission frequency. 
+
+\section{Related Works} 
+\subsection{according to architecture}
+human experience 
+
+\subsection{Learning Curve}
+
+\subsection{Statistic}
+weight visualization: %qualitative
+CNN
+RNN 
+weight  quantitative index
+ 
+
+
+
+\bibliographystyle{ieee}
+\bibliography{library}
+	
+\end{document}
