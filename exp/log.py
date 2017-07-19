@@ -1,6 +1,6 @@
-import logging
-import os
-from opts import  Config
+import logging, os
+from opts import Config
+
 
 # log level: CRITICAL > ERROR > WARNING > INFO > DEBUG
 class Filter(object):
@@ -10,7 +10,8 @@ class Filter(object):
     def filter(self, logRecord):
         return logRecord.levelno <= self.level
 
-
+if not os.path.exists(Config.logger_path):
+    os.mkdir(Config.logger_path)
 logger = logging.getLogger('global_logger')
 logger.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(asctime)s - %(filename)s - [line:%(lineno)d] - %(levelname)s - %(message)s')
@@ -30,7 +31,8 @@ if Config.stream_verbose:
     logger.addHandler(stream_handler)
 
 # error_handler only record WARNING and ERROR and CRITICAL
-error_handler = logging.FileHandler(Config.logger_path+'/err.log')
+error_handler = logging.FileHandler(Config.logger_path + '/err.log')
 error_handler.setLevel(logging.WARNING)
 error_handler.setFormatter(formatter)
 logger.addHandler(error_handler)
+
