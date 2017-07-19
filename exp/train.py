@@ -18,12 +18,12 @@ import keras.backend as K
 K.set_session(sess)
 
 import keras
-from keras.callbacks import TensorBoard
+from saver import TensorBoard
 from datasets import Dataset
 from models import VGG
 from opts import Config
 
-config = Config(epochs=10, batch_size=256, verbose=1, name='vgg11_cifar10',
+config = Config(epochs=5, batch_size=256, verbose=2, name='vgg11_cifar10',
                 model_type='vgg11',
                 dataset_type='cifar10')
 
@@ -36,18 +36,15 @@ vgg.model.compile(keras.optimizers.sgd(1e-4),
 import tensorflow as tf
 
 vgg.model.fit(dataset.x_train, dataset.y_train, batch_size=config.batch_size, epochs=config.epochs,
+              verbose=config.verbose,
               validation_data=(dataset.x_test, dataset.y_test),
-              callbacks=[TensorBoard(log_dir=config.tf_model_path,
+              callbacks=[TensorBoard(log_dir=config.model_tfevents_path,
                                      histogram_freq=5,
-                                     batch_size=256,
+                                     batch_size=config.batch_size,
                                      write_graph=True,
                                      write_grads=True,
                                      # write_images=True,
                                      # embeddings_freq=2
                                      )])
-# self.lr_reducer = ReduceLROnPlateau(monitor='val_loss', factor=np.sqrt(0.1), cooldown=0, patience=10,
-#                                     min_lr=0.5e-7)
-# self.early_stopper = EarlyStopping(monitor='val_acc', min_delta=0.001, patience=5)
-# def set_logger_path(self, name):
-#     self.csv_logger = CSVLogger(osp.join(self.output_path, name))
+
 

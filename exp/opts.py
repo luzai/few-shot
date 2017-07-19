@@ -15,11 +15,11 @@ def mkdir_p(path, delete=True):
 
 class Config(object):
     # shared across model
-    root_dir = root_path = osp.normpath(
+    root_path = osp.normpath(
         osp.join(osp.dirname(__file__), "..")
     )
-    logger_path = output_path = osp.join(root_dir, 'output')
-    tf_path = osp.join(root_dir, 'tf_log')
+    output_path = osp.join(root_path, 'output')
+    tfevents_path = osp.join(root_path, 'tfevents')
     stream_verbose = True
 
     def __init__(self, epochs=100,batch_size=256, verbose=1, name=None, model_type='vgg11',
@@ -29,8 +29,8 @@ class Config(object):
         self.batch_size=batch_size
         self.dataset_type = dataset_type
         self.name = name
-        self.tf_model_path = osp.join(Config.tf_path, name)
-        self.output_model_path = osp.join(Config.output_path, name)
+        self.model_tfevents_path = osp.join(Config.tfevents_path, name)
+        self.model_output_path = osp.join(Config.output_path, name)
         self.clean_model_path()
         self.epochs = epochs
         self.verbose = verbose
@@ -41,8 +41,8 @@ class Config(object):
         return new_config
 
     def clean_model_path(self):
-        mkdir_p(self.tf_model_path)
-        mkdir_p(self.output_model_path)
+        mkdir_p(self.model_tfevents_path)
+        mkdir_p(self.model_output_path)
 
 
 if __name__ == '__main__':

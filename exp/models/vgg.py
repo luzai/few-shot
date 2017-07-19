@@ -2,6 +2,7 @@ import keras
 from keras.models import Model
 from keras.layers import Flatten, Dense, Input, Conv2D, MaxPooling2D, GlobalAveragePooling2D, GlobalMaxPool2D, \
     BatchNormalization, Activation
+import tensorflow as tf
 
 
 class VGG:
@@ -17,6 +18,7 @@ class VGG:
             'vgg19': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 256, 'M', 512, 512, 512, 512, 'M', 512, 512, 512, 512,
                       'M'],
         }
+        # convert to my coding
         self.arch = [['conv2d', config] if config != 'M' else ['maxpooling2d'] for config in cfg[type]]
         self.arch += [['flatten'],
                       ['dense', 512],
@@ -27,14 +29,17 @@ class VGG:
 
     def build(self):
         x = input = Input(self.input_shape)
+        depth = 0
         for config in self.arch:
             if config[0] == 'conv2d':
                 if not self.with_bn:
-                    x = Conv2D(config[1], (3, 3), activation='relu', padding='same')(x)
+                    x = Conv2D(config[1], (3, 3), padding='same', name='obs{}/conv2d'.format(depth))(x)
+                    x = Activation('relu')(x)
                 else:
-                    x = Conv2D(config[1], (3, 3), padding='same')(x)
+                    x = Conv2D(config[1], (3, 3), padding='same', name='obs{}/conv2d'.format(depth))(x)
                     x = BatchNormalization(axis=-1)(x)
                     x = Activation('relu')(x)
+                depth += 1
             elif config[0] == 'maxpooling2d':
                 x = MaxPooling2D((2, 2), strides=(2, 2))(x)
             elif config[0] == 'flatten':
