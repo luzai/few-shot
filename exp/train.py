@@ -23,11 +23,13 @@ from datasets import Dataset
 from models import VGG
 from opts import Config
 
-config = Config(epochs=5, batch_size=256, verbose=2, name='vgg11_cifar10',
+config = Config(epochs=10, batch_size=256, verbose=2,
+                name='vgg11_cifar10',
                 model_type='vgg11',
-                dataset_type='cifar10')
+                dataset_type='cifar10',
+                debug=True)
 
-dataset = Dataset(config.dataset_type)
+dataset = Dataset(config.dataset_type,debug=config.debug)
 vgg = VGG(dataset.input_shape, dataset.classes,config.model_type, with_bn=False)
 # todo lr scheme
 vgg.model.compile(keras.optimizers.sgd(1e-4),
@@ -42,7 +44,7 @@ vgg.model.fit(dataset.x_train, dataset.y_train, batch_size=config.batch_size, ep
                                      histogram_freq=5,
                                      batch_size=config.batch_size,
                                      write_graph=True,
-                                     write_grads=True,
+                                     write_grads=False,
                                      # write_images=True,
                                      # embeddings_freq=2
                                      )])

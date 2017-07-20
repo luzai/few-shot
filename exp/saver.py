@@ -34,29 +34,32 @@ class TensorBoard(Callback):
     def set_model(self, model):
         self.model = model
         self.sess = K.get_session()
-        weight_summ_l=[]
-        grad_summ_l=[]
-        act_summ_l=[]
+        weight_summ_l = []
+        grad_summ_l = []
+        act_summ_l = []
         if self.histogram_freq and self.merged is None:
             for layer in self.model.layers:
                 if 'conv2d' not in layer.name:
                     continue
                 for weight in layer.weights:
                     # todo more clean way to name
-                    weight_summ_l.append( tf.summary.tensor_summary(weight.op.name.strip(':0'), weight))
+                    weight_summ_l.append(tf.summary.tensor_summary(weight.op.name.strip(':0'), weight))
                     if self.write_grads:
                         grads = model.optimizer.get_gradients(model.total_loss,
                                                               weight)
-                        grad_summ_l.append( tf.summary.tensor_summary('{}_grad'.format(weight.name.strip(':0')), grads))
+                        grad_summ_l.append(tf.summary.tensor_summary('{}_grad'.format(weight.name.strip(':0')), grads))
 
                 if hasattr(layer, 'output'):
                     act_summ_l.append(tf.summary.tensor_summary('{}_act'.format(layer.name),
-                                                              layer.output))
-        # self.merged = tf.summary.merge_all()
-        self.weight_summ = tf.summary.merge(weight_summ_l)
-        self.grad_summ = tf.summary.merge(grad_summ_l)
-        self.act_summ=tf.summary.merge(act_summ_l)
-        self.merged = self.act_summ
+                                                                layer.output))
+
+
+
+        self.act_summ = tf.summary.merge(act_summ_l)
+        # self.grad_summ = tf.summary.merge(grad_summ_l)
+        # self.weight_summ = tf.summary.merge(weight_summ_l)
+        self.merged = tf.summary.merge(act_summ_l+weight_summ_l+grad_summ_l)
+
 
         if self.write_graph:
             self.writer = tf.summary.FileWriter(self.log_dir, self.sess.graph)
@@ -92,7 +95,7 @@ class TensorBoard(Callback):
                         batch_val.append(val_data[3])
                     feed_dict = dict(zip(tensors, batch_val))
                     if i == 0:
-                        result = self.sess.run([self.grad_summ, self.weight_summ, self.act_summ], feed_dict=feed_dict)
+                        result = self.sess.run([self.merged], feed_dict=feed_dict)
                     else:
                         # the weight is same but grad and act is dependent on inputs minibatch
                         result = self.sess.run([self.act_summ], feed_dict=feed_dict)

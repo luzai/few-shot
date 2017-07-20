@@ -1,3 +1,5 @@
+import time
+import pandas as pd
 from log import logger
 from opts import Config
 from tensorflow.tensorboard.backend.event_processing import event_accumulator
@@ -20,45 +22,59 @@ class Loader:
                            event_accumulator.HISTOGRAMS: 1,
                            event_accumulator.TENSORS: 0}
         ).AddRunsFromDirectory(model_tfevents_path)
-        import time
         tic = time.time()
         self.em.Reload()
         logger.info('reload consume time {}'.format(time.time() - tic))
 
-        tic = time.time()
         self.scalars_names = self.em.Runs()[self.name]['scalars']
         self.tensors_names = self.em.Runs()[self.name]['tensors']
-        self.scalars = {}
-        self.tensors = {}
-        self.load_scalars()
-        logger.info('load scalars consmue {}'.format(time.time() - tic))
-        tic = time.time()
-        self.load_tensors()
-        logger.info('load tensors consume {}'.format(time.time() - tic))
 
     def load_scalars(self):
+        scalars = {}
         for scalar_name in self.scalars_names:
-            self.scalars[scalar_name] = [e.value for e in self.em.Scalars(self.name, scalar_name)]
+            scalars[scalar_name] = [e.value for e in self.em.Scalars(self.name, scalar_name)]
+        return pd.DataFrame.from_dict(scalars)
 
     def load_tensors(self):
+        tensors = pd.DataFrame()
         for tensor_name in self.tensors_names:
-
-            e = self.em.Tensors(self.name, tensor_name)[0]
-            last_step = e.step
-            tensors = [make_ndarray(e.tensor_proto)]
-            for e in self.em.Tensors(self.name, tensor_name)[1:]:
-                if last_step == e.step:
-                    tensors[e.step] = np.concatenate((tensors[e.step], make_ndarray(e.tensor_proto)), axis=0)
+            tensors_t = pd.Series(name=tensor_name)
+            tensors_t.index = tensors_t.index.astype('int64')
+            for e in self.em.Tensors(self.name, tensor_name):
+                now_step = e.step
+                now_tensor = make_ndarray(e.tensor_proto)
+                # logger.info('step {} tensors {} shape {}'.format(now_step, tensor_name, now_tensor.shape))
+                if now_step not in tensors_t:
+                    tensors_t[now_step] = now_tensor
                 else:
-                    tensors.append(make_ndarray(e.tensor_proto))
-                last_step = e.step
+                    tensors_t[now_step] = np.concatenate((now_tensor, tensors_t[now_step]), axis=0)
+            tensors = pd.concat((tensors, tensors_t), axis=1)
+        # print tensors.index
+        # from IPython import embed
+        # embed()
+        # todo tensor sort by name 
+        return tensors
 
-            self.tensors[tensor_name] = tensors
+    def head_tensors(self):
+        for tensor_name in self.tensors_names:
+            for e in self.em.Tensors(self.name, tensor_name):
+                now_step = e.step
+                now_tensor = make_ndarray(e.tensor_proto)
+                logger.info('step {} tensors {} shape {}'.format(now_step, tensor_name, now_tensor.shape))
 
 
 if __name__ == '__main__':
     loader = Loader('vgg11_cifar10', Config.root_path + '/tfevents/vgg11_cifar10/..')
-    print loader.scalars
-    print [t for t in loader.tensors]
-    print [len(t) for t in loader.tensors.values()]
-    print [t[0].shape for t in loader.tensors.values()]
+    tic = time.time()
+    scalars = loader.load_scalars()
+    logger.info('load scalars consmue {}'.format(time.time() - tic))
+    tic = time.time()
+    tensors = loader.load_tensors()
+    logger.info('load tensors consume {}'.format(time.time() - tic))
+    # loader.head_tensors()
+    # print scalars
+    # print tensors.index, tensors.columns
+    for tensor_name, tensor_series in tensors.iteritems():
+        print  tensor_name
+        for ind, tensor_value in tensor_series.iteritems():
+            print ind, tensor_value.shape

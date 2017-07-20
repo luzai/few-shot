@@ -4,7 +4,7 @@ from opts import Config
 
 
 class Dataset:
-    def __init__(self, name='cifar10'):
+    def __init__(self, name='cifar10', debug=False):
         if name == 'cifar10':
             self.input_shape = (32, 32, 3)
             self.classes = 10
@@ -22,6 +22,15 @@ class Dataset:
         x_train /= 255
         x_test /= 255
         self.x_train, self.y_train, self.x_test, self.y_test = x_train, y_train, x_test, y_test
+        if debug:
+            self.x_train, self.y_train, self.x_test, self.y_test = map(limit_data,
+                                                                       [self.x_train, self.y_train,
+                                                                        self.x_test, self.y_test])
+
+
+def limit_data(data, n=256+16):
+    return data[:n]
+
 
 def load_data_svhn():
     import scipy.io as sio
