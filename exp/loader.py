@@ -52,7 +52,7 @@ class Loader:
         # print tensors.index
         # from IPython import embed
         # embed()
-        # todo tensor sort by name 
+        # todo tensor sort by name
         return tensors
 
     def head_tensors(self):
