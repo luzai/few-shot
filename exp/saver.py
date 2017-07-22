@@ -8,8 +8,8 @@ from log import logger
 
 def clean_name(name):
     import re
-    name = re.findall('([\w/]+)(?::\d+)?', name)[0]
-    name = re.findall('([\w/]+)(?:_\d+)?', name)[0]
+    name = re.findall('([a-zA-Z0-9/]+)(?::\d+)?', name)[0]
+    name = re.findall('([a-zA-Z0-9/]+)(?:_\d+)?', name)[0]
     return name
 
 
