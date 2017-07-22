@@ -50,6 +50,7 @@ class TensorBoard(Callback):
                     continue
                 for weight in layer.weights:
                     # todo more clean way to name
+                    logger.info('summ log {}'.format(clean_name(weight.op.name)))
                     weight_summ_l.append(tf.summary.tensor_summary(clean_name(weight.op.name), weight))
                     if self.write_grads:
                         grads = model.optimizer.get_gradients(model.total_loss,
@@ -129,7 +130,7 @@ class TensorBoard(Callback):
             summary_value.simple_value = value.item()
             summary_value.tag = name
             self.writer.add_summary(summary, epoch)
-        self.writer.flush()
+        # self.writer.flush()
 
     def on_train_end(self, logs=None):
         self.writer.close()

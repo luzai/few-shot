@@ -30,7 +30,7 @@ class Dataset:
                                                                         self.x_test, self.y_test])
 
 
-def sample_data(data, n=256 + 16):
+def sample_data(data, n=256*2 + 16):
     ind = np.random.permutation(n)[:n]
     return data[ind]
 

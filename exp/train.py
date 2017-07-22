@@ -23,11 +23,11 @@ from datasets import Dataset
 from models import VGG
 from opts import Config
 
-config = Config(epochs=11, batch_size=256, verbose=2,
+config = Config(epochs=21, batch_size=256, verbose=2,
                 name='vgg11_cifar10',
                 model_type='vgg11',
                 dataset_type='cifar10',
-                debug=True)
+                debug=False)
 
 dataset = Dataset(config.dataset_type,debug=config.debug)
 vgg = VGG(dataset.input_shape, dataset.classes,config.model_type, with_bn=False)
