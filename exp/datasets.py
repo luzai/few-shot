@@ -1,6 +1,7 @@
 import keras
 from keras.datasets import cifar10, cifar100
 from opts import Config
+import numpy as  np
 
 
 class Dataset:
@@ -22,13 +23,19 @@ class Dataset:
         x_train /= 255
         x_test /= 255
         self.x_train, self.y_train, self.x_test, self.y_test = x_train, y_train, x_test, y_test
+        self.x_test, self.y_test = map(sample_data, [self.x_test, self.y_test])
         if debug:
             self.x_train, self.y_train, self.x_test, self.y_test = map(limit_data,
                                                                        [self.x_train, self.y_train,
                                                                         self.x_test, self.y_test])
 
 
-def limit_data(data, n=256+16):
+def sample_data(data, n=256 + 16):
+    ind = np.random.permutation(n)[:n]
+    return data[ind]
+
+
+def limit_data(data, n=256 + 16):
     return data[:n]
 
 

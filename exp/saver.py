@@ -6,6 +6,13 @@ import os
 from log import logger
 
 
+def clean_name(name):
+    import re
+    name = re.findall('([\w/]+)(?::\d+)?', name)[0]
+    name = re.findall('([\w/]+)(?:_\d+)?', name)[0]
+    return name
+
+
 class TensorBoard(Callback):
     def __init__(self, log_dir='./logs',
                  histogram_freq=1,
@@ -43,66 +50,76 @@ class TensorBoard(Callback):
                     continue
                 for weight in layer.weights:
                     # todo more clean way to name
-                    weight_summ_l.append(tf.summary.tensor_summary(weight.op.name.strip(':0'), weight))
+                    weight_summ_l.append(tf.summary.tensor_summary(clean_name(weight.op.name), weight))
                     if self.write_grads:
                         grads = model.optimizer.get_gradients(model.total_loss,
                                                               weight)
-                        grad_summ_l.append(tf.summary.tensor_summary('{}_grad'.format(weight.name.strip(':0')), grads))
+                        grad_summ_l.append(tf.summary.tensor_summary('{}/grad'.format(clean_name(weight.op.name)),
+                                                                     grads))
 
                 if hasattr(layer, 'output'):
-                    act_summ_l.append(tf.summary.tensor_summary('{}_act'.format(layer.name),
+                    act_summ_l.append(tf.summary.tensor_summary('{}/act'.format(clean_name(layer.name)),
                                                                 layer.output))
 
-
-
         self.act_summ = tf.summary.merge(act_summ_l)
-        # self.grad_summ = tf.summary.merge(grad_summ_l)
-        # self.weight_summ = tf.summary.merge(weight_summ_l)
-        self.merged = tf.summary.merge(act_summ_l+weight_summ_l+grad_summ_l)
-
+        self.grad_summ = tf.summary.merge(grad_summ_l) if grad_summ_l != [] else None
+        self.weight_summ = tf.summary.merge(weight_summ_l)
+        self.merged = tf.summary.merge(act_summ_l + weight_summ_l + grad_summ_l)
 
         if self.write_graph:
-            self.writer = tf.summary.FileWriter(self.log_dir, self.sess.graph)
+            self.writer = tf.summary.FileWriter(self.log_dir + '/miscellany',
+                                                self.sess.graph)  # will write graph and loss and so on
         else:
-            self.writer = tf.summary.FileWriter(self.log_dir)
+            self.writer = tf.summary.FileWriter(self.log_dir + '/miscellany')
+
+    def new_writer(self, act_l, weight, epoch):
+        for ind, act in enumerate(act_l):
+            writer_act = tf.summary.FileWriter(self.log_dir + '/act' + '/' + str(epoch) + '/' + str(ind))
+            writer_act.add_summary(act, global_step=epoch)
+            writer_act.close()
+
+        writer_weight = tf.summary.FileWriter(self.log_dir + '/param' + '/' + str(epoch))
+        # param include weight and bias
+        writer_weight.add_summary(weight, epoch)
+        writer_weight.close()
 
     def on_epoch_end(self, epoch, logs=None):
         logs = logs or {}
 
         logger.info('Epoch {} end'.format(epoch))
-        if self.validation_data and self.histogram_freq:
-            if epoch % self.histogram_freq == 0:
-                logger.info('Epoch {} record tf merged summary'.format(epoch))
-                val_data = self.validation_data
-                tensors = (self.model.inputs +
-                           self.model.targets +
-                           self.model.sample_weights)
+        if self.validation_data and self.histogram_freq and epoch % self.histogram_freq == 0:
+            logger.info('Epoch {} record tf merged summary'.format(epoch))
+            val_data = self.validation_data
+            tensors = (self.model.inputs +
+                       self.model.targets +
+                       self.model.sample_weights)
 
+            if self.model.uses_learning_phase:
+                tensors += [K.learning_phase()]
+
+            assert len(val_data) == len(tensors)
+            val_size = val_data[0].shape[0]
+            i = 0
+            act_summ_str_l = []
+            while i < val_size:
+                step = min(self.batch_size, val_size - i)
+                logger.info('Val size {} Now {} step forward {}'.format(val_size, i, step))
+                batch_val = []
+                batch_val.append(val_data[0][i:i + step])
+                batch_val.append(val_data[1][i:i + step])
+                batch_val.append(val_data[2][i:i + step])
                 if self.model.uses_learning_phase:
-                    tensors += [K.learning_phase()]
-
-                assert len(val_data) == len(tensors)
-                val_size = val_data[0].shape[0]
-                i = 0
-                while i < val_size:
-                    step = min(self.batch_size, val_size - i)
-                    logger.info('Val size {} Now {} step forward {}'.format(val_size, i, step))
-                    batch_val = []
-                    batch_val.append(val_data[0][i:i + step])
-                    batch_val.append(val_data[1][i:i + step])
-                    batch_val.append(val_data[2][i:i + step])
-                    if self.model.uses_learning_phase:
-                        batch_val.append(val_data[3])
-                    feed_dict = dict(zip(tensors, batch_val))
-                    if i == 0:
-                        result = self.sess.run([self.merged], feed_dict=feed_dict)
-                    else:
-                        # the weight is same but grad and act is dependent on inputs minibatch
-                        result = self.sess.run([self.act_summ], feed_dict=feed_dict)
-                    for summary_str in result:
-                        # todo this step can be asynchronous
-                        self.writer.add_summary(summary_str, epoch)
-                    i += self.batch_size
+                    batch_val.append(val_data[3])
+                feed_dict = dict(zip(tensors, batch_val))
+                if i == 0:
+                    weight_summ_str, act_summ_str = self.sess.run([self.weight_summ, self.act_summ],
+                                                                  feed_dict=feed_dict)
+                else:
+                    # the weight is same but grad and act is dependent on inputs minibatch
+                    act_summ_str = self.sess.run([self.act_summ], feed_dict=feed_dict)[0]
+                act_summ_str_l.append(act_summ_str)
+                i += self.batch_size
+            self.new_writer(act_summ_str_l, weight_summ_str, epoch)
 
         for name, value in logs.items():
             if name in ['batch', 'size']:

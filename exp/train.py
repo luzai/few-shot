@@ -27,7 +27,7 @@ config = Config(epochs=11, batch_size=256, verbose=2,
                 name='vgg11_cifar10',
                 model_type='vgg11',
                 dataset_type='cifar10',
-                debug=False)
+                debug=True)
 
 dataset = Dataset(config.dataset_type,debug=config.debug)
 vgg = VGG(dataset.input_shape, dataset.classes,config.model_type, with_bn=False)
@@ -45,10 +45,8 @@ vgg.model.fit(dataset.x_train, dataset.y_train, batch_size=config.batch_size, ep
               callbacks=[TensorBoard(log_dir=config.model_tfevents_path,
                                      histogram_freq=5,
                                      batch_size=config.batch_size,
-                                     write_graph=True,
+                                     write_graph=False,
                                      write_grads=False,
-                                     # write_images=True,
-                                     # embeddings_freq=2
                                      )])
 
 
