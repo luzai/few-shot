@@ -13,6 +13,32 @@ from IPython.display import display, HTML, SVG
 import csv
 from opts import Config
 from log import logger
+import time
+
+
+class Timer(object):
+    """A simple timer."""
+
+    def __init__(self):
+        self.total_time = 0.
+        self.calls = 0
+        self.start_time = 0.
+        self.diff = 0.
+        self.average_time = 0.
+
+    def tic(self):
+        # using time.time instead of time.clock because time time.clock
+        # does not normalize for multithreading
+        self.start_time = time.time()
+
+    def toc(self, average=True):
+        self.diff = time.time() - self.start_time
+        self.start_time = time.time()
+        logger.info('time pass {}'.format(self.diff))
+        return self.diff
+
+
+timer = Timer()
 
 
 def line_append(line, file_path):
@@ -224,7 +250,6 @@ def to_single_dir():
             subprocess.call(('mv ' + parent + '/' + fn + ' ' + parent + '/' + str(ind) + '/').split())
         print parent, filenames
     os.chdir(restore_path)
-
 
 
 if __name__ == "__main__":
