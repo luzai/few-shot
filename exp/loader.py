@@ -99,8 +99,23 @@ class Stat(object):
     def mean(self, tensor):
         return tensor.mean()
 
+    def median(self, tensor):
+        return np.median(tensor)
+
     def std(self, tensor):
         return tensor.std()
+
+    def iqr(self, tensor):
+        return np.subtract.reduce(np.percentile(tensor, [75, 25]))
+
+    def pos_mean(self, tensor):
+        return tensor[tensor > 0].mean()
+
+    def neg_mean(self, tensor):
+        return tensor[tensor < 0].mean()
+
+    def pos_neg_rat(self, tensor):
+        return float(tensor[tensor > 0].shape[0]) / float(tensor[tensor < 0].shape[0])
 
 
 def df_sort_index(tensors):
