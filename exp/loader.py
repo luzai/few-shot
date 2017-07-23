@@ -60,8 +60,7 @@ class TensorLoader(Loader):
             self.reload()
         tensors = pd.DataFrame()
         for tensor_name in self.tensors_names:
-            tensors_t = pd.Series(name=clean_name(tensor_name))
-            tensors_t.index = tensors_t.index.astype('int64')
+            tensors_t = pd.Series(name=clean_name(tensor_name), index=np.array([], dtype='int64'))
             for e in self.em.Tensors(tensor_name):
                 now_step = e.step
                 now_tensor = make_ndarray(e.tensor_proto)
@@ -83,53 +82,71 @@ class TensorLoader(Loader):
                 logger.info('step {} tensors {} shape {}'.format(now_step, tensor_name, now_tensor.shape))
 
 
-class MultiLoader(object):
-    def __init__(self, name, path_patt):
-        self.name = name
-        self.path_l = glob.glob(path_patt)
+class Stat(object):
+    def __init__(self, stat='all'):
+        if stat == 'all':
+            self.stat = dict(Stat.__dict__)
+            for key in self.stat.keys():
+                if '_' in key:
+                    del self.stat[key]
 
-    def load_tensors(self, path):
-        tensor_t= TensorLoader(path=path).load_tensors()
-        return tensor_t
+    def min(self, tensor):
+        return tensor.min()
+
+    def max(self, tensor):
+        return tensor.max()
+
+    def mean(self, tensor):
+        return tensor.mean()
+
+    def std(self, tensor):
+        return tensor.std()
+
+
+def df_sort_index(tensors):
+    tensors.sort_index(axis=0, inplace=True)
+    tensors.sort_index(axis=1, inplace=True)
+    return tensors
+
+
+class ParamLoader(Stat):
+    def __init__(self, path=None, name=None):
+        self.name = name
+        self.path_l = glob.glob(path + '/*')
+        super(ParamLoader, self).__init__()
+
+    def _load(self, path):
+        _tensor = TensorLoader(path=path).load_tensors()
+        tensor = pd.DataFrame()
+        for name, series in _tensor.iteritems():
+            for ind, val in series.iteritems():
+                for stat_name, stat_func in self.stat.iteritems():
+                    tensor.loc[ind, name + '/' + stat_name] = stat_func(self, val)
+        return tensor
+
+    def parallel_load(self):
+        pool = Pool()
+        tensos_l = pool.map(self._load, self.path_l)
+        return df_sort_index(pd.concat(tensos_l))
 
     def seq_load(self):
         tensors_l = []
         for path in self.path_l:
-            tensors_l.append(self.load_tensors(path))
-            # timer.toc()
-        return tensors_l
-
-    def para_load(self):
-        pool = Pool(24)
-        tensors_l = pool.map(self.load_tensors, self.path_l)
-        return tensors_l
+            tensors_l.append(self._load(path))
+        return df_sort_index(pd.concat(tensors_l))
 
 
-class ParamLoader(MultiLoader):
-    def __init__(self, name=None, path=None):
-        super(ParamLoader, self).__init__(name, path + '/*')
+class ActLoader(Stat):
+    def __init__(self, path=None, name=None):
+        self.name = name
+        self.path_l = glob.glob(path + '/*')
+        super(ActLoader, self).__init__()
 
-    def load_param(self):
-        # tensors_l = self.para_load()
-        tensors_l=self.seq_load()
-        timer.toc()
-        tensors = pd.concat(tensors_l)
-        # timer.toc()
-        tensors.sort_index(axis=0, inplace=True)
-        tensors.sort_index(axis=1, inplace=True)
-        # timer.toc()
-        return tensors
-
-
-class ActLoader(MultiLoader):
-    def __init__(self, name=None, path=None):
-        super(ActLoader, self).__init__(name, path + '/*/*')
-
-    def load_act(self):
-        tensors_l = self.para_load()
-        # tensors_l=self.seq_load()
-        timer.toc()
-        acts_t = pd.concat(tensors_l)
+    def _load(self, path):
+        tensor_l = []
+        for path_ in glob.glob(path + '/*'):
+            tensor_l.append(TensorLoader(path=path_).load_tensors())
+        acts_t = pd.concat(tensor_l)
         acts_t.reset_index(inplace=True)
         tensors = {}
         for epoch, group in acts_t.groupby('index'):
@@ -143,21 +160,28 @@ class ActLoader(MultiLoader):
                 tensors_t[name] = res
             tensors[epoch] = tensors_t
         tensors = pd.DataFrame(tensors)
-        timer.toc()
+        # timer.toc()
         tensors = tensors.transpose()
         tensors.sort_index(axis=0, inplace=True)
         tensors.sort_index(axis=1, inplace=True)
-        return tensors
 
+        tensor = pd.DataFrame()
+        for name, series in tensors.iteritems():
+            for ind, val in series.iteritems():
+                for stat_name, stat_func in self.stat.iteritems():
+                    tensor.loc[ind, name + '/' + stat_name] = stat_func(self, val)
+        return tensor
 
-class StatLoader(ActLoader):
-    def __init__(self, name=None, path=None, stat='all'):
-        super(StatLoader, self).__init__(name, path)
-        if stat == 'all':
-            stat = ['mean', 'pos_mean', 'neg_mean', 'pos_neg_rat', 'iqr', 'std']
+    def parallel_load(self):
+        pool = Pool()
+        tensos_l = pool.map(self._load, self.path_l)
+        return df_sort_index(pd.concat(tensos_l))
 
-    def load_stat(self):
-        pass
+    def seq_load(self):
+        tensors_l = []
+        for path in self.path_l:
+            tensors_l.append(self._load(path))
+        return df_sort_index(pd.concat(tensors_l))
 
 
 def clean_name(name):
@@ -180,11 +204,12 @@ if __name__ == '__main__':
     # print scalars
     timer.tic()
 
-    # path = Config.root_path + '/tfevents/vgg11_cifar10/act'
-    # acts = ActLoader(path=path).load_act()
-    # test_df(acts)
+    path = Config.root_path + '/tfevents/vgg11_cifar10/act'
+    acts = ActLoader(path=path).parallel_load()
+    timer.toc()
+    test_df(acts)
 
     path = Config.root_path + '/tfevents/vgg11_cifar10/param'
-    params = ParamLoader(path=path).load_param()
-    # timer.toc()
+    params = ParamLoader(path=path).parallel_load()
+    timer.toc()
     test_df(params)
