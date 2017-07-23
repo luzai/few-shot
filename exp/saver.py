@@ -62,10 +62,11 @@ class TensorBoard(Callback):
                     act_summ_l.append(tf.summary.tensor_summary('{}/act'.format(clean_name(layer.name)),
                                                                 layer.output))
 
-        self.act_summ = tf.summary.merge(act_summ_l)
+        self.act_summ = tf.summary.merge(act_summ_l) if act_summ_l != [] else None
         self.grad_summ = tf.summary.merge(grad_summ_l) if grad_summ_l != [] else None
-        self.weight_summ = tf.summary.merge(weight_summ_l)
-        self.merged = tf.summary.merge(act_summ_l + weight_summ_l + grad_summ_l)
+        self.weight_summ = tf.summary.merge(weight_summ_l) if weight_summ_l != [] else None
+        self.merged = tf.summary.merge(
+            act_summ_l + weight_summ_l + grad_summ_l) if act_summ_l + weight_summ_l + grad_summ_l != [] else None
 
         if self.write_graph:
             self.writer = tf.summary.FileWriter(self.log_dir + '/miscellany',
@@ -115,6 +116,7 @@ class TensorBoard(Callback):
                 if i == 0:
                     weight_summ_str, act_summ_str = self.sess.run([self.weight_summ, self.act_summ],
                                                                   feed_dict=feed_dict)
+                # todo I do not write grad in fact
                 else:
                     # the weight is same but grad and act is dependent on inputs minibatch
                     act_summ_str = self.sess.run([self.act_summ], feed_dict=feed_dict)[0]
@@ -130,7 +132,7 @@ class TensorBoard(Callback):
             summary_value.simple_value = value.item()
             summary_value.tag = name
             self.writer.add_summary(summary, epoch)
-        # self.writer.flush()
+            # self.writer.flush()
 
     def on_train_end(self, logs=None):
         self.writer.close()
