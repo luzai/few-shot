@@ -24,7 +24,7 @@ class Loader(object):
             path=path)
         tic = time.time()
         self.em.Reload()
-        logger.info('reload consume time {}'.format(time.time() - tic))
+        # logger.info('reload consume time {}'.format(time.time() - tic))
         self.scalars_names = self.em.Tags()['scalars']
         self.tensors_names = self.em.Tags()['tensors']
 
@@ -91,18 +91,40 @@ class ParamLoader(object):
 
 
 class ActLoader(object):
-    def __init__(self, name=None, path_l=None):
+    def __init__(self, name=None, path=None):
         self.name = name
-        self.path_l = path_l
+        self.path_l = glob.glob(path + '/*/*')
 
     def load_act(self):
-        pass
+        tensors_l = []
+        for path in self.path_l:
+            tensors_l.append(TensorLoader(path=path).load_tensors())
+        acts_t = pd.concat(tensors_l)
+        acts_t.reset_index(inplace=True)
+        tensors={}
+        for epoch, group in acts_t.groupby('index'):
+            tensors_t={}
+            for name, series in group.iteritems():
+                if name == 'index': continue
+                val_l = []
+                for ind, val in series.iteritems():
+                    val_l.append(val)
+                res = np.concatenate(val_l)
+                tensors_t[name]=res
+            tensors[epoch]=tensors_t
+        tensors=pd.DataFrame(tensors)
+        tensors=tensors.transpose()
+        tensors.sort_index(axis=0, inplace=True)
+        tensors.sort_index(axis=1, inplace=True)
+        return tensors
+
 
 def clean_name(name):
     import re
     name = re.findall('([a-zA-Z0-9/]+)(?::\d+)?', name)[0]
     name = re.findall('([a-zA-Z0-9/]+)(?:_\d+)?', name)[0]
     return name
+
 
 def test_df(df):
     print df.index
@@ -114,12 +136,12 @@ if __name__ == '__main__':
     path = Config.root_path + '/tfevents/vgg11_cifar10/miscellany'
     scalars = ScalarLoader(path=path).load_scalars()
     logger.info('load scalars consmue {}'.format(time.time() - tic))
-    print scalars
+    # print scalars
 
-    # path_l = glob.glob(Config.root_path + '/tfevents/vgg11_cifar10/act/*/*/*')
-    # acts = ActLoader(path_l=path_l).load_act()
-    # test_df(acts)
+    path = Config.root_path + '/tfevents/vgg11_cifar10/act'
+    acts = ActLoader(path=path).load_act()
+    test_df(acts)
 
     path = Config.root_path + '/tfevents/vgg11_cifar10/param'
     params = ParamLoader(path=path).load_param()
-    test_df(params)
+    # test_df(params)
