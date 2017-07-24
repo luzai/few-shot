@@ -16,6 +16,42 @@ from log import logger
 import time
 
 
+def init_dev(n=0):
+    import os
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(n)
+    os.environ['PATH'] = '/home/gyzhang/cuda-8.0/bin:' + os.environ['PATH']
+    os.environ['PATH'] = '/home/wangxinglu/anaconda2/bin:' + os.environ['PATH']
+    os.environ['PATH'] = '/usr/local/cuda-8.0/bin:' + os.environ['PATH']
+
+    os.environ['LD_LIBRARY_PATH'] = '/home/gyzhang/cuda-8.0/lib64'
+    os.environ['LD_LIBRARY_PATH'] = '/usr/local/cuda-8.0/lib64'
+
+
+def allow_growth():
+    import tensorflow as tf
+    tf_graph = tf.get_default_graph()
+    _sess_config = tf.ConfigProto(allow_soft_placement=True)
+    _sess_config.gpu_options.allow_growth = True
+    sess = tf.Session(config=_sess_config, graph=tf_graph)
+    import keras.backend as K
+    K.set_session(sess)
+
+
+def get_dev(n=1):
+    import GPUtil, time
+
+    devs = GPUtil.getAvailable(order='first', maxLoad=0.5, maxMemory=0.5, limit=n)
+    if len(devs) >= 1:
+        return devs[0] if n == 1 else devs
+    while len(devs) == 0:
+        devs = GPUtil.getAvailable(order='first', maxLoad=1, maxMemory=0.3, limit=n)
+        if len(devs) >= 1:
+            return devs[0] if n == 1 else devs
+        logger.info('no device avelaible')
+        GPUtil.showUtilization()
+        time.sleep(60 * 3)
+
+
 class Timer(object):
     """A simple timer."""
 

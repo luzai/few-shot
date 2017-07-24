@@ -1,17 +1,10 @@
-def run(model_type='vgg5', n=0):
-    from utils import init_dev
-    init_dev(n)
-    import tensorflow as tf
-
-    tf_graph = tf.get_default_graph()
-    _sess_config = tf.ConfigProto(allow_soft_placement=True)
-    _sess_config.gpu_options.allow_growth = True
-    sess = tf.Session(config=_sess_config, graph=tf_graph)
-    import keras.backend as K
-
-    K.set_session(sess)
-
-    import keras
+def run(model_type='vgg5', n=None):
+    import utils
+    if n is None:
+        n= utils.get_dev()
+    utils.init_dev(n)
+    utils.allow_growth()
+    import tensorflow as tf,keras
     from saver import TensorBoard
     from datasets import Dataset
     from models import VGG
@@ -24,7 +17,7 @@ def run(model_type='vgg5', n=0):
                     debug=False)
 
     dataset = Dataset(config.dataset_type, debug=config.debug)
-    vgg = VGG(dataset.input_shape, dataset.classes, config.model_type, with_bn=False, with_dp=True)
+    vgg = VGG(dataset.input_shape, dataset.classes, config.model_type, with_bn=False, with_dp=False)
 
     vgg.model.summary()
     # todo lr scheme
@@ -52,7 +45,7 @@ def run(model_type='vgg5', n=0):
 import multiprocessing as mp
 
 gpu = 0
-run('vgg5', 1)
+run('vgg5')
 # for model_type in ['vgg5', 'vgg11']:
 #     p = mp.Process(target=run, args=(model_type, gpu))
 #     gpu += 1
