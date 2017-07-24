@@ -5,7 +5,7 @@ import numpy as  np
 
 
 class Dataset:
-    def __init__(self, name='cifar10', debug=False):
+    def __init__(self, name='cifar10', debug=False,limit_val=True):
         if name == 'cifar10':
             self.input_shape = (32, 32, 3)
             self.classes = 10
@@ -23,7 +23,8 @@ class Dataset:
         x_train /= 255
         x_test /= 255
         self.x_train, self.y_train, self.x_test, self.y_test = x_train, y_train, x_test, y_test
-        self.x_test, self.y_test = map(sample_data, [self.x_test, self.y_test])
+        if limit_val:
+            self.x_test, self.y_test = map(sample_data, [self.x_test, self.y_test])
         if debug:
             self.x_train, self.y_train, self.x_test, self.y_test = map(limit_data,
                                                                        [self.x_train, self.y_train,
