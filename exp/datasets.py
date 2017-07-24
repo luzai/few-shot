@@ -30,9 +30,20 @@ class Dataset:
                                                                         self.x_test, self.y_test])
 
 
-def sample_data(data, n=256*2 + 16):
-    ind = np.random.permutation(n)[:n]
-    return data[ind]
+def static_vars(**kwargs):
+    def decorate(func):
+        for k in kwargs:
+            setattr(func, k, kwargs[k])
+        return func
+
+    return decorate
+
+
+@static_vars(ind=None)
+def sample_data(data, n=256 * 2 + 16):
+    if sample_data.ind is None:
+        sample_data.ind = np.random.permutation(data.shape[0])[:n]
+    return data[sample_data.ind]
 
 
 def limit_data(data, n=256 + 16):
@@ -86,3 +97,11 @@ def load_data_svhn():
     test_x = np.transpose(test_x, (3, 0, 1, 2))
 
     return (train_x, train_y), (test_x, test_y)
+
+if __name__ == '__main__':
+    config = Config(epochs=301, batch_size=256, verbose=2,
+                    model_type='vgg5',
+                    dataset_type='cifar10',
+                    debug=False)
+
+    dataset = Dataset(config.dataset_type, debug=config.debug)

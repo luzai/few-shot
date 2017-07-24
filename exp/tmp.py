@@ -1,21 +1,7 @@
-from multiprocessing import Pool
+from tensorflow.python.client import device_lib
 
+def get_available_gpus():
+    local_device_protos = device_lib.list_local_devices()
+    return [x.name for x in local_device_protos if x.device_type == 'GPU']
 
-def run(cls_instance, i):
-    return cls_instance.func(i)
-
-
-class Runner(object):
-    def __init__(self):
-        pool = Pool(processes=5)
-        for i in range(5):
-            pool.apply_async(run, (self, i))
-        pool.close()
-        pool.join()
-
-    def func(self, i):
-        print i
-        return i
-
-
-runner = Runner()
+print get_available_gpus()

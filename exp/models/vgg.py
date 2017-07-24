@@ -46,13 +46,18 @@ class VGG:
                     x = Dropout(.25)(x)
             elif config[0] == 'flatten':
                 x = Flatten()(x)
-            elif config[0] == 'dense':
+            elif config[0] == 'dense' and config[1] != self.classes:
                 x = Dense(config[1], activation='relu')(x)
                 if self.with_dp:
                     x = Dropout(.5)(x)
+            else:
+                assert config[1] == self.classes, 'should be end'
+                x = Dense(config[1], activation='softmax')(x)
+
         model = Model(input, x)
         return model
 
+
 if __name__ == '__main__':
-    vgg = VGG((32, 32, 3), 10)
+    vgg = VGG((32, 32, 3), 10, type='vgg5')
     vgg.model.summary()
