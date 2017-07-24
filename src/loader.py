@@ -3,7 +3,7 @@ import pandas as pd
 from log import logger
 from opts import Config
 from tensorflow.tensorboard.backend.event_processing import event_accumulator
-from tensorflow.tensorboard.backend.event_processing import event_multiplexer
+# from tensorflow.tensorboard.backend.event_processing import event_multiplexer
 import tensorflow as tf
 from tensorflow.contrib.util import make_ndarray
 import numpy as np
@@ -124,6 +124,7 @@ def df_sort_index(tensors):
     return tensors
 
 
+
 class ParamLoader(Stat):
     def __init__(self, path=None, name=None):
         self.name = name
@@ -142,6 +143,7 @@ class ParamLoader(Stat):
     def parallel_load(self):
         pool = Pool()
         tensos_l = pool.map(self._load, self.path_l)
+        pool.close()
         return df_sort_index(pd.concat(tensos_l))
 
     def seq_load(self):
@@ -185,11 +187,15 @@ class ActLoader(Stat):
             for ind, val in series.iteritems():
                 for stat_name, stat_func in self.stat.iteritems():
                     tensor.loc[ind, name + '/' + stat_name] = stat_func(self, val)
+        del tensors
+        import gc
+        gc.collect()
         return tensor
 
     def parallel_load(self):
-        pool = Pool()
+        pool = Pool(ncpus=6)
         tensos_l = pool.map(self._load, self.path_l)
+        pool.close()
         return df_sort_index(pd.concat(tensos_l))
 
     def seq_load(self):
@@ -213,18 +219,28 @@ def test_df(df):
 
 if __name__ == '__main__':
     tic = time.time()
-    path = Config.root_path + '/tfevents/vgg11_cifar10/miscellany'
+    path = Config.root_path + '/tfevents/vgg5_cifar10_limit_val_F_lr_0.001/miscellany'
     scalars = ScalarLoader(path=path).load_scalars()
     logger.info('load scalars consmue {}'.format(time.time() - tic))
     # print scalars
     timer.tic()
 
-    path = Config.root_path + '/tfevents/vgg11_cifar10/act'
+    path = Config.root_path + '/tfevents/vgg5_cifar10_limit_val_F_lr_0.001/act'
     acts = ActLoader(path=path).parallel_load()
     timer.toc()
-    test_df(acts)
+    # test_df(acts)
 
-    path = Config.root_path + '/tfevents/vgg11_cifar10/param'
-    params = ParamLoader(path=path).parallel_load()
-    timer.toc()
-    test_df(params)
+    # path = Config.root_path + '/tfevents/vgg5_cifar10_limit_val_F_lr_0.001/param'
+    # params = ParamLoader(path=path).parallel_load()
+    # timer.toc()
+    # # test_df(params)
+
+    # path = Config.root_path + '/tfevents/vgg5_cifar10_limit_val_F_lr_0.001/act'
+    # acts = ActLoader(path=path).seq_load()
+    # timer.toc()
+    # # test_df(acts)
+    #
+    # path = Config.root_path + '/tfevents/vgg5_cifar10_limit_val_F_lr_0.001/param'
+    # params = ParamLoader(path=path).seq_load()
+    # timer.toc()
+    # test_df(params)

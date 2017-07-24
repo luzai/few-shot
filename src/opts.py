@@ -24,7 +24,7 @@ class Config(object):
     stream_verbose = True
 
     def __init__(self, epochs=100, batch_size=256, verbose=1, name=None, model_type='vgg11',
-                 dataset_type='cifar10', debug=False, others=None):
+                 dataset_type='cifar10', debug=False, others=None,clean=True):
         self.debug = debug
         self.model_type = model_type
         self.batch_size = batch_size
@@ -40,7 +40,8 @@ class Config(object):
 
         self.model_tfevents_path = osp.join(Config.tfevents_path, name)
         self.model_output_path = osp.join(Config.output_path, name)
-        self.clean_model_path()
+        if clean:
+            self.clean_model_path()
         self.epochs = epochs
         self.verbose = verbose
 

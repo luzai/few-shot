@@ -1,7 +1,19 @@
-from tensorflow.python.client import device_lib
+from pathos.multiprocessing import ProcessingPool
 
-def get_available_gpus():
-    local_device_protos = device_lib.list_local_devices()
-    return [x.name for x in local_device_protos if x.device_type == 'GPU']
 
-print get_available_gpus()
+class Bar:
+    def foo(self, name):
+        return len(str(name))
+
+    def boo(self, things):
+        for thing in things:
+            self.sum += self.foo(thing)
+        return self.sum
+
+    sum = 0
+
+
+b = Bar()
+results = ProcessingPool().map(b.boo, [[12, 3, 456], [8, 9, 10], ['a', 'b', 'cde']])
+print  results
+print b.sum

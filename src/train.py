@@ -41,13 +41,15 @@ def run(model_type='vgg5', lr=1e-2, limit_val=True):
                   )
 
 
-import multiprocessing as mp,time
+import multiprocessing as mp, time
 import subprocess
+
 subprocess.call('rm -r ../tfevents ../output'.split())
 # run('vgg5')
 tasks = []
-for model_type in ['vgg5', 'vgg11']:
-    for lr in [1e-2, 1e-3, 1e-5]:
+for model_type in ['vgg5']:
+    # for lr in [1e-2, 1e-3, 1e-5]:
+    for lr in [1e-3]:
         for limit_val in [True, False]:
             p = mp.Process(target=run, args=(model_type, lr, limit_val))
             p.start()
