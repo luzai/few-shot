@@ -59,6 +59,13 @@ def optional_arg_decorator(fn):
 
     return wrapped_decorator
 
+def static_vars(**kwargs):
+    def decorate(func):
+        for k in kwargs:
+            setattr(func, k, kwargs[k])
+        return func
+    return decorate
+
 
 class Timer(object):
     """A simple timer."""

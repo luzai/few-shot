@@ -1,10 +1,12 @@
 import keras
 from keras.datasets import cifar10, cifar100
 from opts import Config
-import numpy as  np
+import numpy as np
+import utils
 
 
-class Dataset:
+class Dataset(object):
+    dataset_type=['cifar10','cifar100','imagenet']
     def __init__(self, name='cifar10', debug=False,limit_val=True):
         if name == 'cifar10':
             self.input_shape = (32, 32, 3)
@@ -30,17 +32,7 @@ class Dataset:
                                                                        [self.x_train, self.y_train,
                                                                         self.x_test, self.y_test])
 
-
-def static_vars(**kwargs):
-    def decorate(func):
-        for k in kwargs:
-            setattr(func, k, kwargs[k])
-        return func
-
-    return decorate
-
-
-@static_vars(ind=None)
+@utils.static_vars(ind=None)
 def sample_data(data, n=256 * 2 + 16):
     # todo
     np.random.seed(1)

@@ -3,14 +3,12 @@ from keras.models import Model
 from keras.layers import Flatten, Dense, Input, Conv2D, MaxPooling2D, GlobalAveragePooling2D, GlobalMaxPool2D, \
     BatchNormalization, Activation, Dropout
 import tensorflow as tf
+from models import BaseModel
 
-
-class VGG:
+class VGG(BaseModel):
+    model_type=['vgg11','vgg13','vgg16','vgg5','vgg19']
     def __init__(self, input_shape, classes, type='vgg11', with_bn=True, with_dp=True):
-        self.input_shape = input_shape
-        self.with_bn = with_bn
-        self.with_dp = with_dp
-        self.classes = classes
+        super(VGG,self).__init__(input_shape,classes,type,with_bn,with_dp)
         cfg = {
             'vgg11': [[64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'], [512, 512, self.classes]],
             'vgg13': [[64, 64, 'M', 128, 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],

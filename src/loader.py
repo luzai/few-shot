@@ -46,7 +46,7 @@ class ScalarLoader(Loader):
         scalars = {}
         for scalar_name in self.scalars_names:
             scalars[scalar_name] = [e.value for e in self.em.Scalars(scalar_name)]
-        scalars_df = pd.DataFrame.from_dict(dict([ (k,pd.Series(v)) for k,v in scalars.iteritems() ]))
+        scalars_df = pd.DataFrame.from_dict(dict([(k, pd.Series(v)) for k, v in scalars.iteritems()]))
         scalars_df.sort_index(axis=0, inplace=True)
         scalars_df.sort_index(axis=1, inplace=True)
         return scalars_df
@@ -139,12 +139,12 @@ def test_df(df):
 
 
 @utils.optional_arg_decorator
-def check_cache(fn, cache=True, delete=False):
+def check_cache(fn, cache=True, delete=True):
     def wrapped_fn(*args, **kwargs):
-        if kwargs !={}:
+        if kwargs != {}:
             path = kwargs.get('self').path + '/cache.pkl'
         else:
-            path = args[0].path+'/cache.pkl'
+            path = args[0].path + '/cache.pkl'
         if cache and not osp.exists(path):
             res = fn(*args, **kwargs)
             utils.pickle(res, path)
@@ -230,9 +230,7 @@ class ActLoader(MultiLoader):
         tensors = tensors.transpose()
         tensors.sort_index(axis=0, inplace=True)
         tensors.sort_index(axis=1, inplace=True)
-
         stat = Stat()
-
         tensor = pd.DataFrame()
         for name, series in tensors.iteritems():
             for ind, val in series.iteritems():
@@ -245,24 +243,22 @@ class ActLoader(MultiLoader):
 
 
 class Loader(object):
-    def __init__(self, name=None, path=None): #, cache=True, delete=False
+    def __init__(self, name=None, path=None):  # , cache=True, delete=False
         self.name = name
         self.path = path
         assert osp.exists(path), 'path should exits'
 
-    def load(self,parallel=True):
+    def load(self, parallel=True):
         timer = utils.Timer()
         timer.tic()
         path = self.path + '/miscellany'
         self.scalars = ScalarLoader(path=path).load_scalars()
-
         path = self.path + '/act'
         if parallel:
             self.act = ActLoader(path=path).parallel_load()
         else:
             self.act = ActLoader(path=path).seq_load()
         logger.info('load act consume {}'.format(timer.toc()))
-
         path = self.path + '/param'
         if parallel:
             self.params = ParamLoader(path=path).parallel_load()
@@ -272,12 +268,11 @@ class Loader(object):
 
 
 if __name__ == '__main__':
-    # path='/home/wangxinglu/prj/Perf_Pred/tfevents/vgg11_cifar10_limit_val_T_lr_1e-05'
-    # loader = Loader(path=path).load()
-
-    for path in glob.glob(Config.root_path + '/bak/*'):
-        print path
-        # try:
-        loader = Loader(path=path).load()
-        # except Exception as inst:
-        #     print  inst
+    path = '/home/wangxinglu/prj/Perf_Pred/tfevents/vgg11_cifar10_limit_val_T_lr_1'
+    loader = Loader(path=path).load()
+    # for path in glob.glob(Config.root_path + '/bak/*'):
+    #     print path
+    #     # try:
+    #     loader = Loader(path=path).load()
+    #     # except Exception as inst:
+    #     #     print  inst

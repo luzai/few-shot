@@ -24,23 +24,25 @@ class Config(object):
     stream_verbose = True
 
     def __init__(self, epochs=100, batch_size=256, verbose=1, name=None, model_type='vgg11',
-                 dataset_type='cifar10', debug=False, others=None,clean=True):
+                 dataset_type='cifar10', debug=False, others=None, clean=True):
         self.debug = debug
         self.model_type = model_type
         self.batch_size = batch_size
         self.dataset_type = dataset_type
+        self.others = others
         if name is None:
             self.name = name = model_type + '_' + dataset_type
             if others is not None:
                 for key, val in others.iteritems():
                     # if isinstance(val, bool): key, val =( key, '') if val else ('', '')
-                    if isinstance(val, bool): key, val =( key, 'T') if val else (key, 'F')
+                    if isinstance(val, bool): key, val = (key, 'T') if val else (key, 'F')
                     name += '_' + str(key) + '_' + str(val)
                 self.name = name
 
         self.model_tfevents_path = osp.join(Config.tfevents_path, name)
         self.model_output_path = osp.join(Config.output_path, name)
         if clean:
+            # Attention!! Delete
             self.clean_model_path()
         self.epochs = epochs
         self.verbose = verbose
@@ -50,6 +52,13 @@ class Config(object):
         new_config = Config()
         return new_config
 
+    def to_dict(self):
+        d = {'model_type': self.model_type,
+             'dataset_type': self.dataset_type}
+        d = d.copy()
+        if self.others is not None:  d.update(self.others)
+        return d
+
     def clean_model_path(self):
         mkdir_p(self.model_tfevents_path)
         mkdir_p(self.model_output_path)
@@ -57,3 +66,4 @@ class Config(object):
 
 if __name__ == '__main__':
     config = Config(epochs=1, verbose=2, name='config', dataset_type='cifar10')
+    print config.to_dict()
