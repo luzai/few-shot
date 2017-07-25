@@ -323,5 +323,3 @@ def to_single_dir():
     os.chdir(restore_path)
 
 
-if __name__ == "__main__":
-    to_single_dir()

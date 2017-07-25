@@ -46,7 +46,7 @@ class ScalarLoader(Loader):
         scalars = {}
         for scalar_name in self.scalars_names:
             scalars[scalar_name] = [e.value for e in self.em.Scalars(scalar_name)]
-        scalars_df = pd.DataFrame.from_dict(scalars)
+        scalars_df = pd.DataFrame.from_dict(dict([ (k,pd.Series(v)) for k,v in scalars.iteritems() ]))
         scalars_df.sort_index(axis=0, inplace=True)
         scalars_df.sort_index(axis=1, inplace=True)
         return scalars_df
@@ -139,7 +139,7 @@ def test_df(df):
 
 
 @utils.optional_arg_decorator
-def check_cache(fn, cache=True, delete=True):
+def check_cache(fn, cache=True, delete=False):
     def wrapped_fn(*args, **kwargs):
         if kwargs !={}:
             path = kwargs.get('self').path + '/cache.pkl'
@@ -254,7 +254,7 @@ class Loader(object):
         timer = utils.Timer()
         timer.tic()
         path = self.path + '/miscellany'
-        self.scalars = ScalarLoader(path=path)
+        self.scalars = ScalarLoader(path=path).load_scalars()
 
         path = self.path + '/act'
         if parallel:
@@ -275,7 +275,7 @@ if __name__ == '__main__':
     # path='/home/wangxinglu/prj/Perf_Pred/tfevents/vgg11_cifar10_limit_val_T_lr_1e-05'
     # loader = Loader(path=path).load()
 
-    for path in glob.glob(Config.root_path + '/tfevents/*'):
+    for path in glob.glob(Config.root_path + '/bak/*'):
         print path
         # try:
         loader = Loader(path=path).load()

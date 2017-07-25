@@ -49,8 +49,7 @@ subprocess.call('rm -r tfevents output'.split())
 # run('vgg5')
 tasks = []
 for model_type in ['vgg5', 'vgg11', 'vgg19']:
-    for lr in [1, 1e-1, 1e-2, 1e-3, 1e-5]:
-        # for lr in [1e-3]:
+    for lr in [1, 1e-2,  1e-5]:
         for limit_val in [True]:
             p = mp.Process(target=run, args=(model_type, lr, limit_val))
             p.start()
