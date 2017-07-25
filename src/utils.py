@@ -1,19 +1,11 @@
-import os
-import re
-import subprocess, json
-import matplotlib
-import numpy as np
+import os, csv, time, cPickle, random, os.path as osp, subprocess, json, matplotlib, numpy as np
 
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
-import os.path as osp
-import random
 from IPython import embed
 from IPython.display import display, HTML, SVG
-import csv
 from opts import Config
 from log import logger
-import time
 
 
 def init_dev(n=0):
@@ -54,6 +46,20 @@ def get_dev(n=1):
         time.sleep(60 * 3)
 
 
+def optional_arg_decorator(fn):
+    def wrapped_decorator(*args):
+        if len(args) == 1 and callable(args[0]):
+            return fn(args[0])
+
+        else:
+            def real_decorator(decoratee):
+                return fn(decoratee, *args)
+
+            return real_decorator
+
+    return wrapped_decorator
+
+
 class Timer(object):
     """A simple timer."""
 
@@ -72,11 +78,23 @@ class Timer(object):
     def toc(self, average=True):
         self.diff = time.time() - self.start_time
         self.start_time = time.time()
-        logger.info('time pass {}'.format(self.diff))
+        # logger.info('time pass {}'.format(self.diff))
         return self.diff
 
 
 timer = Timer()
+
+
+@optional_arg_decorator
+def timeit(fn, info=''):
+    def wrapped_fn(*arg, **kwargs):
+        timer.tic()
+        res = fn(*arg, **kwargs)
+        diff = timer.toc()
+        logger.info((info + 'takes time {}').format(diff))
+        return res
+
+    return wrapped_fn
 
 
 def line_append(line, file_path):
@@ -95,6 +113,17 @@ def read_json(file_path):
 def write_json(obj, file_path):
     with open(file_path, 'w') as f:
         json.dump(obj, f, indent=4, separators=(',', ': '))
+
+
+def pickle(data, file_path):
+    with open(file_path, 'wb') as f:
+        cPickle.dump(data, f, cPickle.HIGHEST_PROTOCOL)
+
+
+def unpickle(file_path):
+    with open(file_path, 'rb') as f:
+        data = cPickle.load(f)
+    return data
 
 
 def choice_dict(mdict, size):
@@ -139,9 +168,13 @@ def weight_choice(list, weight_dict):
 
 def mkdir_p(path, delete=True):
     if delete:
-        subprocess.call(('rm -rf ' + path).split())
+        rm(path)
     if not osp.exists(path):
-        os.mkdir(path)
+        subprocess.call(('mkdir -p ' + path).split())
+
+
+def rm(path):
+    subprocess.call(('rm -rf ' + path).split())
 
 
 def i_vis_model(model):

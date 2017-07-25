@@ -1,5 +1,6 @@
-import time, glob
+import time, glob, os, os.path as osp
 import pandas as pd
+import utils
 from log import logger
 from opts import Config
 from tensorflow.tensorboard.backend.event_processing import event_accumulator
@@ -90,6 +91,7 @@ class Stat(object):
                 if '_' in key:
                     del self.stat[key]
 
+    # todo more and specified for weight
     def min(self, tensor):
         return tensor.min()
 
@@ -124,40 +126,87 @@ def df_sort_index(tensors):
     return tensors
 
 
+def clean_name(name):
+    import re
+    name = re.findall('([a-zA-Z0-9/]+)(?::\d+)?', name)[0]
+    name = re.findall('([a-zA-Z0-9/]+)(?:_\d+)?', name)[0]
+    return name
 
-class ParamLoader(Stat):
+
+def test_df(df):
+    print df.index
+    print df.columns
+
+
+@utils.optional_arg_decorator
+def check_cache(fn, cache=True, delete=True):
+    def wrapped_fn(*args, **kwargs):
+        if kwargs !={}:
+            path = kwargs.get('self').path + '/cache.pkl'
+        else:
+            path = args[0].path+'/cache.pkl'
+        if cache and not osp.exists(path):
+            res = fn(*args, **kwargs)
+            utils.pickle(res, path)
+        elif cache and osp.exists(path):
+            res = utils.unpickle(path)
+        else:
+            res = fn(*args, **kwargs)
+        if delete:
+            path = path.rstrip('/cache.pkl') + '/*'
+            path_l = glob.glob(path)
+            for path in path_l:
+                if 'cache.pkl' not in path:
+                    utils.rm(path)
+        return res
+
+    return wrapped_fn
+
+
+class MultiLoader(object):
     def __init__(self, path=None, name=None):
         self.name = name
+        self.path = path
         self.path_l = glob.glob(path + '/*')
-        super(ParamLoader, self).__init__()
 
-    def _load(self, path):
-        _tensor = TensorLoader(path=path).load_tensors()
-        tensor = pd.DataFrame()
-        for name, series in _tensor.iteritems():
-            for ind, val in series.iteritems():
-                for stat_name, stat_func in self.stat.iteritems():
-                    tensor.loc[ind, name + '/' + stat_name] = stat_func(self, val)
-        return tensor
-
+    @check_cache
+    # @utils.timeit(info='parallel load takes')
     def parallel_load(self):
-        pool = Pool()
-        tensos_l = pool.map(self._load, self.path_l)
+        pool = Pool()  # ncpus=6
+        tensors_l = pool.map(self._load, self.path_l)
         # pool.close()
-        return df_sort_index(pd.concat(tensos_l))
+        return df_sort_index(pd.concat(tensors_l)) if tensors_l != [] else None
 
+    @check_cache
+    # @utils.timeit(info='series load takes')
     def seq_load(self):
         tensors_l = []
         for path in self.path_l:
             tensors_l.append(self._load(path))
-        return df_sort_index(pd.concat(tensors_l))
+        return df_sort_index(pd.concat(tensors_l)) if tensors_l != [] else None
+
+    def _load(self, path):
+        pass
 
 
-class ActLoader(Stat):
+class ParamLoader(MultiLoader):
     def __init__(self, path=None, name=None):
-        self.name = name
-        self.path_l = glob.glob(path + '/*')
-        super(ActLoader, self).__init__()
+        super(ParamLoader, self).__init__(path=path, name=name)
+
+    def _load(self, path):
+        stat = Stat()
+        _tensor = TensorLoader(path=path).load_tensors()
+        tensor = pd.DataFrame()
+        for name, series in _tensor.iteritems():
+            for ind, val in series.iteritems():
+                for stat_name, stat_func in stat.stat.iteritems():
+                    tensor.loc[ind, name + '/' + stat_name] = stat_func(stat, val)
+        return tensor
+
+
+class ActLoader(MultiLoader):
+    def __init__(self, path=None, name=None):
+        super(ActLoader, self).__init__(path=path, name=name)
 
     def _load(self, path):
         tensor_l = []
@@ -182,65 +231,53 @@ class ActLoader(Stat):
         tensors.sort_index(axis=0, inplace=True)
         tensors.sort_index(axis=1, inplace=True)
 
+        stat = Stat()
+
         tensor = pd.DataFrame()
         for name, series in tensors.iteritems():
             for ind, val in series.iteritems():
-                for stat_name, stat_func in self.stat.iteritems():
-                    tensor.loc[ind, name + '/' + stat_name] = stat_func(self, val)
+                for stat_name, stat_func in stat.stat.iteritems():
+                    tensor.loc[ind, name + '/' + stat_name] = stat_func(stat, val)
         del tensors
         import gc
         gc.collect()
         return tensor
 
-    def parallel_load(self):
-        pool = Pool(ncpus=6)
-        tensos_l = pool.map(self._load, self.path_l)
-        # pool.close()
-        return df_sort_index(pd.concat(tensos_l))
 
-    def seq_load(self):
-        tensors_l = []
-        for path in self.path_l:
-            tensors_l.append(self._load(path))
-        return df_sort_index(pd.concat(tensors_l))
+class Loader(object):
+    def __init__(self, name=None, path=None): #, cache=True, delete=False
+        self.name = name
+        self.path = path
+        assert osp.exists(path), 'path should exits'
 
+    def load(self,parallel=True):
+        timer = utils.Timer()
+        timer.tic()
+        path = self.path + '/miscellany'
+        self.scalars = ScalarLoader(path=path)
 
-def clean_name(name):
-    import re
-    name = re.findall('([a-zA-Z0-9/]+)(?::\d+)?', name)[0]
-    name = re.findall('([a-zA-Z0-9/]+)(?:_\d+)?', name)[0]
-    return name
+        path = self.path + '/act'
+        if parallel:
+            self.act = ActLoader(path=path).parallel_load()
+        else:
+            self.act = ActLoader(path=path).seq_load()
+        logger.info('load act consume {}'.format(timer.toc()))
 
-
-def test_df(df):
-    print df.index
-    print df.columns
+        path = self.path + '/param'
+        if parallel:
+            self.params = ParamLoader(path=path).parallel_load()
+        else:
+            self.params = ParamLoader(path=path).seq_load()
+        logger.info('load param consume {}'.format(timer.toc()))
 
 
 if __name__ == '__main__':
-    tic = time.time()
-    path = Config.root_path + '/bak/vgg5_cifar10_limit_val_F_lr_0.001/miscellany'
-    scalars = ScalarLoader(path=path).load_scalars()
-    logger.info('load scalars consmue {}'.format(time.time() - tic))
-    # print scalars
-    timer.tic()
+    # path='/home/wangxinglu/prj/Perf_Pred/tfevents/vgg11_cifar10_limit_val_T_lr_1e-05'
+    # loader = Loader(path=path).load()
 
-    path = Config.root_path + '/bak/vgg5_cifar10_limit_val_F_lr_0.001/act'
-    acts = ActLoader(path=path).parallel_load()
-    timer.toc()
-    # test_df(acts)
-
-    # path = Config.root_path + '/tfevents/vgg5_cifar10_limit_val_F_lr_0.001/param'
-    # params = ParamLoader(path=path).parallel_load()
-    # timer.toc()
-    # # test_df(params)
-
-    path = Config.root_path + '/bak/vgg5_cifar10_limit_val_F_lr_0.001/act'
-    acts = ActLoader(path=path).seq_load()
-    timer.toc()
-    # test_df(acts)
-
-    # path = Config.root_path + '/tfevents/vgg5_cifar10_limit_val_F_lr_0.001/param'
-    # params = ParamLoader(path=path).seq_load()
-    # timer.toc()
-    # test_df(params)
+    for path in glob.glob(Config.root_path + '/tfevents/*'):
+        print path
+        # try:
+        loader = Loader(path=path).load()
+        # except Exception as inst:
+        #     print  inst

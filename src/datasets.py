@@ -42,6 +42,8 @@ def static_vars(**kwargs):
 
 @static_vars(ind=None)
 def sample_data(data, n=256 * 2 + 16):
+    # todo
+    np.random.seed(1)
     if sample_data.ind is None:
         sample_data.ind = np.random.permutation(data.shape[0])[:n]
     return data[sample_data.ind]
