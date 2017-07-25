@@ -11,7 +11,7 @@ def run(model_type='vgg5', lr=1e-2, limit_val=True):
     from opts import Config
     from log import logger
 
-    config = Config(epochs=41, batch_size=256, verbose=2,
+    config = Config(epochs=301, batch_size=256, verbose=2,
                     model_type=model_type,
                     dataset_type='cifar10',
                     debug=False, others={'lr': lr, 'limit_val': limit_val})
@@ -45,12 +45,13 @@ import multiprocessing as mp, time
 import subprocess
 
 subprocess.call('rm -r ../tfevents ../output'.split())
+subprocess.call('rm -r tfevents output'.split())
 # run('vgg5')
 tasks = []
-for model_type in ['vgg5']:
-    # for lr in [1e-2, 1e-3, 1e-5]:
-    for lr in [1e-3]:
-        for limit_val in [True, False]:
+for model_type in ['vgg5', 'vgg11', 'vgg19']:
+    for lr in [1, 1e-1, 1e-2, 1e-3, 1e-5]:
+        # for lr in [1e-3]:
+        for limit_val in [True]:
             p = mp.Process(target=run, args=(model_type, lr, limit_val))
             p.start()
             tasks.append(p)

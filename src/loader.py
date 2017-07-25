@@ -143,7 +143,7 @@ class ParamLoader(Stat):
     def parallel_load(self):
         pool = Pool()
         tensos_l = pool.map(self._load, self.path_l)
-        pool.close()
+        # pool.close()
         return df_sort_index(pd.concat(tensos_l))
 
     def seq_load(self):
@@ -195,7 +195,7 @@ class ActLoader(Stat):
     def parallel_load(self):
         pool = Pool(ncpus=6)
         tensos_l = pool.map(self._load, self.path_l)
-        pool.close()
+        # pool.close()
         return df_sort_index(pd.concat(tensos_l))
 
     def seq_load(self):
@@ -219,13 +219,13 @@ def test_df(df):
 
 if __name__ == '__main__':
     tic = time.time()
-    path = Config.root_path + '/tfevents/vgg5_cifar10_limit_val_F_lr_0.001/miscellany'
+    path = Config.root_path + '/bak/vgg5_cifar10_limit_val_F_lr_0.001/miscellany'
     scalars = ScalarLoader(path=path).load_scalars()
     logger.info('load scalars consmue {}'.format(time.time() - tic))
     # print scalars
     timer.tic()
 
-    path = Config.root_path + '/tfevents/vgg5_cifar10_limit_val_F_lr_0.001/act'
+    path = Config.root_path + '/bak/vgg5_cifar10_limit_val_F_lr_0.001/act'
     acts = ActLoader(path=path).parallel_load()
     timer.toc()
     # test_df(acts)
@@ -235,11 +235,11 @@ if __name__ == '__main__':
     # timer.toc()
     # # test_df(params)
 
-    # path = Config.root_path + '/tfevents/vgg5_cifar10_limit_val_F_lr_0.001/act'
-    # acts = ActLoader(path=path).seq_load()
-    # timer.toc()
-    # # test_df(acts)
-    #
+    path = Config.root_path + '/bak/vgg5_cifar10_limit_val_F_lr_0.001/act'
+    acts = ActLoader(path=path).seq_load()
+    timer.toc()
+    # test_df(acts)
+
     # path = Config.root_path + '/tfevents/vgg5_cifar10_limit_val_F_lr_0.001/param'
     # params = ParamLoader(path=path).seq_load()
     # timer.toc()
