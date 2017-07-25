@@ -24,12 +24,13 @@ class Config(object):
     stream_verbose = True
 
     def __init__(self, epochs=100, batch_size=256, verbose=1, name=None, model_type='vgg11',
-                 dataset_type='cifar10', debug=False, others=None, clean=True):
+                 dataset_type='cifar10', debug=False, others=None, clean=True,clean_after=False):
         self.debug = debug
         self.model_type = model_type
         self.batch_size = batch_size
         self.dataset_type = dataset_type
         self.others = others
+        self.clean_after=clean_after
         if name is None:
             self.name = name = model_type + '_' + dataset_type
             if others is not None:

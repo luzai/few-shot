@@ -33,7 +33,7 @@ class Dataset(object):
                                                                         self.x_test, self.y_test])
 
 @utils.static_vars(ind=None)
-def sample_data(data, n=256 * 2 + 16):
+def sample_data(data, n=256+16):
     # todo
     np.random.seed(1)
     if sample_data.ind is None:

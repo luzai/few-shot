@@ -139,7 +139,7 @@ def test_df(df):
 
 
 @utils.optional_arg_decorator
-def check_cache(fn, cache=True, delete=True):
+def check_cache(fn, cache=True, delete=True): # todo delete or not
     def wrapped_fn(*args, **kwargs):
         if kwargs != {}:
             path = kwargs.get('self').path + '/cache.pkl'

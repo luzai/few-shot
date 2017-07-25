@@ -22,7 +22,8 @@ class TensorBoard(Callback):
                  write_images=False,
                  embeddings_freq=0,
                  embeddings_layer_names=None,
-                 embeddings_metadata=None):
+                 embeddings_metadata=None,
+                 dataset=None):
         super(TensorBoard, self).__init__()
         if K.backend() != 'tensorflow':
             raise RuntimeError('TensorBoard callback only works '
@@ -37,8 +38,13 @@ class TensorBoard(Callback):
         self.embeddings_layer_names = embeddings_layer_names
         self.embeddings_metadata = embeddings_metadata or {}
         self.batch_size = batch_size
+        self.dateset = dataset
+        self.iter_per_epoch = int(round(dataset.x_train.shape[0] / float(batch_size)))
+        self.log = True
+        self.epoch=0
 
     def set_model(self, model):
+        self.name = model.name
         self.model = model
         self.sess = K.get_session()
         weight_summ_l = []
@@ -85,12 +91,27 @@ class TensorBoard(Callback):
         writer_weight.add_summary(weight, epoch)
         writer_weight.close()
 
+    def update_log(self, logs):
+        if self.iter < 30 * 200:
+            self.log = True
+        elif self.iter < 90 * 200 and self.iter % 20 == 0:
+            self.log = True
+        elif self.iter > 90 * 200 and self.iter % 200 == 0:
+            self.log = True
+        else:
+            self.log = False
+
     def on_epoch_end(self, epoch, logs=None):
         logs = logs or {}
+        self.epoch = epoch
+        logger.info('Model {} Epoch {} end'.format(self.name, epoch))
+        assert self.batch == self.iter_per_epoch - 1, 'should equal '
 
-        logger.info('Epoch {} end'.format(epoch))
-        if self.validation_data and self.histogram_freq and epoch % self.histogram_freq == 0:
-            logger.info('Epoch {} record tf merged summary'.format(epoch))
+    def on_batch_end(self, batch, logs=None):
+        self.batch = batch
+        self.iter = iter = self.epoch * self.iter_per_epoch + self.batch
+        self.update_log(logs)
+        if self.validation_data and self.histogram_freq and self.log:
             val_data = self.validation_data
             tensors = (self.model.inputs +
                        self.model.targets +
@@ -122,8 +143,11 @@ class TensorBoard(Callback):
                     act_summ_str = self.sess.run([self.act_summ], feed_dict=feed_dict)[0]
                 act_summ_str_l.append(act_summ_str)
                 i += self.batch_size
-            self.new_writer(act_summ_str_l, weight_summ_str, epoch)
+            self.new_writer(act_summ_str_l, weight_summ_str, iter)
 
+        val_loss, val_acc = self.model.evaluate(self.dateset.x_test, self.dateset.y_test,verbose=2)
+        logs['val_loss'] = val_loss
+        logs['val_acc'] = val_acc
         for name, value in logs.items():
             if name in ['batch', 'size']:
                 continue
@@ -131,8 +155,7 @@ class TensorBoard(Callback):
             summary_value = summary.value.add()
             summary_value.simple_value = value.item()
             summary_value.tag = name
-            self.writer.add_summary(summary, epoch)
-            # self.writer.flush()
+            self.writer.add_summary(summary, iter)
 
     def on_train_end(self, logs=None):
         self.writer.close()
