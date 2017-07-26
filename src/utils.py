@@ -32,12 +32,16 @@ def allow_growth():
 
 def get_dev(n=1):
     import GPUtil, time
+    def _limit(devs,ok=(0,1,2,3)):
+        return [dev for dev in devs if dev in ok]
 
     devs = GPUtil.getAvailable(order='memory', maxLoad=0.5, maxMemory=0.5, limit=n)
+    devs = _limit(devs)
     if len(devs) >= 1:
         return devs[0] if n == 1 else devs
     while len(devs) == 0:
-        devs = GPUtil.getAvailable(order='memory', maxLoad=0.9, maxMemory=0.5, limit=n)
+        devs = GPUtil.getAvailable(order='memory', maxLoad=0.9, maxMemory=0.52, limit=n)
+        devs = _limit(devs)
         if len(devs) >= 1:
             logger.info('available {}'.format(devs))
             GPUtil.showUtilization()

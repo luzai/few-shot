@@ -11,8 +11,8 @@ from log import logger
 
 
 class Visualizer(object):
-    def __init__(self, config_dict):
-        self.aggregate(config_dict)
+    def __init__(self, config_dict, join='inner'):
+        self.aggregate(config_dict, join)
         self.split()
 
     def split(self):
@@ -20,7 +20,7 @@ class Visualizer(object):
         self.stat_df = self.select(self.df, 'name', "^obs.*")
 
     def select(self, df, level_name, par_name):
-        sel_name = df.columns.get_level_values('name')
+        sel_name = df.columns.get_level_values(level_name)
         f_sel_name = set()
         pat = re.compile(par_name)
         for sel_name_ in sel_name:
@@ -33,7 +33,7 @@ class Visualizer(object):
         df.sort_index(level=self.level_name, axis=1, inplace=True)
         return df
 
-    def aggregate(self, conf_dict_in):
+    def aggregate(self, conf_dict_in, join):
         conf_name_dict = {}
         loaders = {}
         for model_type in conf_dict_in.get('model_type', [None]):
@@ -41,17 +41,23 @@ class Visualizer(object):
                 conf = Config(epochs=231, batch_size=256, verbose=2,
                               model_type=model_type,
                               dataset_type='cifar10',
-                              debug=False, others={'lr': lr}, #, 'limit_val': True
+                              debug=False, others={'lr': lr},  # , 'limit_val': True
                               clean=False)
-                path = Config.root_path + '/epoch/' + conf.name
+                path = Config.root_path + '/epoch2/' + conf.name
                 if osp.exists(path):
-                    conf_name_dict[conf.name] = conf.to_dict()
+                    _res = {}
+                    for ind, val in conf.to_dict().items():
+                        if isinstance(val, float):
+                            _res[ind] = '{:.2e}'.format(val)
+                        else:
+                            _res[ind] = str(val)
+                    conf_name_dict[conf.name] = _res
                     loader = Loader(path=path)
                     loader.load()
                     loaders[conf.name] = loader
         df_l = []
         index_l = []
-        assert  len(conf_name_dict)!=0,'should not be empty'
+        assert len(conf_name_dict) != 0, 'should not be empty'
         for ind in range(len(conf_name_dict)):
             conf_name = conf_name_dict.keys()[ind]
             conf_dict = conf_name_dict[conf_name]
@@ -78,7 +84,7 @@ class Visualizer(object):
         index_l = np.array(index_l).astype(basestring).transpose()
         index_name = conf_dict.keys() + ['name']
         index = pd.MultiIndex.from_arrays(index_l, names=index_name)
-        df = pd.concat(df_l, axis=1, join='inner')
+        df = pd.concat(df_l, axis=1, join=join)
         df.columns = index
         df = df.sort_index(axis=1, level=index_name)
         self.level_name = index_name
@@ -86,10 +92,17 @@ class Visualizer(object):
         self.df = df
 
 
+import matplotlib.pylab as plt
+
 if __name__ == '__main__':
     config_dict = {'model_type': ['vgg5', 'vgg11', 'vgg19'],
                    'lr': [1, 1e-2, 1e-5]}
     visualizer = Visualizer(config_dict)
-    print visualizer.perf_df.columns
-    print visualizer.stat_df.columns
 
+    perf_df = visualizer.perf_df
+    _df = perf_df
+    _df = visualizer.select(_df, 'name', '(?:acc)')
+    _df = visualizer.select(_df, 'model_type', 'vgg11')
+    # _df=visualizer.select(_df,'lr','1')
+    _df.plot(figsize=(20, 10), marker='>')
+    plt.legend(bbox_to_anchor=(1.08, 1.5))

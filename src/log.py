@@ -1,6 +1,7 @@
 import logging, os
 from opts import Config
 
+from logging import INFO,DEBUG,WARN,ERROR
 
 # log level: CRITICAL > ERROR > WARNING > INFO > DEBUG
 class Filter(object):
