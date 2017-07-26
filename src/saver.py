@@ -2,7 +2,7 @@ from keras.callbacks import Callback
 import keras.backend as K
 import tensorflow as tf
 from tensorflow.contrib.tensorboard.plugins import projector
-import os
+import os,numpy as np
 from log import logger
 
 
@@ -23,7 +23,8 @@ class TensorBoard(Callback):
                  embeddings_freq=0,
                  embeddings_layer_names=None,
                  embeddings_metadata=None,
-                 dataset=None):
+                 dataset=None,
+                 stat=True):
         super(TensorBoard, self).__init__()
         if K.backend() != 'tensorflow':
             raise RuntimeError('TensorBoard callback only works '
@@ -39,9 +40,10 @@ class TensorBoard(Callback):
         self.embeddings_metadata = embeddings_metadata or {}
         self.batch_size = batch_size
         self.dateset = dataset
-        self.iter_per_epoch = int(round(dataset.x_train.shape[0] / float(batch_size)))
+        self.iter_per_epoch = int(np.ceil(dataset.x_train.shape[0] / float(batch_size)))
         self.log = True
         self.epoch=0
+        self.stat=stat
 
     def set_model(self, model):
         self.name = model.name
@@ -92,11 +94,11 @@ class TensorBoard(Callback):
         writer_weight.close()
 
     def update_log(self, logs):
-        if self.iter < 30 * 200:
+        if self.iter < 30 * 200 and self.iter%50==0:
             self.log = True
-        elif self.iter < 90 * 200 and self.iter % 20 == 0:
+        elif self.iter < 90 * 200 and self.iter % 100 == 0:
             self.log = True
-        elif self.iter > 90 * 200 and self.iter % 200 == 0:
+        elif self.iter > 90 * 200 and self.iter % 300 == 0:
             self.log = True
         else:
             self.log = False
@@ -126,7 +128,7 @@ class TensorBoard(Callback):
             act_summ_str_l = []
             while i < val_size:
                 step = min(self.batch_size, val_size - i)
-                logger.info('Val size {} Now {} step forward {}'.format(val_size, i, step))
+                # logger.info('Val size {} Now {} step forward {}'.format(val_size, i, step))
                 batch_val = []
                 batch_val.append(val_data[0][i:i + step])
                 batch_val.append(val_data[1][i:i + step])
@@ -145,17 +147,17 @@ class TensorBoard(Callback):
                 i += self.batch_size
             self.new_writer(act_summ_str_l, weight_summ_str, iter)
 
-        val_loss, val_acc = self.model.evaluate(self.dateset.x_test, self.dateset.y_test,verbose=2)
-        logs['val_loss'] = val_loss
-        logs['val_acc'] = val_acc
-        for name, value in logs.items():
-            if name in ['batch', 'size']:
-                continue
-            summary = tf.Summary()
-            summary_value = summary.value.add()
-            summary_value.simple_value = value.item()
-            summary_value.tag = name
-            self.writer.add_summary(summary, iter)
+            val_loss, val_acc = self.model.evaluate(self.dateset.x_test, self.dateset.y_test,verbose=2)
+            logs['val_loss'] = val_loss
+            logs['val_acc'] = val_acc
+            for name, value in logs.items():
+                if name in ['batch', 'size']:
+                    continue
+                summary = tf.Summary()
+                summary_value = summary.value.add()
+                summary_value.simple_value = value.item()
+                summary_value.tag = name
+                self.writer.add_summary(summary, iter)
 
     def on_train_end(self, logs=None):
         self.writer.close()

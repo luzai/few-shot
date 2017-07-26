@@ -41,9 +41,9 @@ class Visualizer(object):
                 conf = Config(epochs=231, batch_size=256, verbose=2,
                               model_type=model_type,
                               dataset_type='cifar10',
-                              debug=False, others={'lr': lr, 'limit_val': True},
+                              debug=False, others={'lr': lr}, #, 'limit_val': True
                               clean=False)
-                path = Config.root_path + '/bak/' + conf.name
+                path = Config.root_path + '/epoch/' + conf.name
                 if osp.exists(path):
                     conf_name_dict[conf.name] = conf.to_dict()
                     loader = Loader(path=path)
@@ -51,6 +51,7 @@ class Visualizer(object):
                     loaders[conf.name] = loader
         df_l = []
         index_l = []
+        assert  len(conf_name_dict)!=0,'should not be empty'
         for ind in range(len(conf_name_dict)):
             conf_name = conf_name_dict.keys()[ind]
             conf_dict = conf_name_dict[conf_name]

@@ -139,7 +139,7 @@ def test_df(df):
 
 
 @utils.optional_arg_decorator
-def check_cache(fn, cache=True, delete=True): # todo delete or not
+def check_cache(fn, cache=True, delete=True):  # todo delete or not
     def wrapped_fn(*args, **kwargs):
         if kwargs != {}:
             path = kwargs.get('self').path + '/cache.pkl'
@@ -148,15 +148,20 @@ def check_cache(fn, cache=True, delete=True): # todo delete or not
         if cache and not osp.exists(path):
             res = fn(*args, **kwargs)
             utils.pickle(res, path)
+            res.to_hdf(path.rstrip('.pkl') + '.h5', 'df',mode='w')
         elif cache and osp.exists(path):
-            res = utils.unpickle(path)
+            try:
+                res = pd.read_hdf(path.rstrip('.pkl') + '.h5', 'df')
+            except:
+                res = utils.unpickle(path)
+                res.to_hdf(path.rstrip('.pkl') + '.h5', 'df', mode='w')
         else:
             res = fn(*args, **kwargs)
         if delete:
             path = path.rstrip('/cache.pkl') + '/*'
             path_l = glob.glob(path)
             for path in path_l:
-                if 'cache.pkl' not in path:
+                if 'cache.' not in path:
                     utils.rm(path)
         return res
 
@@ -182,6 +187,7 @@ class MultiLoader(object):
     def seq_load(self):
         tensors_l = []
         for path in self.path_l:
+            logger.info('load from path {}'.format(path))
             tensors_l.append(self._load(path))
         return df_sort_index(pd.concat(tensors_l)) if tensors_l != [] else None
 
@@ -248,7 +254,7 @@ class Loader(object):
         self.path = path
         assert osp.exists(path), 'path should exits'
 
-    def load(self, parallel=True):
+    def load(self, parallel=False):
         timer = utils.Timer()
         timer.tic()
         path = self.path + '/miscellany'
@@ -268,11 +274,11 @@ class Loader(object):
 
 
 if __name__ == '__main__':
-    path = '/home/wangxinglu/prj/Perf_Pred/tfevents/vgg11_cifar10_limit_val_T_lr_1'
-    loader = Loader(path=path).load()
-    # for path in glob.glob(Config.root_path + '/bak/*'):
-    #     print path
-    #     # try:
-    #     loader = Loader(path=path).load()
-    #     # except Exception as inst:
-    #     #     print  inst
+    # path = '/home/wangxinglu/prj/Perf_Pred/tfevents/vgg11_cifar10_limit_val_T_lr_1'
+    # loader = Loader(path=path).load()
+    for path in glob.glob(Config.root_path + '/epoch/*'):
+        print path
+        # try:
+        loader = Loader(path=path).load()
+        # except Exception as inst:
+        #     print  inst

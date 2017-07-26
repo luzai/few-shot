@@ -1,5 +1,7 @@
 def run(model_type='vgg5', lr=1e-2, limit_val=True):
     import utils
+    import warnings
+    warnings.filterwarnings("ignore")
     # todo report/observe speed
     # todo callback on iter end rather epoch
     utils.init_dev(utils.get_dev())
@@ -12,7 +14,7 @@ def run(model_type='vgg5', lr=1e-2, limit_val=True):
     from loader import Loader
     from log import logger
 
-    config = Config(epochs=6, batch_size=256, verbose=2,
+    config = Config(epochs=41, batch_size=256, verbose=2,
                     model_type=model_type,
                     dataset_type='cifar10',
                     debug=False, others={'lr': lr}, clean_after=True)
@@ -50,13 +52,13 @@ import subprocess
 
 subprocess.call('rm -r ../tfevents ../output'.split())
 subprocess.call('rm -r tfevents output'.split())
-run('vgg5')
-# tasks = []
-# for model_type in ['vgg5', 'vgg11', 'vgg19']:
-#     for lr in [1, 1e-2, 1e-5]:
-#         p = mp.Process(target=run, args=(model_type, lr))
-#         p.start()
-#         tasks.append(p)
-#         time.sleep(25)
-# for p in tasks:
-#     p.join()
+# run('vgg5')
+tasks = []
+for model_type in ['vgg5', 'vgg11', 'vgg19']:
+    for lr in [1, 1e-2, 1e-5]:
+        p = mp.Process(target=run, args=(model_type, lr))
+        p.start()
+        tasks.append(p)
+        time.sleep(25)
+for p in tasks:
+    p.join()

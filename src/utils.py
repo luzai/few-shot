@@ -1,4 +1,4 @@
-import os, csv, time, cPickle, random, os.path as osp, subprocess, json, matplotlib, numpy as np
+import os, csv, time, cPickle, random, os.path as osp, subprocess, json, matplotlib, numpy as np, GPUtil, pandas as pd
 
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
@@ -17,6 +17,7 @@ def init_dev(n=0):
 
     os.environ['LD_LIBRARY_PATH'] = '/home/gyzhang/cuda-8.0/lib64'
     os.environ['LD_LIBRARY_PATH'] = '/usr/local/cuda-8.0/lib64'
+    # os.environ['PYTHONWARNINGS'] = "ignore"
 
 
 def allow_growth():
@@ -36,7 +37,7 @@ def get_dev(n=1):
     if len(devs) >= 1:
         return devs[0] if n == 1 else devs
     while len(devs) == 0:
-        devs = GPUtil.getAvailable(order='memory', maxLoad=0.5, maxMemory=0.5, limit=n)
+        devs = GPUtil.getAvailable(order='memory', maxLoad=0.9, maxMemory=0.5, limit=n)
         if len(devs) >= 1:
             logger.info('available {}'.format(devs))
             GPUtil.showUtilization()
@@ -59,11 +60,13 @@ def optional_arg_decorator(fn):
 
     return wrapped_decorator
 
+
 def static_vars(**kwargs):
     def decorate(func):
         for k in kwargs:
             setattr(func, k, kwargs[k])
         return func
+
     return decorate
 
 
@@ -133,46 +136,6 @@ def unpickle(file_path):
     return data
 
 
-def choice_dict(mdict, size):
-    # for test
-    # choice = np.random.choice(mdict.keys(), size=size, replace=False)
-    # return {name: model for name, model in mdict.items() if name in choice}
-
-    import Queue
-    queue = Queue.PriorityQueue()
-    for name, model in mdict.items():
-        queue.put((-model.score, name))
-    res = {}
-    for i in range(size):
-        _, name = queue.get()
-        res[name] = mdict[name]
-    return res
-
-
-def choice_dict_keep_latest(mdict, size):
-    # find the max ind model
-    max_ind = -1
-    for name, model in mdict.items():
-        # iter, ind = filter(str.isdigit, name)
-        iter, ind = re.findall('ga_iter_(\d+)_ind_(\d+)', name)[0]
-        # logger.debug('iter {} ind {} max_ind {}'.format(iter, ind, max_ind))
-        if int(ind) > max_ind:
-            max_ind = int(ind)
-            latest = {name: model}
-    assert 'latest' in locals().keys()
-    return latest
-
-
-def weight_choice(list, weight_dict):
-    weight = []
-    for element in list:
-        weight.append(weight_dict[element])
-
-    weight = np.array(weight).astype('float')
-    weight = weight / weight.sum()
-    return int(np.random.choice(range(len(weight)), p=weight))
-
-
 def mkdir_p(path, delete=True):
     if delete:
         rm(path)
@@ -227,23 +190,6 @@ def vis_graph(graph, name='net2net', show=False):
     except Exception as inst:
         logger.warning(inst)
     os.chdir(restore_path)
-
-
-def nvidia_smi():
-    # todo now we only use gpu 0
-    proc = subprocess.Popen("nvidia-smi --query-gpu=index,memory.free --format=csv".split()
-                            , stdout=subprocess.PIPE)
-    (out, err) = proc.communicate()
-    free = re.findall(r'0,\s+(\d+)\s+MiB', out)
-    free = [int(val) for val in free]
-    proc = subprocess.Popen("nvidia-smi --query-gpu=index,memory.total --format=csv".split()
-                            , stdout=subprocess.PIPE)
-    (out, err) = proc.communicate()
-    ttl = re.findall(r'0,\s+(\d+)\s+MiB', out)
-    ttl = [int(val) for val in ttl]
-
-    ratio = float(max(free)) / max(ttl)
-    return ratio
 
 
 def count_weight(model):
@@ -330,6 +276,6 @@ def to_single_dir():
     os.chdir(restore_path)
 
 
+
 if __name__ == '__main__':
-    import GPUtil
-    GPUtil.showUtilization()
+    pass
