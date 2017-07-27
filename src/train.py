@@ -14,7 +14,7 @@ def run(model_type='vgg5', lr=1e-2, limit_val=True, dateset='cifar10', queue=Non
     from loader import Loader
     from log import logger
 
-    config = Config(epochs=301, batch_size=256, verbose=2,
+    config = Config(epochs=1001, batch_size=256, verbose=2,
                     model_type=model_type,
                     dataset_type=dateset,
                     debug=False, others={'lr': lr}, clean_after=False)

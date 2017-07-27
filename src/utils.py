@@ -32,7 +32,7 @@ def allow_growth():
 
 def get_dev(n=1):
     import GPUtil, time
-    def _limit(devs,ok=(0,1,2,3)):
+    def _limit(devs,ok=(0,1,2)):
         return [dev for dev in devs if dev in ok]
 
     devs = GPUtil.getAvailable(order='memory', maxLoad=0.5, maxMemory=0.5, limit=n)

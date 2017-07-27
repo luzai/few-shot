@@ -117,7 +117,7 @@ def check_cache(path):
 
 def cache(res, path, delete=False):
     utils.mkdir_p(path, delete=False)
-    res.copy().to_hdf(path + '/cache.h5', 'df', mode='w')
+    res.to_hdf(path + '/cache.h5', 'df', mode='w')
     if delete:
         path = path.rstrip('/cache.h5') + '/*'
         path_l = glob.glob(path)
@@ -266,7 +266,7 @@ class Loader(threading.Thread):
             self.scalars = select(df, "(?:val_loss|loss|val_acc|acc)")  # .columns
 
             path = self.path + '/act'
-            res=check_cache(path)
+            res = check_cache(path)
             if res is not None:
                 self.act = res
             else:
