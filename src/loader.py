@@ -10,7 +10,7 @@ from tensorflow.contrib.util import make_ndarray
 import numpy as np
 from pathos.pools import ProcessPool as Pool
 from utils import timer
-
+from stats import Stat
 
 class Loader(object):
     def __init__(self, name, path):
@@ -81,44 +81,6 @@ class TensorLoader(Loader):
                 now_step = e.step
                 now_tensor = make_ndarray(e.tensor_proto)
                 logger.info('step {} tensors {} shape {}'.format(now_step, tensor_name, now_tensor.shape))
-
-
-class Stat(object):
-    def __init__(self, stat='all'):
-        if stat == 'all':
-            self.stat = dict(Stat.__dict__)
-            for key in self.stat.keys():
-                if '_' in key:
-                    del self.stat[key]
-
-    # todo more and specified for weight
-    def min(self, tensor):
-        return tensor.min()
-
-    def max(self, tensor):
-        return tensor.max()
-
-    def mean(self, tensor):
-        return tensor.mean()
-
-    def median(self, tensor):
-        return np.median(tensor)
-
-    def std(self, tensor):
-        return tensor.std()
-
-    def iqr(self, tensor):
-        return np.subtract.reduce(np.percentile(tensor, [75, 25]))
-
-    def pos_mean(self, tensor):
-        return tensor[tensor > 0].mean()
-
-    def neg_mean(self, tensor):
-        return tensor[tensor < 0].mean()
-
-    def pos_neg_rat(self, tensor):
-        return float(tensor[tensor > 0].shape[0]) / float(tensor[tensor < 0].shape[0])
-
 
 def df_sort_index(tensors):
     tensors.sort_index(axis=0, inplace=True)

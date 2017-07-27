@@ -110,14 +110,6 @@ def timeit(fn, info=''):
 
     return wrapped_fn
 
-
-def line_append(line, file_path):
-    # csv fields is ['before', 'after', 'operation']
-    with open(file_path, 'a') as f:
-        writer = csv.writer(f)
-        writer.writerow(line)
-
-
 def read_json(file_path):
     with open(file_path, 'r') as f:
         obj = json.load(f)

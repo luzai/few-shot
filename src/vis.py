@@ -21,7 +21,7 @@ class Visualizer(object):
         self.perf_df = self.select(self.df, 'name', "(?:val_loss|loss|val_acc|acc)")
         self.stat_df = self.select(self.df, 'name', "^obs.*")
 
-    def plot_perf(self, perf_df, axes_names):
+    def plot_perf(self, perf_df, axes_names, legend=True):
         # order of axes is (row,col,inside fig)
         row_name, col_name, inside = axes_names
 
@@ -55,22 +55,27 @@ class Visualizer(object):
             targets[0][_j].set_title(col_level[_j])
 
         target = []
-        legends = np.zeros((rows,cols)).astype(object)
+        legends = np.zeros((rows, cols)).astype(object)
         for inds in perf_df.columns:
             for ind in inds:
                 if ind in row_level: _row = level2row[ind]
                 if ind in col_level: _col = level2col[ind]
             for ind in inds:
                 if ind in inside_level:
-                    if legends[_row,_col] ==0: legends[_row,_col] = [ind]
-                    else: legends[_row,_col] +=[ind]
-            target.append(targets[_row,_col])
+                    if legends[_row, _col] == 0:
+                        legends[_row, _col] = [ind]
+                    else:
+                        legends[_row, _col] += [ind]
+            target.append(targets[_row, _col])
 
-        perf_df.plot(subplots=True, legend=True, ax=target)
+        perf_df.plot(subplots=True, legend=legend, ax=target)
 
         for _row in range(legends.shape[0]):
             for _col in range(legends.shape[1]):
-                targets[_row,_col].legend(legends[_row,_col])
+                if legend:
+                    targets[_row, _col].legend(legends[_row, _col])
+                else:
+                    targets[_row, _col].legend([])
 
         return fig
 
@@ -147,7 +152,9 @@ class Visualizer(object):
         df.index.name = 'epoch'
         self.df = df
 
-import  matplotlib
+
+import matplotlib
+
 matplotlib.use('TkAgg')
 matplotlib.style.use('ggplot')
 import matplotlib.pylab as plt
