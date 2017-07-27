@@ -1,4 +1,4 @@
-def run(model_type='vgg5', lr=1e-2, limit_val=True):
+def run(model_type='vgg5', lr=1e-2, limit_val=True,dateset='cifar10'):
     import utils
     import warnings
     warnings.filterwarnings("ignore")
@@ -14,9 +14,9 @@ def run(model_type='vgg5', lr=1e-2, limit_val=True):
     from loader import Loader
     from log import logger
 
-    config = Config(epochs=151, batch_size=256, verbose=2,
+    config = Config(epochs=301, batch_size=256, verbose=2,
                     model_type=model_type,
-                    dataset_type='cifar10',
+                    dataset_type=dateset,
                     debug=False, others={'lr': lr}, clean_after=True)
 
     dataset = Dataset(config.dataset_type, debug=config.debug, limit_val=limit_val)
@@ -50,19 +50,21 @@ def run(model_type='vgg5', lr=1e-2, limit_val=True):
 import multiprocessing as mp, time
 import subprocess
 
-# subprocess.call('rm -r ../tfevents ../output'.split())
-# subprocess.call('rm -r tfevents output'.split())
+subprocess.call('rm -r ../tfevents ../output'.split())
+subprocess.call('rm -r tfevents output'.split())
 
 # run('vgg5',1)
 # run('vgg5',1e-2)
 # run('vgg5',1e-5)
 
 tasks = []
-for model_type in ['vgg5', 'vgg11', 'vgg19']:
-    for lr in [1, 1e-2, 1e-5]:
-        p = mp.Process(target=run, args=(model_type, lr))
-        p.start()
-        tasks.append(p)
-        time.sleep(35)
+for dateset in ['cifar10','cifar100']:
+    for model_type in ['vgg5', 'vgg11', 'vgg19']:
+        for lr in [1, 1e-2, 1e-5]:
+            p = mp.Process(target=run, args=(model_type, lr,dateset))
+            p.start()
+            tasks.append(p)
+            time.sleep(35)
+            p.join()
 for p in tasks:
     p.join()

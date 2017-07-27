@@ -14,7 +14,7 @@ class Dataset(object):
             (x_train, y_train), (x_test, y_test) = cifar10.load_data()
         elif name == 'cifar100':
             self.input_shape = (32, 32, 3)
-            self.classes = 10
+            self.classes = 100
             (x_train, y_train), (x_test, y_test) = cifar100.load_data()
         elif name == 'imagenet':
             raise ValueError('Not Implement')
