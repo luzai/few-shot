@@ -1,4 +1,4 @@
-import time, glob, os, os.path as osp,re,pandas as pd
+import time, glob, os, os.path as osp, re, pandas as pd
 from log import logger
 from opts import Config
 from tensorflow.tensorboard.backend.event_processing import event_accumulator
@@ -11,6 +11,7 @@ import utils
 from utils import timer
 from stats import Stat
 import threading
+
 
 class Loader(object):
     def __init__(self, name, path):
@@ -101,35 +102,28 @@ def test_df(df):
     print df.columns
 
 
-@utils.optional_arg_decorator
-def check_cache(fn, cache=True, delete=True):  # todo delete or not
-    def wrapped_fn(*args, **kwargs):
-        if kwargs != {}:
-            path = kwargs.get('self').path + '/cache.pkl'
-        else:
-            path = args[0].path + '/cache.pkl'
-        if cache and not osp.exists(path):
-            res = fn(*args, **kwargs)
-            utils.pickle(res, path)
-            res.to_hdf(path.rstrip('.pkl') + '.h5', 'df', mode='w')
-        elif cache and osp.exists(path):
-            try:
-                res = pd.read_hdf(path.rstrip('.pkl') + '.h5', 'df')
-            except:
-                res = utils.unpickle(path)
-                res.to_hdf(path.rstrip('.pkl') + '.h5', 'df', mode='w')
-        else:
-            res = fn(*args, **kwargs)
-        if delete:
-            path = path.rstrip('/cache.pkl') + '/*'
-            path_l = glob.glob(path)
-            for path in path_l:
-                if 'cache.' not in path:
-                    utils.rm(path)
+def check_cache(path):
+    path += '/cache'
+    if osp.exists(path + '.pkl'):
+        res = utils.unpickle(path)
+        res.to_hdf(path.rstrip('.pkl') + '.h5', 'df', mode='w')
         return res
+    elif osp.exists(path + '.h5'):
+        res = pd.read_hdf(path + '.h5', 'df')
+        return res
+    else:
+        return None
 
-    return wrapped_fn
 
+def cache(res, path, delete=False):
+    utils.mkdir_p(path, delete=False)
+    res.copy().to_hdf(path + '/cache.h5', 'df', mode='w')
+    if delete:
+        path = path.rstrip('/cache.h5') + '/*'
+        path_l = glob.glob(path)
+        for path in path_l:
+            if 'cache.' not in path:
+                utils.rm(path)
 
 
 class MultiLoader(object):
@@ -138,22 +132,29 @@ class MultiLoader(object):
         self.path = path
         self.path_l = glob.glob(path + '/*')
 
-    @check_cache
     # @utils.timeit(info='parallel load takes')
     def parallel_load(self):
+        res = check_cache(self.path)
+        if res is not None:
+            return res
         pool = Pool()  # ncpus=6
         tensors_l = pool.map(self._load, self.path_l)
-        # pool.close()
-        return df_sort_index(pd.concat(tensors_l)) if tensors_l != [] else None
+        res = df_sort_index(pd.concat(tensors_l)) if tensors_l != [] else None
+        cache(res, self.path)
+        return res
 
-    @check_cache
     # @utils.timeit(info='series load takes')
     def seq_load(self):
+        res = check_cache(self.path)
+        if res is not None:
+            return res
         tensors_l = []
         for path in self.path_l:
             logger.info('load from path {}'.format(path))
             tensors_l.append(self._load(path))
-        return df_sort_index(pd.concat(tensors_l)) if tensors_l != [] else None
+        res = df_sort_index(pd.concat(tensors_l)) if tensors_l != [] else None
+        cache(res, self.path)
+        return res
 
     def _load(self, path):
         pass
@@ -219,27 +220,32 @@ def select(df, pattern):
     for _name in poss_name:
         judge = bool(pattern.match(_name))
         if judge: selected_name.add(_name)
-    df=df.loc[:,(selected_name)]
+    df = df.loc[:, (selected_name)]
     return df
 
 
 class Loader(threading.Thread):
-    def __init__(self, name=None, path=None,parallel=True, stat_only=False):  # , cache=True, delete=False
+    def __init__(self, name=None, path=None, parallel=True, stat_only=False, cache=True, delete=False):  #
         threading.Thread.__init__(self)
         self.name = name
         self.path = path
         assert osp.exists(path), 'path should exits'
-        self.parallel=parallel
-        self.stat_only=stat_only
+        self.parallel = parallel
+        self.stat_only = stat_only
 
     def run(self):
-        self.load(self.parallel,self.stat_only)
+        self.load(self.parallel, self.stat_only)
 
     def load(self, parallel=True, stat_only=False):
         timer = utils.Timer()
         timer.tic()
         path = self.path + '/miscellany'
-        self.scalars = ScalarLoader(path=path).load_scalars()
+        res = check_cache(path)
+        if res is not None:
+            self.scalars = res
+        else:
+            self.scalars = ScalarLoader(path=path).load_scalars()
+            cache(select(self.scalars, "(?:val_loss|loss|val_acc|acc)"), path)
         logger.info('load scalars consume {}'.format(timer.toc()))
 
         if not stat_only:
@@ -256,10 +262,24 @@ class Loader(threading.Thread):
                 self.params = ParamLoader(path=path).seq_load()
             logger.info('load param consume {}'.format(timer.toc()))
         else:
-            df=self.scalars
-            self.scalars=select(df,"(?:val_loss|loss|val_acc|acc)")#.columns
-            self.act=select(df,"^obs.*?act.*")#.columns
-            self.params=select(df,"^obs.*?(?:kernel|bias).*")
+            df = self.scalars
+            self.scalars = select(df, "(?:val_loss|loss|val_acc|acc)")  # .columns
+
+            path = self.path + '/act'
+            res=check_cache(path)
+            if res is not None:
+                self.act = res
+            else:
+                self.act = select(df, "^obs.*?act.*")  # .columns
+                cache(self.act, path)
+
+            path = self.path + '/params'
+            res = check_cache(path)
+            if res is not None:
+                self.params = res
+            else:
+                self.params = select(df, "^obs.*?(?:kernel|bias).*")
+                cache(self.params, path)
 
 
 if __name__ == '__main__':
