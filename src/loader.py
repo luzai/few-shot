@@ -216,23 +216,26 @@ class Loader(object):
         self.path = path
         assert osp.exists(path), 'path should exits'
 
-    def load(self, parallel=False):
+    def load(self, parallel=False,stat_only=False):
         timer = utils.Timer()
         timer.tic()
         path = self.path + '/miscellany'
         self.scalars = ScalarLoader(path=path).load_scalars()
-        path = self.path + '/act'
-        if parallel:
-            self.act = ActLoader(path=path).parallel_load()
-        else:
-            self.act = ActLoader(path=path).seq_load()
-        logger.info('load act consume {}'.format(timer.toc()))
-        path = self.path + '/param'
-        if parallel:
-            self.params = ParamLoader(path=path).parallel_load()
-        else:
-            self.params = ParamLoader(path=path).seq_load()
-        logger.info('load param consume {}'.format(timer.toc()))
+        logger.info('load scalars consume {}'.format(timer.toc()))
+
+        if not stat_only:
+            path = self.path + '/act'
+            if parallel:
+                self.act = ActLoader(path=path).parallel_load()
+            else:
+                self.act = ActLoader(path=path).seq_load()
+            logger.info('load act consume {}'.format(timer.toc()))
+            path = self.path + '/param'
+            if parallel:
+                self.params = ParamLoader(path=path).parallel_load()
+            else:
+                self.params = ParamLoader(path=path).seq_load()
+            logger.info('load param consume {}'.format(timer.toc()))
 
 
 if __name__ == '__main__':
@@ -241,6 +244,7 @@ if __name__ == '__main__':
     for path in glob.glob(Config.root_path + '/epoch/*'):
         print path
         # try:
-        loader = Loader(path=path).load()
+        loader = Loader(path=path)
+        loader.load()
         # except Exception as inst:
         #     print  inst

@@ -38,13 +38,12 @@ class Config(object):
                     # if isinstance(val, bool): key, val =( key, '') if val else ('', '')
                     if isinstance(val, bool): key, val = (key, 'T') if val else (key, 'F')
                     name += '_' + str(key) + '_' + str(val)
-                self.name = name
+        self.name = name
 
         self.model_tfevents_path = osp.join(Config.tfevents_path, name)
         self.model_output_path = osp.join(Config.output_path, name)
-        if clean:
-            # Attention!! Delete
-            self.clean_model_path()
+
+        self.clean_model_path(clean)
         self.epochs = epochs
         self.verbose = verbose
 
@@ -60,9 +59,9 @@ class Config(object):
         if self.others is not None:  d.update(self.others)
         return d
 
-    def clean_model_path(self):
-        mkdir_p(self.model_tfevents_path)
-        mkdir_p(self.model_output_path)
+    def clean_model_path(self,clean):
+        mkdir_p(self.model_tfevents_path,delete=clean)
+        mkdir_p(self.model_output_path,delete=clean)
 
 
 if __name__ == '__main__':

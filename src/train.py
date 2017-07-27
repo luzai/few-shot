@@ -7,14 +7,14 @@ def run(model_type='vgg5', lr=1e-2, limit_val=True,dateset='cifar10'):
     utils.init_dev(utils.get_dev())
     # utils.allow_growth()
     import tensorflow as tf, keras
-    from saver import TensorBoard,TensorBoard2
+    from saver import TensorBoard2
     from datasets import Dataset
     from models import VGG
     from opts import Config
     from loader import Loader
     from log import logger
 
-    config = Config(epochs=301, batch_size=256, verbose=2,
+    config = Config(epochs=31, batch_size=256, verbose=2,
                     model_type=model_type,
                     dataset_type=dateset,
                     debug=False, others={'lr': lr}, clean_after=True)
@@ -65,6 +65,6 @@ for dateset in ['cifar10','cifar100']:
             p.start()
             tasks.append(p)
             time.sleep(35)
-            p.join()
+            # p.join()
 for p in tasks:
     p.join()

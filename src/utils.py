@@ -271,6 +271,11 @@ def to_single_dir():
         print parent, filenames
     os.chdir(restore_path)
 
+def dict_concat(d_l):
+    d1=d_l[0].copy()
+    for d in d_l[1:]:
+        d1.update(d)
+    return d1
 
 
 if __name__ == '__main__':

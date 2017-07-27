@@ -35,3 +35,9 @@ class Stat(object):
 
     def pos_neg_rat(self, tensor):
         return float(tensor[tensor > 0].shape[0]) / float(tensor[tensor < 0].shape[0])
+
+    def calc_all(self,tensor,name):
+        res={}
+        for key,val in self.stat.iteritems():
+            res[name+'/'+key]=val(self,tensor)
+        return  res

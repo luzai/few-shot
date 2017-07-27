@@ -1,19 +1,70 @@
-from pathos.multiprocessing import ProcessingPool
+def run(model_type='vgg5', lr=1e-2, limit_val=True, dateset='cifar10'):
+    import utils
+    import warnings
+    warnings.filterwarnings("ignore")
+    # todo report/observe speed
+    # todo callback on iter end rather epoch
+    utils.init_dev(utils.get_dev())
+    # utils.allow_growth()
+    import tensorflow as tf, keras
+    from saver import TensorBoard2
+    from datasets import Dataset
+    from models import VGG
+    from opts import Config
+    from loader import Loader
+    from log import logger
+
+    config = Config(epochs=21, batch_size=256, name='tmp', verbose=2,
+                    model_type=model_type,
+                    dataset_type=dateset,
+                    debug=False, others={'lr': lr}, clean=True, clean_after=False)
+
+    dataset = Dataset(config.dataset_type, debug=config.debug, limit_val=limit_val)
+    vgg = VGG(dataset.input_shape, dataset.classes, config.model_type, with_bn=False, with_dp=True, name=config.name)
+    vgg.model.summary()
+    # todo lr scheme
+    # todo plataea auto detect and variant sample rate
+    # todo verify!! validation dataset size sensitivity
+    vgg.model.compile(
+        # keras.optimizers.rmsprop(lr=0.0001, decay=1e-6),
+        keras.optimizers.sgd(lr),
+        loss='categorical_crossentropy',
+        metrics=['accuracy'])
+    import tensorflow as tf
+
+    vgg.model.fit(dataset.x_train, dataset.y_train, batch_size=config.batch_size, epochs=config.epochs,
+                  verbose=config.verbose,
+                  validation_data=(dataset.x_test, dataset.y_test),
+                  callbacks=[TensorBoard2(log_dir=config.model_tfevents_path,
+                                          histogram_freq=5,
+                                          batch_size=config.batch_size,
+                                          write_graph=True,
+                                          write_grads=False,
+                                          dataset=dataset
+                                          )]
+                  )
+    # if config.clean_after:
+    #     Loader(path=config.model_tfevents_path).load()
 
 
-class Bar:
-    def foo(self, name):
-        return len(str(name))
+import multiprocessing as mp, time
+import subprocess
 
-    def boo(self, things):
-        for thing in things:
-            self.sum += self.foo(thing)
-        return self.sum
+# subprocess.call('rm -r ../tfevents ../output'.split())
+# subprocess.call('rm -r tfevents output'.split())
 
-    sum = 0
+run('vgg5', 1)
+# run('vgg5',1e-2)
+# run('vgg5',1e-5)
 
-
-b = Bar()
-results = ProcessingPool().map(b.boo, [[12, 3, 456], [8, 9, 10], ['a', 'b', 'cde']])
-print  results
-print b.sum
+# tasks = []
+# for dateset in ['cifar10','cifar100']:
+#     for model_type in ['vgg5', 'vgg11', 'vgg19']:
+#         for lr in [1, 1e-2, 1e-5]:
+#             p = mp.Process(target=run, args=(model_type, lr,dateset))
+#             p.start()
+#             tasks.append(p)
+#             time.sleep(35)
+#             p.join()
+# for p in tasks:
+#     p.join()
