@@ -40,7 +40,7 @@ def get_dev(n=1):
     if len(devs) >= 1:
         return devs[0] if n == 1 else devs
     while len(devs) == 0:
-        devs = GPUtil.getAvailable(order='memory', maxLoad=0.9, maxMemory=0.52, limit=n)
+        devs = GPUtil.getAvailable(order='memory', maxLoad=0.9, maxMemory=0.5, limit=n)
         devs = _limit(devs)
         if len(devs) >= 1:
             logger.info('available {}'.format(devs))
@@ -117,11 +117,13 @@ def read_json(file_path):
 
 
 def write_json(obj, file_path):
+    mkdir_p(osp.dirname(file_path),delete=False)
     with open(file_path, 'w') as f:
         json.dump(obj, f, indent=4, separators=(',', ': '))
 
 
 def pickle(data, file_path):
+    mkdir_p(osp.dirname(file_path), delete=False)
     with open(file_path, 'wb') as f:
         cPickle.dump(data, f, cPickle.HIGHEST_PROTOCOL)
 

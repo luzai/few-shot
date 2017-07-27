@@ -1,6 +1,4 @@
-import time, glob, os, os.path as osp
-import pandas as pd
-import utils
+import time, glob, os, os.path as osp,re,pandas as pd
 from log import logger
 from opts import Config
 from tensorflow.tensorboard.backend.event_processing import event_accumulator
@@ -9,8 +7,10 @@ import tensorflow as tf
 from tensorflow.contrib.util import make_ndarray
 import numpy as np
 from pathos.pools import ProcessPool as Pool
+import utils
 from utils import timer
 from stats import Stat
+import threading
 
 class Loader(object):
     def __init__(self, name, path):
@@ -82,6 +82,7 @@ class TensorLoader(Loader):
                 now_tensor = make_ndarray(e.tensor_proto)
                 logger.info('step {} tensors {} shape {}'.format(now_step, tensor_name, now_tensor.shape))
 
+
 def df_sort_index(tensors):
     tensors.sort_index(axis=0, inplace=True)
     tensors.sort_index(axis=1, inplace=True)
@@ -110,7 +111,7 @@ def check_cache(fn, cache=True, delete=True):  # todo delete or not
         if cache and not osp.exists(path):
             res = fn(*args, **kwargs)
             utils.pickle(res, path)
-            res.to_hdf(path.rstrip('.pkl') + '.h5', 'df',mode='w')
+            res.to_hdf(path.rstrip('.pkl') + '.h5', 'df', mode='w')
         elif cache and osp.exists(path):
             try:
                 res = pd.read_hdf(path.rstrip('.pkl') + '.h5', 'df')
@@ -128,6 +129,7 @@ def check_cache(fn, cache=True, delete=True):  # todo delete or not
         return res
 
     return wrapped_fn
+
 
 
 class MultiLoader(object):
@@ -210,13 +212,30 @@ class ActLoader(MultiLoader):
         return tensor
 
 
-class Loader(object):
-    def __init__(self, name=None, path=None):  # , cache=True, delete=False
+def select(df, pattern):
+    poss_name = df.columns
+    selected_name = set()
+    pattern = re.compile(pattern)
+    for _name in poss_name:
+        judge = bool(pattern.match(_name))
+        if judge: selected_name.add(_name)
+    df=df.loc[:,(selected_name)]
+    return df
+
+
+class Loader(threading.Thread):
+    def __init__(self, name=None, path=None,parallel=True, stat_only=False):  # , cache=True, delete=False
+        threading.Thread.__init__(self)
         self.name = name
         self.path = path
         assert osp.exists(path), 'path should exits'
+        self.parallel=parallel
+        self.stat_only=stat_only
 
-    def load(self, parallel=False,stat_only=False):
+    def run(self):
+        self.load(self.parallel,self.stat_only)
+
+    def load(self, parallel=True, stat_only=False):
         timer = utils.Timer()
         timer.tic()
         path = self.path + '/miscellany'
@@ -236,15 +255,27 @@ class Loader(object):
             else:
                 self.params = ParamLoader(path=path).seq_load()
             logger.info('load param consume {}'.format(timer.toc()))
+        else:
+            df=self.scalars
+            self.scalars=select(df,"(?:val_loss|loss|val_acc|acc)")#.columns
+            self.act=select(df,"^obs.*?act.*")#.columns
+            self.params=select(df,"^obs.*?(?:kernel|bias).*")
 
 
 if __name__ == '__main__':
-    # path = '/home/wangxinglu/prj/Perf_Pred/tfevents/vgg11_cifar10_limit_val_T_lr_1'
-    # loader = Loader(path=path).load()
-    for path in glob.glob(Config.root_path + '/epoch/*'):
+
+    # for path in glob.glob(Config.root_path + '/epoch/*'):
+    #     print path
+    #     # try:
+    #     loader = Loader(path=path)
+    #     loader.load(stat_only=False, parallel=True)
+    #     # except Exception as inst:
+    #     #     print  inst
+
+    for path in glob.glob(Config.root_path + '/stat/*'):
         print path
         # try:
         loader = Loader(path=path)
-        loader.load()
+        loader.load(stat_only=True, parallel=True)
         # except Exception as inst:
         #     print  inst

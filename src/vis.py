@@ -8,11 +8,16 @@ from datasets import Dataset
 from models import VGG
 from opts import Config
 from log import logger
+import matplotlib
+
+matplotlib.use('TkAgg')
+matplotlib.style.use('ggplot')
+import matplotlib.pylab as plt
 
 
 class Visualizer(object):
-    def __init__(self, config_dict, join='inner'):
-        self.aggregate(config_dict, join)
+    def __init__(self, config_dict, join='inner', stat_only=True, paranet_folder='stat'):
+        self.aggregate(config_dict, join, stat_only=stat_only, parant_folder=paranet_folder)
         self.split()
         # self.names2levels = {level: np.unique(self.columns.get_level_values(level)) for level in self.names}
         self.names2levels = {name: level for level, name in zip(self.df.columns.levels, self.df.columns.names)}
@@ -48,7 +53,7 @@ class Visualizer(object):
         level2inside = {val: ind for ind, val in enumerate(inside_level)}
         insides = len(inside_level)
 
-        fig, targets = plt.subplots(rows, cols, sharex=True)
+        fig, targets = plt.subplots(rows, cols)#, sharex=True)
         for _i in range(rows):
             targets[_i][0].set_ylabel(row_level[_i])
         for _j in range(cols):
@@ -93,28 +98,30 @@ class Visualizer(object):
         df.sort_index(level=self.names, axis=1, inplace=True)
         return df
 
-    def aggregate(self, conf_dict_in, join):
+    def aggregate(self, conf_dict_in, join, parant_folder, stat_only):
         conf_name_dict = {}
         loaders = {}
         for model_type in conf_dict_in.get('model_type', [None]):
             for lr in conf_dict_in.get('lr', [None]):
-                conf = Config(epochs=231, batch_size=256, verbose=2,
-                              model_type=model_type,
-                              dataset_type='cifar10',
-                              debug=False, others={'lr': lr},  # , 'limit_val': True
-                              clean=False)
-                path = Config.root_path + '/epoch/' + conf.name
-                if osp.exists(path):
-                    _res = {}
-                    for ind, val in conf.to_dict().items():
-                        if isinstance(val, float):
-                            _res[ind] = '{:.2e}'.format(val)
-                        else:
-                            _res[ind] = str(val)
-                    conf_name_dict[conf.name] = _res
-                    loader = Loader(path=path)
-                    loader.load()
-                    loaders[conf.name] = loader
+                for dataset_type in conf_dict_in.get('dataset_type',[None]):
+                    conf = Config(epochs=231, batch_size=256, verbose=2,
+                                  model_type=model_type,
+                                  dataset_type=dataset_type,
+                                  debug=False, others={'lr': lr},  # , 'limit_val': True
+                                  clean=False)
+                    path = Config.root_path + '/' + parant_folder + '/' + conf.name
+                    if osp.exists(path):
+                        _res = {}
+                        for ind, val in conf.to_dict().items():
+                            if isinstance(val, float):
+                                _res[ind] = '{:.2e}'.format(val)
+                            else:
+                                _res[ind] = str(val)
+                        conf_name_dict[conf.name] = _res
+                        loader = Loader(path=path,stat_only=stat_only)
+                        # loader.start()
+                        loader.load(stat_only=stat_only)
+                        loaders[conf.name] = loader
         df_l = []
         index_l = []
         assert len(conf_name_dict) != 0, 'should not be empty'
@@ -123,8 +130,7 @@ class Visualizer(object):
             conf_dict = conf_name_dict[conf_name]
 
             loader = loaders[conf_name]
-            loader.load()
-
+            # loader.join()
             scalar = loader.scalars
             act = loader.act
             param = loader.params
@@ -149,25 +155,24 @@ class Visualizer(object):
         df = df.sort_index(axis=1, level=index_name)
         self.names = index_name
         self.columns = index
-        df.index.name = 'epoch'
+        df.index.name = 'epoch' if not stat_only else 'iter'
         self.df = df
 
 
-import matplotlib
-
-matplotlib.use('TkAgg')
-matplotlib.style.use('ggplot')
-import matplotlib.pylab as plt
-
 if __name__ == '__main__':
+    tic=time.time()
     config_dict = {'model_type': ['vgg5', 'vgg11', 'vgg19'],
-                   'lr': [1, 1e-2, 1e-5]}
-    visualizer = Visualizer(config_dict)
+                   'lr': [1, 1e-2, 1e-5],
+                   'dataset_type':['cifar10','cifar100']
+                   }
+    visualizer = Visualizer(config_dict,join='inner',stat_only=True,paranet_folder='stat')
 
     perf_df = visualizer.perf_df
     _df = perf_df
-    _df = visualizer.select(_df, 'dataset_type', 'cifar10')
+    # _df = visualizer.select(_df, 'dataset_type', 'cifar10')
+    _df = visualizer.select(_df, 'model_type', 'vgg5')
 
-    visualizer.plot_perf(_df, ('model_type', 'name', 'lr'))
-
+    # visualizer.plot_perf(_df, ('model_type', 'name', 'lr'))
+    visualizer.plot_perf(_df, ('lr', 'name', 'dataset_type'))
+    print time.time()-tic
     plt.show()
