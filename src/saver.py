@@ -63,7 +63,7 @@ class TensorBoard2(Callback):
         self.act_l = {}
         if self.histogram_freq and self.merged is None:
             for layer in self.model.layers:
-                if 'conv2d' not in layer.name:
+                if 'obs' not in layer.name: # only log obs
                     continue
                 for weight in layer.weights:
                     # todo more clean way to name

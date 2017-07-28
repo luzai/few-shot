@@ -50,17 +50,20 @@ class VGG(BaseModel):
             elif config[0] == 'flatten':
                 x = Flatten()(x)
             elif config[0] == 'dense' and config[1] != self.classes:
-                x = Dense(config[1], activation='relu')(x)
+                x = Dense(config[1], name='obs{}/dense'.format(depth))(x)
+                x = Activation('relu')(x)
+                depth += 1
                 if self.with_dp:
                     x = Dropout(.5)(x)
             else:
                 assert config[1] == self.classes, 'should be end'
-                x = Dense(config[1], activation='softmax')(x)
+                x = Dense(config[1], name='obs{}/dense'.format(depth))(x)
+                x = Activation('softmax', name='obs{}/softmax'.format(depth))(x)
 
         model = Model(input, x, name=name)
         return model
 
 
 if __name__ == '__main__':
-    vgg = VGG((32, 32, 3), 10, type='vgg5')
+    vgg = VGG((32, 32, 3), 10, type='vgg6')
     vgg.model.summary()

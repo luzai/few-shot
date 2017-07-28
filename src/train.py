@@ -8,13 +8,14 @@ def run(model_type='vgg5', lr=1e-2, limit_val=True, dateset='cifar10', queue=Non
     utils.allow_growth()
     import tensorflow as tf, keras
     from saver import TensorBoard2
+    from keras.callbacks import TensorBoard
     from datasets import Dataset
     from models import VGG
     from opts import Config
     from loader import Loader
     from log import logger
 
-    config = Config(epochs=1001, batch_size=256, verbose=2,
+    config = Config(epochs=201, batch_size=256, verbose=2,
                     model_type=model_type,
                     dataset_type=dateset,
                     debug=False, others={'lr': lr}, clean_after=False)
@@ -35,13 +36,16 @@ def run(model_type='vgg5', lr=1e-2, limit_val=True, dateset='cifar10', queue=Non
     vgg.model.fit(dataset.x_train, dataset.y_train, batch_size=config.batch_size, epochs=config.epochs,
                   verbose=config.verbose,
                   validation_data=(dataset.x_test, dataset.y_test),
-                  callbacks=[TensorBoard2(log_dir=config.model_tfevents_path,
-                                          histogram_freq=5,
-                                          batch_size=config.batch_size,
-                                          write_graph=True,
-                                          write_grads=False,
-                                          dataset=dataset
-                                          )]
+                  callbacks=[
+                      # TensorBoard2(log_dir=config.model_tfevents_path,
+                      #                     histogram_freq=5,
+                      #                     batch_size=config.batch_size,
+                      #                     write_graph=True,
+                      #                     write_grads=False,
+                      #                     dataset=dataset
+                      #                     ),
+                      TensorBoard(log_dir=config.model_tfevents_path)
+                  ]
                   )
     if config.clean_after:
         Loader(path=config.model_tfevents_path).load()
@@ -49,7 +53,7 @@ def run(model_type='vgg5', lr=1e-2, limit_val=True, dateset='cifar10', queue=Non
 
 import multiprocessing as mp, time
 import subprocess
-
+from log import  logger
 subprocess.call('rm -r ../tfevents ../output'.split())
 subprocess.call('rm -r tfevents output'.split())
 
@@ -57,16 +61,16 @@ subprocess.call('rm -r tfevents output'.split())
 # run('vgg5', 1e-2)
 # run('vgg5',1e-5)
 
-queue=mp.Queue()
+queue = mp.Queue()
 tasks = []
-for dateset in ['cifar10','cifar100']:
-    for model_type in ['vgg5', 'vgg11', 'vgg19']:
+for dateset in ['cifar10', 'cifar100']:
+    for model_type in ['vgg6', 'vgg7', 'vgg8', 'vgg9', 'vgg10']:
         for lr in [1, 1e-2, 1e-5]:
             p = mp.Process(target=run, args=(model_type, lr, True, dateset, queue))
             p.start()
             tasks.append(p)
-            while not queue.get() and queue.get()[0]:
-                time.sleep(5)
+            _res=queue.get()
+            logger.info('last task return {}'.format(_res))
             time.sleep(15)
 for p in tasks:
     p.join()

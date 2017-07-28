@@ -32,12 +32,16 @@ def allow_growth():
 
 def get_dev(n=1):
     import GPUtil, time
-    def _limit(devs,ok=(0,1,2)):
+    logger.info('Auto select gpu')
+    GPUtil.showUtilization()
+    def _limit(devs, ok=(0, 1, 2, 3)):
         return [dev for dev in devs if dev in ok]
 
     devs = GPUtil.getAvailable(order='memory', maxLoad=0.5, maxMemory=0.5, limit=n)
     devs = _limit(devs)
     if len(devs) >= 1:
+        logger.info('available {}'.format(devs))
+        GPUtil.showUtilization()
         return devs[0] if n == 1 else devs
     while len(devs) == 0:
         devs = GPUtil.getAvailable(order='memory', maxLoad=0.9, maxMemory=0.5, limit=n)
@@ -48,7 +52,7 @@ def get_dev(n=1):
             return devs[0] if n == 1 else devs
         logger.info('no device avelaible')
         GPUtil.showUtilization()
-        time.sleep(60 * 3)
+        time.sleep(5) # 60 * 3
 
 
 def optional_arg_decorator(fn):
@@ -110,6 +114,7 @@ def timeit(fn, info=''):
 
     return wrapped_fn
 
+
 def read_json(file_path):
     with open(file_path, 'r') as f:
         obj = json.load(f)
@@ -117,7 +122,7 @@ def read_json(file_path):
 
 
 def write_json(obj, file_path):
-    mkdir_p(osp.dirname(file_path),delete=False)
+    mkdir_p(osp.dirname(file_path), delete=False)
     with open(file_path, 'w') as f:
         json.dump(obj, f, indent=4, separators=(',', ': '))
 
@@ -150,7 +155,7 @@ def i_vis_model(model):
     return SVG(vis_utils.model_to_dot(model, show_shapes=True).create(prog='dot', format='svg'))
 
 
-def vis_model(model, name='net2net', show_shapes=True):
+def vis_model(model, name='model', show_shapes=True):
     import keras
     from keras.utils import vis_utils
     path = osp.dirname(name)
@@ -273,8 +278,9 @@ def to_single_dir():
         print parent, filenames
     os.chdir(restore_path)
 
+
 def dict_concat(d_l):
-    d1=d_l[0].copy()
+    d1 = d_l[0].copy()
     for d in d_l[1:]:
         d1.update(d)
     return d1
