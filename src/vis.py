@@ -55,7 +55,8 @@ class Visualizer(object):
         level2inside = {val: ind for ind, val in enumerate(inside_level)}
         insides = len(inside_level)
 
-        fig, targets = plt.subplots(rows, cols)  # , sharex=True)
+        fig, targets = plt.subplots(rows, cols,figsize=(18,9))  # , sharex=True)
+
         for _i in range(rows):
             targets[_i][0].set_ylabel(row_level[_i])
         for _j in range(cols):
@@ -92,16 +93,17 @@ class Visualizer(object):
         assert len(perf_df.columns.names) == 3
         fig = self._plot(perf_df, axes_names, legend)
         fig.suptitle(super_title)
+        fig.savefig(Config.output_path +'/'+ super_title+'.png')
         return fig
 
     plot = plot_stat = plot_perf
 
-    def select(self, df, level_name, par_name, sort_names=None):
+    def select(self, df, level_name, par_name, sort_names=None,regexp=True):
         sel_name = df.columns.get_level_values(level_name)
         f_sel_name = set()
         pat = re.compile(par_name)
         for sel_name_ in sel_name:
-            judge = bool(pat.match(sel_name_))
+            judge = bool(pat.match(sel_name_)) if   regexp else par_name == sel_name_
             if judge: f_sel_name.add(sel_name_)
         df_l = []
         for sel_name_ in f_sel_name:
@@ -172,10 +174,82 @@ class Visualizer(object):
         df.index.name = 'epoch' if not stat_only else 'iter'
         self.df = df
 
-        # def plot_stat(self, stat_df, axes_names, legend=True):
-        #     stat_df = drop_level(stat_df)
-        #     assert len(stat_df.columns.names) == 3
-        #     return self._plot(stat_df, axes_names, legend)
+    def auto_plot(self, df, ):
+        columns = df.columns
+        names = columns.names
+        names = np.array(names)
+        levels = columns.levels
+        name2level = {name: level for name, level in zip(names, levels)}
+        for axes_names in names[comb_index(len(names), 3)]:
+            other_names = list(set(names) - set(axes_names))
+            for poss in cartesian([name2level[name] for name in other_names]):
+                _df = df.copy()
+                for _name, _poss in zip(other_names, poss):
+                    _df = self.select(_df, _name, _poss,regexp=False)
+                self.plot(_df, axes_names)
+                plt.close()
+
+
+from itertools import combinations, chain
+from scipy.misc import comb
+
+
+def cartesian(arrays, out=None):
+    """
+    Generate a cartesian product of input arrays.
+
+    Parameters
+    ----------
+    arrays : list of array-like
+        1-D arrays to form the cartesian product of.
+    out : ndarray
+        Array to place the cartesian product in.
+
+    Returns
+    -------
+    out : ndarray
+        2-D array of shape (M, len(arrays)) containing cartesian products
+        formed of input arrays.
+
+    Examples
+    --------
+    >>> cartesian(([1, 2, 3], [4, 5], [6, 7]))
+    array([[1, 4, 6],
+           [1, 4, 7],
+           [1, 5, 6],
+           [1, 5, 7],
+           [2, 4, 6],
+           [2, 4, 7],
+           [2, 5, 6],
+           [2, 5, 7],
+           [3, 4, 6],
+           [3, 4, 7],
+           [3, 5, 6],
+           [3, 5, 7]])
+
+    """
+
+    arrays = [np.asarray(x) for x in arrays]
+    dtype = arrays[0].dtype
+
+    n = np.prod([x.size for x in arrays])
+    if out is None:
+        out = np.zeros([n, len(arrays)], dtype=dtype)
+
+    m = n / arrays[0].size
+    out[:, 0] = np.repeat(arrays[0], m)
+    if arrays[1:]:
+        cartesian(arrays[1:], out=out[0:m, 1:])
+        for j in xrange(1, arrays[0].size):
+            out[j * m:(j + 1) * m, 1:] = out[0:m, 1:]
+    return out
+
+
+def comb_index(n, k):
+    count = comb(n, k, exact=True)
+    index = np.fromiter(chain.from_iterable(combinations(range(n), k)),
+                        int, count=count * k)
+    return index.reshape(-1, k)
 
 
 def expand_level(columns):
@@ -203,12 +277,10 @@ def split_path(path):
         else:
             if path != "":
                 folders.append(path)
-
             break
 
     folders.reverse()
     return folders
-
 
 
 if __name__ == '__main__':
@@ -220,6 +292,7 @@ if __name__ == '__main__':
     visualizer = Visualizer(config_dict, join='inner', stat_only=True, paranet_folder='stat')
 
     # perf_df = visualizer.perf_df
+    # visualizer.auto_plot(perf_df)
     # _df = perf_df
     # # _df = visualizer.select(_df, 'dataset_type', 'cifar10')
     # _df = visualizer.select(_df, 'model_type', 'vgg6')
@@ -228,14 +301,16 @@ if __name__ == '__main__':
     # visualizer.plot_perf(_df, ('lr', 'name', 'dataset_type'))
     print time.time() - tic
 
+
     df = stat_df = visualizer.stat_df
     df.columns = expand_level(df.columns)
-    df = visualizer.select(df, 'name2', 'act')
-    df = visualizer.select(df, 'name1', 'conv2d')
-    df = visualizer.select(df, 'model_type', 'vgg6')
-    df = visualizer.select(df, 'dataset_type', 'cifar10$')
-    # df = visualizer.select(df, 'lr', '1.*?e-02')
-    # todo plot title
-    visualizer.plot_stat(df, ('name0', 'name3', 'lr'))
+    visualizer.auto_plot(df)
+    # df = visualizer.select(df, 'name2', 'act')
+    # df = visualizer.select(df, 'name1', 'conv2d')
+    # df = visualizer.select(df, 'model_type', 'vgg6')
+    # df = visualizer.select(df, 'dataset_type', 'cifar10$')
+    # # df = visualizer.select(df, 'lr', '1.*?e-02')
+    # # todo plot title
+    # visualizer.plot_stat(df, ('name0', 'name3', 'lr'))
 
     plt.show()

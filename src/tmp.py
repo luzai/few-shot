@@ -4,7 +4,7 @@ def run(model_type='vgg5', lr=1e-2, limit_val=True, dataset='cifar10', queue=Non
     warnings.filterwarnings("ignore")
     # todo report/observe speed
     # todo callback on iter end rather epoch
-    utils.init_dev(utils.get_dev(ok=(0, 1, 2)))
+    utils.init_dev(utils.get_dev(ok=(0, 1, 2)))  #
     utils.allow_growth()
     import tensorflow as tf, keras
     from saver import TensorBoard2
@@ -77,9 +77,9 @@ subprocess.call('rm -r ../tfevents ../output ../tfevents_loss'.split())
 queue = mp.Queue()
 tasks = []
 for dataset in ['cifar10', 'cifar100']:  # , 'cifar100'
-    for model_type in ['vgg6', 'resnet6', 'vgg10', 'resnet10',  ]:  # 'vgg8', 'resnet8',
+    for model_type in ['vgg6', 'resnet6', 'vgg10', 'resnet10', ]:  # 'vgg8', 'resnet8',
         for lr in np.concatenate((np.logspace(0, -5, 6), np.logspace(-1.5, -2.5, 4))):  # 10,1e-1, 1e-3, 1e-5
-            print dataset,model_type,lr
+            print dataset, model_type, lr
             p = mp.Process(target=run, args=(model_type, lr, True, dataset, queue))
             p.start()
             tasks.append(p)
