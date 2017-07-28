@@ -24,6 +24,7 @@ def _bn_relu(input):
     """
     norm = BatchNormalization(axis=CHANNEL_AXIS)(input)
     return Activation("relu")(norm)
+    # return input
 
 
 def _conv_bn_relu(**conv_params):
@@ -35,13 +36,19 @@ def _conv_bn_relu(**conv_params):
     kernel_initializer = conv_params.setdefault("kernel_initializer", "he_normal")
     padding = conv_params.setdefault("padding", "same")
     kernel_regularizer = conv_params.setdefault("kernel_regularizer", l2(1.e-4))
-    obs=conv_params.get('obs',None)
+    # obs=conv_params.get('obs',None)
+    global obs
+    if obs is not None:
+        name = 'obs{}/conv2d'.format(obs)
+    else:
+        name = None
+    obs += 1
 
     def f(input):
         conv = Conv2D(filters=filters, kernel_size=kernel_size,
                       strides=strides, padding=padding,
                       kernel_initializer=kernel_initializer,
-                      kernel_regularizer=kernel_regularizer,name='obs{}/conv2d'.format(obs))(input)
+                      kernel_regularizer=kernel_regularizer, name=name)(input)
         return _bn_relu(conv)
 
     return f
@@ -57,13 +64,21 @@ def _bn_relu_conv(**conv_params):
     kernel_initializer = conv_params.setdefault("kernel_initializer", "he_normal")
     padding = conv_params.setdefault("padding", "same")
     kernel_regularizer = conv_params.setdefault("kernel_regularizer", l2(1.e-4))
+    # obs=conv_params.get('obs',None)
+    global obs
+
+    if obs is not None:
+        name = 'obs{}/conv2d'.format(obs)
+    else:
+        name = None
+    obs += 1
 
     def f(input):
         activation = _bn_relu(input)
         return Conv2D(filters=filters, kernel_size=kernel_size,
                       strides=strides, padding=padding,
                       kernel_initializer=kernel_initializer,
-                      kernel_regularizer=kernel_regularizer)(activation)
+                      kernel_regularizer=kernel_regularizer, name=name)(activation)
 
     return f
 
@@ -93,11 +108,12 @@ def _shortcut(input, residual):
     return add([shortcut, residual])
 
 
-def _residual_block(block_function, filters, repetitions, is_first_layer=False,obs=None):
+def _residual_block(block_function, filters, repetitions, is_first_layer=False, obs=None):
     """Builds a residual block with repeating bottleneck blocks.
     """
 
     def f(input):
+
         for i in range(repetitions):
             init_strides = (1, 1)
             if i == 0 and not is_first_layer:
@@ -105,28 +121,30 @@ def _residual_block(block_function, filters, repetitions, is_first_layer=False,o
             input = block_function(filters=filters, init_strides=init_strides,
                                    is_first_block_of_first_layer=(is_first_layer and i == 0),
                                    obs=obs)(input)
+
         return input
 
     return f
 
 
-def basic_block(filters, init_strides=(1, 1), is_first_block_of_first_layer=False,obs=None):
+def basic_block(filters, init_strides=(1, 1), is_first_block_of_first_layer=False, obs=None):
     """Basic 3 X 3 convolution blocks for use on resnets with layers <= 34.
     Follows improved proposed scheme in http://arxiv.org/pdf/1603.05027v2.pdf
     """
 
     def f(input):
-
+        global obs
         if is_first_block_of_first_layer:
             # don't repeat bn->relu since we just did bn->relu->maxpool
             conv1 = Conv2D(filters=filters, kernel_size=(3, 3),
                            strides=init_strides,
                            padding="same",
                            kernel_initializer="he_normal",
-                           kernel_regularizer=l2(1e-4),name='obs{}/conv2d'.format(obs))(input)
+                           kernel_regularizer=l2(1e-4), name='obs{}/conv2d'.format(obs))(input)
+            obs += 1
         else:
             conv1 = _bn_relu_conv(filters=filters, kernel_size=(3, 3),
-                                  strides=init_strides,obs=obs)(input)
+                                  strides=init_strides)(input)
 
         residual = _bn_relu_conv(filters=filters, kernel_size=(3, 3))(conv1)
         return _shortcut(input, residual)
@@ -143,7 +161,7 @@ def bottleneck(filters, init_strides=(1, 1), is_first_block_of_first_layer=False
     """
 
     def f(input):
-
+        global obs
         if is_first_block_of_first_layer:
             # don't repeat bn->relu since we just did bn->relu->maxpool
             conv_1_1 = Conv2D(filters=filters, kernel_size=(1, 1),
@@ -154,12 +172,17 @@ def bottleneck(filters, init_strides=(1, 1), is_first_block_of_first_layer=False
         else:
             conv_1_1 = _bn_relu_conv(filters=filters, kernel_size=(1, 1),
                                      strides=init_strides)(input)
-
+        obs+=1
         conv_3_3 = _bn_relu_conv(filters=filters, kernel_size=(3, 3))(conv_1_1)
         residual = _bn_relu_conv(filters=filters * 4, kernel_size=(1, 1))(conv_3_3)
         return _shortcut(input, residual)
 
     return f
+
+
+def init_obs():
+    global obs
+    obs = 0
 
 
 def _handle_dim_ordering():
@@ -201,29 +224,30 @@ class ResnetBuilder(object):
         Returns:
             The keras `Model`.
         """
-        obs=0
+        init_obs()
         _handle_dim_ordering()
         if len(input_shape) != 3:
             raise Exception("Input shape should be a tuple (nb_channels, nb_rows, nb_cols)")
 
         # Permute dimension order if necessary
-        if K.image_dim_ordering() == 'tf':
-            input_shape = (input_shape[1], input_shape[2], input_shape[0])
+        # if K.image_dim_ordering() == 'tf':
+        #     input_shape = (input_shape[2], input_shape[1], input_shape[0])
 
         # Load function from str if needed.
         block_fn = _get_block(block_fn)
 
         input = Input(shape=input_shape)
-        conv1 = _conv_bn_relu(filters=64, kernel_size=(7, 7), strides=(2, 2),obs=obs)(input)  # obs0
+        conv1 = _conv_bn_relu(filters=64, kernel_size=(7, 7), strides=(2, 2), obs=obs)(input)  # obs0
         pool1 = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), padding="same")(conv1)
-        obs+=1
+        # obs+=1
 
         block = pool1
         filters = 64
         for i, r in enumerate(repetitions):
-            block = _residual_block(block_fn, filters=filters, repetitions=r, is_first_layer=(i == 0),obs=obs)(block)  # obs
+            block = _residual_block(block_fn, filters=filters, repetitions=r, is_first_layer=(i == 0), obs=obs)(
+                block)  # obs
             filters *= 2
-            obs+=1
+            # obs+=1
 
         # Last activation
         block = _bn_relu(block)
@@ -233,13 +257,33 @@ class ResnetBuilder(object):
         pool2 = AveragePooling2D(pool_size=(block_shape[ROW_AXIS], block_shape[COL_AXIS]),
                                  strides=(1, 1))(block)
         flatten1 = Flatten()(pool2)
-        dense = Dense(units=num_outputs, kernel_initializer="he_normal",name='obs{}/dense'.format(obs))(flatten1)  # obs
-        dense = Activation('softmax',name='obs{}/softmax'.format(obs))(dense)  # obs
+        dense = Dense(units=num_outputs, kernel_initializer="he_normal", name='obs{}/dense'.format(obs))(
+            flatten1)  # obs
+        dense = Activation('softmax', name='obs{}/softmax'.format(obs))(dense)  # obs
 
         model = Model(inputs=input, outputs=dense)
         return model
 
 
+    @staticmethod
+    def build_resnet_18(input_shape, num_outputs):
+        return ResnetBuilder.build(input_shape, num_outputs, basic_block, [2, 2, 2, 2])
+
+    @staticmethod
+    def build_resnet_34(input_shape, num_outputs):
+        return ResnetBuilder.build(input_shape, num_outputs, basic_block, [3, 4, 6, 3])
+
+    @staticmethod
+    def build_resnet_50(input_shape, num_outputs):
+        return ResnetBuilder.build(input_shape, num_outputs, bottleneck, [3, 4, 6, 3])
+
+    @staticmethod
+    def build_resnet_101(input_shape, num_outputs):
+        return ResnetBuilder.build(input_shape, num_outputs, bottleneck, [3, 4, 23, 3])
+
+    @staticmethod
+    def build_resnet_152(input_shape, num_outputs):
+        return ResnetBuilder.build(input_shape, num_outputs, bottleneck, [3, 8, 36, 3])
 from models import BaseModel
 
 
@@ -249,11 +293,13 @@ class ResNet(BaseModel):
     def __init__(self, input_shape, classes, type='resnet8', with_bn=True, with_dp=True, name=None):
         super(ResNet, self).__init__(input_shape, classes, type, with_bn, with_dp)
         cfg = {
-            'resnet8': [1, 1],
-            'resnet9': [1, 1, 1],
-            'resnet10': [1, 1, 2],
+            'resnet6':[1,1],
+            'resnet8': [1, 1, 1],
+            'resnet10': [1, 2, 1],
+            # 'resnet10': [1, 1, 1, 1],
+            'resnet12':[1,2,1,1]
         }
-        # convert to my coding
+
         self.model = ResnetBuilder.build(input_shape, classes, basic_block, cfg[type])
 
 

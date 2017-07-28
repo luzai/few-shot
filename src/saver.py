@@ -46,7 +46,7 @@ class TensorBoard2(Callback):
         self.embeddings_layer_names = embeddings_layer_names
         self.embeddings_metadata = embeddings_metadata or {}
         self.batch_size = batch_size
-        self.dateset = dataset
+        self.dataset = dataset
         self.iter_per_epoch = int(np.ceil(dataset.x_train.shape[0] / float(batch_size)))
         self.log_flag = True
         self.epoch = 0
@@ -148,7 +148,7 @@ class TensorBoard2(Callback):
                     dl.append(stat.calc_all(val, name))
                 d = utils.dict_concat(dl)
 
-            val_loss, val_acc = self.model.evaluate(self.dateset.x_test, self.dateset.y_test, verbose=2)
+            val_loss, val_acc = self.model.evaluate(self.dataset.x_test, self.dataset.y_test, verbose=2)
             logs['val_loss'] = val_loss
             logs['val_acc'] = val_acc
             logs = utils.dict_concat([logs, d])

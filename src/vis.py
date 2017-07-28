@@ -20,7 +20,7 @@ def drop_level(perf_df):
     while True:
         for ind, level in enumerate(perf_df.columns.levels):
             if len(level) == 1:
-                res_str += level.name +'_' + level[0]+'_'
+                res_str += level.name + '_' + level[0] + '_'
                 perf_df.columns = perf_df.columns.droplevel(ind)
                 break
         levels_len = [len(level) for level in perf_df.columns.levels]
@@ -75,7 +75,7 @@ class Visualizer(object):
                         legends[_row, _col] += [ind]
             target.append(targets[_row, _col])
 
-        perf_df.plot(subplots=True, legend=legend, ax=target)
+        perf_df.plot(subplots=True, legend=False, ax=target, marker=None)
 
         for _row in range(legends.shape[0]):
             for _col in range(legends.shape[1]):
@@ -122,6 +122,7 @@ class Visualizer(object):
                                   dataset_type=dataset_type,
                                   debug=False, others={'lr': lr},  # , 'limit_val': True
                                   clean=False)
+
                     path = Config.root_path + '/' + parant_folder + '/' + conf.name
                     if osp.exists(path):
                         _res = {}
@@ -209,10 +210,11 @@ def split_path(path):
     return folders
 
 
+
 if __name__ == '__main__':
     tic = time.time()
-    config_dict = {'model_type': ['vgg5', 'vgg11', 'vgg19'],
-                   'lr': [1, 1e-2, 1e-5],
+    config_dict = {'model_type': ['vgg6', 'vgg10', 'resnet6', 'resnet10'],
+                   'lr': np.concatenate((np.logspace(0, -5, 6), np.logspace(-1.5, -2.5, 0))),
                    'dataset_type': ['cifar10', 'cifar100']
                    }
     visualizer = Visualizer(config_dict, join='inner', stat_only=True, paranet_folder='stat')
@@ -220,17 +222,17 @@ if __name__ == '__main__':
     # perf_df = visualizer.perf_df
     # _df = perf_df
     # # _df = visualizer.select(_df, 'dataset_type', 'cifar10')
-    # _df = visualizer.select(_df, 'model_type', 'vgg5')
+    # _df = visualizer.select(_df, 'model_type', 'vgg6')
     #
     # visualizer.plot_perf(_df, ('dataset_type', 'name', 'lr'))
     # visualizer.plot_perf(_df, ('lr', 'name', 'dataset_type'))
-    # print time.time()-tic
-
+    print time.time() - tic
 
     df = stat_df = visualizer.stat_df
     df.columns = expand_level(df.columns)
     df = visualizer.select(df, 'name2', 'act')
-    df = visualizer.select(df, 'model_type', 'vgg5')
+    df = visualizer.select(df, 'name1', 'conv2d')
+    df = visualizer.select(df, 'model_type', 'vgg6')
     df = visualizer.select(df, 'dataset_type', 'cifar10$')
     # df = visualizer.select(df, 'lr', '1.*?e-02')
     # todo plot title

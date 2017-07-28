@@ -6,7 +6,7 @@ import os.path as osp
 from math import log
 
 
-def mkdir_p(path, delete=True):
+def mkdir_p(path, delete=False):
     import subprocess, os
     if delete:
         subprocess.call(('rm -rf ' + path).split())
@@ -37,6 +37,7 @@ class Config(object):
                 for key, val in others.iteritems():
                     # if isinstance(val, bool): key, val =( key, '') if val else ('', '')
                     if isinstance(val, bool): key, val = (key, 'T') if val else (key, 'F')
+                    if isinstance(val, float) or isinstance(val,int):  key, val = key, '{:.2e}'.format(val)
                     name += '_' + str(key) + '_' + str(val)
         self.name = name
 
@@ -59,9 +60,9 @@ class Config(object):
         if self.others is not None:  d.update(self.others)
         return d
 
-    def clean_model_path(self,clean):
-        mkdir_p(self.model_tfevents_path,delete=clean)
-        mkdir_p(self.model_output_path,delete=clean)
+    def clean_model_path(self, clean):
+        mkdir_p(self.model_tfevents_path, delete=clean)
+        mkdir_p(self.model_output_path, delete=clean)
 
 
 if __name__ == '__main__':

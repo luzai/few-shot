@@ -1,4 +1,5 @@
-import os, csv, time, cPickle, random, os.path as osp, subprocess, json, matplotlib, numpy as np, GPUtil, pandas as pd
+import os, csv, time, cPickle, random, os.path as osp, subprocess, json, matplotlib, numpy as np, GPUtil, pandas as pd, \
+    glob, re
 
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
@@ -30,29 +31,30 @@ def allow_growth():
     K.set_session(sess)
 
 
-def get_dev(n=1):
+def get_dev(n=1, ok=(0, 1, 2, 3)):
     import GPUtil, time
     logger.info('Auto select gpu')
     GPUtil.showUtilization()
-    def _limit(devs, ok=(0, 1, 2, 3)):
+
+    def _limit(devs, ok):
         return [dev for dev in devs if dev in ok]
 
     devs = GPUtil.getAvailable(order='memory', maxLoad=0.5, maxMemory=0.5, limit=n)
-    devs = _limit(devs)
+    devs = _limit(devs, ok)
     if len(devs) >= 1:
         logger.info('available {}'.format(devs))
         GPUtil.showUtilization()
         return devs[0] if n == 1 else devs
     while len(devs) == 0:
-        devs = GPUtil.getAvailable(order='memory', maxLoad=0.9, maxMemory=0.5, limit=n)
-        devs = _limit(devs)
+        devs = GPUtil.getAvailable(order='random', maxLoad=0.98, maxMemory=0.5, limit=n)
+        devs = _limit(devs, ok)
         if len(devs) >= 1:
             logger.info('available {}'.format(devs))
             GPUtil.showUtilization()
             return devs[0] if n == 1 else devs
         logger.info('no device avelaible')
         GPUtil.showUtilization()
-        time.sleep(5) # 60 * 3
+        time.sleep(5)  # 60 * 3
 
 
 def optional_arg_decorator(fn):
@@ -139,7 +141,7 @@ def unpickle(file_path):
     return data
 
 
-def mkdir_p(path, delete=True):
+def mkdir_p(path, delete=False):
     if delete:
         rm(path)
     if not osp.exists(path):
@@ -163,7 +165,7 @@ def vis_model(model, name='model', show_shapes=True):
     if path == '':
         path = name
     sav_path = osp.join(Config.root_path, "output", path)
-    mkdir_p(sav_path)
+    mkdir_p(sav_path, delete=False)
     keras.models.save_model(model, osp.join(sav_path, name + '.h5'))
     try:
         # vis_utils.plot_model(model, to_file=osp.join(sav_path, name + '.pdf'), show_shapes=show_shapes)
@@ -265,18 +267,35 @@ def add_indent(str):
     return re.sub('\n', '\n\t\t', str)
 
 
-def to_single_dir():
-    restore_path = os.getcwd()
-    os.chdir(Config.root_path)
-    for parent, dirnames, filenames in os.walk('output/tf_tmp'):
+def chdir_to_root(fn):
+    def wrapped_fn(*args, **kwargs):
+        restore_path = os.getcwd()
+        os.chdir(Config.root_path)
+        res = fn(*args, **kwargs)
+        os.chdir(restore_path)
+        return res
+
+    return wrapped_fn
+
+
+@chdir_to_root
+def to_single_dir(dir='tfevents'):
+    for parent, dirnames, filenames in os.walk(dir):
         filenames = sorted(filenames)
         if len(filenames) == 1:
             continue
         for ind, fn in enumerate(filenames):
-            subprocess.call(('mkdir -p ' + parent + '/' + str(ind)).split())
-            subprocess.call(('mv ' + parent + '/' + fn + ' ' + parent + '/' + str(ind) + '/').split())
+            mkdir_p(parent + '/' + str(ind), False)
+            move(parent + '/' + fn, parent + '/' + str(ind) + '/')
         print parent, filenames
-    os.chdir(restore_path)
+
+
+def copy(from_path, to):
+    subprocess.call(('cp ' + from_path + ' ' + to).split())
+
+
+def move(from_path, to):
+    subprocess.call(('mv ' + from_path + ' ' + to).split())
 
 
 def dict_concat(d_l):
@@ -286,5 +305,35 @@ def dict_concat(d_l):
     return d1
 
 
+@chdir_to_root
+def merge_dir(dir_l):
+    for dir in dir_l:
+        for parent, dirnames, filenames in os.walk(dir):
+            if len(filenames) != 1:
+                continue
+            mkdir_p('/'.join(['_res'] + parent.split('/')[1:]), delete=False)
+            if not osp.exists('/'.join(['_res'] + parent.split('/')[1:]) + '/' + filenames[0]):
+                copy(parent + '/' + filenames[0], '/'.join(['_res'] + parent.split('/')[1:]))
+            else:
+                print parent
+
+
+@chdir_to_root
+def parse_dir_name(dir='_res'):
+    dir_l = glob.glob(dir + '/*/*')
+    res = []
+    for path in dir_l:
+        name = path.split('/')[1]
+        name_l = name.split('_')
+        name_l[-1] = '{:.2e}'.format(float(name_l[-1]))
+        res.append(name_l)
+        _name = '_'.join(name_l)
+        # move( '/'.join(path.split('/')[:2]), '/'.join(path.split('/')[:1]+ [_name]))
+    return res
+
+
 if __name__ == '__main__':
-    pass
+    # to_single_dir()
+    # merge_dir(['loss', 'tfevents'])
+    # print np.array( parse_dir_name())
+    print np.array(parse_dir_name('tfevents_loss'))
