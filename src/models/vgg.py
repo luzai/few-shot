@@ -7,7 +7,7 @@ from models import BaseModel
 
 
 class VGG(BaseModel):
-    model_type = ['vgg11', 'vgg13', 'vgg16', 'vgg5', 'vgg19']
+    model_type = ['vgg11', 'vgg13', 'vgg16', 'vgg6', 'vgg19', 'vgg10', 'vgg9', 'vgg8']
 
     def __init__(self, input_shape, classes, type='vgg11', with_bn=True, with_dp=True, name=None):
         super(VGG, self).__init__(input_shape, classes, type, with_bn, with_dp)
@@ -19,7 +19,10 @@ class VGG(BaseModel):
                       [512, 512, self.classes]],
             'vgg19': [[64, 64, 'M', 128, 128, 'M', 256, 256, 256, 256, 'M', 512, 512, 512, 512, 'M', 512, 512, 512, 512,
                        'M'], [512, 512, self.classes]],
-            'vgg5': [[32, 32, 'M', 64, 64, 'M'], [512, self.classes]],
+            'vgg6': [[32, 32, 'M', 64, 64, 'M'], [512, self.classes]],
+            'vgg10': [[64, 'M', 128, 128, 'M', 256, 256, 'M', 512, 512, 'M'], [512, 512, self.classes]],
+            'vgg9': [[64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M'], [512, 512, self.classes]],
+            'vgg8': [[64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M'], [512, self.classes]],
         }
         # convert to my coding
         self.arch = [['conv2d', config] if config != 'M' else ['maxpooling2d'] for config in cfg[type][0]]
@@ -27,7 +30,7 @@ class VGG(BaseModel):
         self.arch += [['dense', config] for config in cfg[type][1]]
         self.model = self.build(name=name)
 
-    def build(self,name=None):
+    def build(self, name=None):
         x = input = Input(self.input_shape)
         depth = 0
         for config in self.arch:
