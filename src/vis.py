@@ -15,17 +15,29 @@ matplotlib.style.use('ggplot')
 import matplotlib.pylab as plt
 
 
-def drop_level(perf_df):
-    res_str = ''
-    while True:
-        for ind, level in enumerate(perf_df.columns.levels):
-            if len(level) == 1:
-                res_str += level.name + '_' + level[0] + '_'
-                perf_df.columns = perf_df.columns.droplevel(ind)
-                break
-        levels_len = [len(level) for level in perf_df.columns.levels]
-        levels_len = np.array(levels_len)
-        if (levels_len != np.ones_like(levels_len)).all(): break
+def drop_level(perf_df, other_name=None):
+    columns = perf_df.columns
+    names = columns.names
+    names = np.array(names)
+    levels = columns.levels
+    name2level = {name: level for name, level in zip(names, levels)}
+    res_str = 'Ttl_'
+    if other_name is None:
+        while True:
+            levels_len = [len(level) for level in perf_df.columns.levels]
+            levels_len = np.array(levels_len)
+            if (levels_len != np.ones_like(levels_len)).all() or len(perf_df.columns.levels) == 3: break
+
+            for ind, level in enumerate(perf_df.columns.levels):
+                if len(level) == 1:
+                    res_str += level.name + '_' + level[0] + '_'
+                    perf_df.columns = perf_df.columns.droplevel(ind)
+                    break
+    else:
+        perf_df.columns = perf_df.columns.droplevel(other_name)
+        for name in other_name:
+            level = name2level[name]
+            res_str += str(name) + '_' + str(level[0]) + '_'
     return perf_df, res_str[:-1]
 
 
@@ -55,10 +67,14 @@ class Visualizer(object):
         level2inside = {val: ind for ind, val in enumerate(inside_level)}
         insides = len(inside_level)
 
-        fig, targets = plt.subplots(rows, cols,figsize=(18,9))  # , sharex=True)
-
+        fig, targets = plt.subplots(rows, cols, figsize=(18, 9))  # , sharex=True)
+        if len(targets.shape) == 1: targets = targets.reshape(rows, cols)
         for _i in range(rows):
-            targets[_i][0].set_ylabel(row_level[_i])
+            try:
+                targets[_i][0].set_ylabel(row_level[_i])
+            except:
+                from IPython import embed;
+                embed()
         for _j in range(cols):
             targets[0][_j].set_title(col_level[_j])
 
@@ -87,28 +103,32 @@ class Visualizer(object):
 
         return fig
 
-    def plot_perf(self, perf_df, axes_names, legend=True):
+    def plot(self, perf_df, axes_names, other_names=None, legend=True):
         # order of axes is (row,col,inside fig)
-        perf_df, super_title = drop_level(perf_df)
-        assert len(perf_df.columns.names) == 3
+        perf_df, super_title = drop_level(perf_df, other_names)
+        if len(perf_df.columns.names) != 3:
+            from IPython import embed;
+            embed()
+
         fig = self._plot(perf_df, axes_names, legend)
         fig.suptitle(super_title)
-        fig.savefig(Config.output_path +'/'+ super_title+'.png')
+        fig.savefig(Config.output_path + '/' + super_title + '.png')
         return fig
 
-    plot = plot_stat = plot_perf
-
-    def select(self, df, level_name, par_name, sort_names=None,regexp=True):
+    def select(self, df, level_name, par_name, sort_names=None, regexp=True):
         sel_name = df.columns.get_level_values(level_name)
         f_sel_name = set()
         pat = re.compile(par_name)
         for sel_name_ in sel_name:
-            judge = bool(pat.match(sel_name_)) if   regexp else par_name == sel_name_
+            judge = bool(pat.match(sel_name_)) if regexp else par_name == sel_name_
             if judge: f_sel_name.add(sel_name_)
         df_l = []
         for sel_name_ in f_sel_name:
             df_l.append(df.xs(sel_name_, level=level_name, axis=1, drop_level=False))
-        df = pd.concat(df_l, axis=1)
+        if df_l != []:
+            df = pd.concat(df_l, axis=1)
+        else:
+            return None
         if sort_names is None: sort_names = df.columns.names
         df.sort_index(level=sort_names, axis=1, inplace=True)
         return df
@@ -185,8 +205,10 @@ class Visualizer(object):
             for poss in cartesian([name2level[name] for name in other_names]):
                 _df = df.copy()
                 for _name, _poss in zip(other_names, poss):
-                    _df = self.select(_df, _name, _poss,regexp=False)
-                self.plot(_df, axes_names)
+                    _df = self.select(_df, _name, _poss, regexp=False)
+                    if _df is None:    break
+                if _df is None: continue
+                self.plot(_df, axes_names, other_names)
                 plt.close()
 
 
@@ -297,10 +319,9 @@ if __name__ == '__main__':
     # # _df = visualizer.select(_df, 'dataset_type', 'cifar10')
     # _df = visualizer.select(_df, 'model_type', 'vgg6')
     #
-    # visualizer.plot_perf(_df, ('dataset_type', 'name', 'lr'))
-    # visualizer.plot_perf(_df, ('lr', 'name', 'dataset_type'))
+    # visualizer.plot(_df, ('dataset_type', 'name', 'lr'))
+    # visualizer.plot(_df, ('lr', 'name', 'dataset_type'))
     print time.time() - tic
-
 
     df = stat_df = visualizer.stat_df
     df.columns = expand_level(df.columns)
