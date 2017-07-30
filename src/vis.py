@@ -1,15 +1,17 @@
 from loader import Loader
 from log import logger
 from opts import Config
-import time, numpy as np
-import pandas as pd, re, copy
-import time, glob, os, os.path as osp
 from datasets import Dataset
 from models import VGG
-from opts import Config
-from log import logger
+
+import time, numpy as np, utils
+import pandas as pd, re, copy
+import time, glob, os, os.path as osp
+
+from itertools import combinations, chain
+from scipy.misc import comb
+
 import matplotlib
-import utils
 
 matplotlib.use('GTKAgg')
 matplotlib.style.use('ggplot')
@@ -40,21 +42,22 @@ def drop_level(perf_df, other_name=None):
         perf_df.columns = perf_df.columns.droplevel(other_name)
         for name in other_name:
             level = name2level[name]
-            res_str += str(name) + '_' + str(level[0]) + '_'
+            res_str += str(level[0]) + '_'
     return perf_df, res_str
 
 
 @utils.static_vars(ind=0)
 def get_colors():
-    colors = [u'#E24A33', u'#348ABD', u'#988ED5', u'#777777', u'#FBC15E', u'#8EBA42', u'#FFB5B8', u'#4B0082',
-              u'#FFFF00', u'#FF8C00', u'#FFEFD5', u'#FFA500', u'#6B8E23', u'#87CEEB', u'#006400', u'#008080',
-              u'#9ACD32', u'#696969', u'#F0FFF0', u'#BDB76B', u'#FFE4C4', u'#F5DEB3', u'#4682B4', u'#800080',
-              u'#F5F5DC', u'#FDF5E6', u'#A0522D', u'#00FF00', u'#00FA9A', u'#CD853F', u'#D3D3D3', u'#D2691E',
-              u'#808000', u'#FFFAF0', u'#808080', u'#FF1493', u'#800000', u'#D2B48C', u'#DB7093', u'#B0E0E6',
-              u'#191970', u'#9932CC', u'#90EE90', u'#FFF0F5', u'#008000']
+    colors = [u'#E24A33', u'#348ABD', u'#988ED5', u'#777777', u'#FBC15E', u'#8EBA42', u'#FFB5B8', u'#4B0082', ]
+    # u'#FFFF00', u'#FF8C00', u'#FFEFD5', u'#FFA500', u'#6B8E23', u'#87CEEB', u'#006400', u'#008080',
+    # u'#9ACD32', u'#696969', u'#F0FFF0', u'#BDB76B', u'#FFE4C4', u'#F5DEB3', u'#4682B4', u'#800080',
+    # u'#F5F5DC', u'#FDF5E6', u'#A0522D', u'#00FF00', u'#00FA9A', u'#CD853F', u'#D3D3D3', u'#D2691E',
+    # u'#808000', u'#FFFAF0', u'#808080', u'#FF1493', u'#800000', u'#D2B48C', u'#DB7093', u'#B0E0E6',
+    # u'#191970', u'#9932CC', u'#90EE90', u'#FFF0F5', u'#008000']
+
     color = colors[get_colors.ind]
     get_colors.ind += 1
-    if get_colors.ind >= len(color):
+    if get_colors.ind + 1 >= len(color):
         get_colors.ind = 0
     return color
 
@@ -74,10 +77,9 @@ class Visualizer(object):
         # #  order of axes is (row,col,inside fig)
         # # assert
         perf_df, sup_title = drop_level(perf_df, other_names)
-        if len(perf_df.columns.names) != 3:
-            from IPython import embed;
-            embed()
+        assert len(perf_df.columns.names) == 3, 'plot only accept input 3'
 
+        label2color = {}
         row_name, col_name, inside = axes_names
         names2levels = {name: level for level, name in zip(perf_df.columns.levels, perf_df.columns.names)}
         row_level = names2levels[row_name]
@@ -96,16 +98,17 @@ class Visualizer(object):
         # # arrange xlabel ylabel
         # plt.rc('axes', prop_cycle=(cycler('color', get_colors()[:insides])))
         fig, axes = plt.subplots(rows, cols, figsize=(max(18 / 5. * cols, 18), 9 / 4. * rows))  # , sharex=True)
-        if len(axes.shape) == 1: axes = axes.reshape(rows, cols)
+        axes = np.array(axes).reshape(rows, cols)
+
         for _i in range(rows):
             try:
                 axes[_i][0].set_ylabel(row_level[_i])
-            except:
-                from IPython import embed;
-                embed()
+            except Exception as inst:
+                raise ValueError(str(inst))
+
         for _j in range(cols):
             axes[0][_j].set_title(col_level[_j])
-        #  # plot to right place
+        # # plot to right place
         target = []
         legends = np.zeros((rows, cols)).astype(object)
         for inds in perf_df.columns:
@@ -119,29 +122,31 @@ class Visualizer(object):
                     else:
                         legends[_row, _col] += [ind]
             target.append(axes[_row, _col])
-        perf_df.plot(subplots=True, legend=False, ax=target, marker=None)
+        perf_df.plot(subplots=True, legend=False, ax=target, marker=None, sharex=True)
         #  # change color
-        label2color = {}
+
         for axis in axes.flatten():
             for line in axis.get_lines():
                 _label = line.get_label()
                 for level in inside_level:
                     if level in _label: label = level
                 if label not in label2color:
-                    color = label2color[label] = get_colors()
+                    label2color[label] = get_colors()
+                    color = label2color[label]
                 else:
                     color = label2color[label]
                 line.set_color(color)
 
         # [ax.set_prop_cycle(cycler('color', get_colors()[:insides])) for ax in target]
-        # #plot legend
-        # targets[0, 0].legend(list(legends[0, 0]))
+        # # plot legend
+        axes[0, 0].legend(list(legends[0, 0]))
         for _row in range(legends.shape[0]):
             for _col in range(legends.shape[1]):
-                if legend:
-                    axes[_row, _col].legend(list(legends[_row, _col]))
-                else:
-                    axes[_row, _col].legend([])
+                axes[_row, _col].yaxis.get_major_formatter().set_powerlimits((-2, 2))
+                # if legend:
+                #     axes[_row, _col].legend(list(legends[_row, _col]))
+                # else:
+                #     axes[_row, _col].legend([])
 
         sup_title += 'legend_' + inside
         fig.suptitle(sup_title)
@@ -227,34 +232,35 @@ class Visualizer(object):
         df.index.name = 'epoch' if not stat_only else 'iter'
         self.df = df
 
-    def auto_plot(self, df, save_path=''):
+    def auto_plot(self, df, save_path='', axes_names=None):
         columns = df.columns
         names = columns.names
         names = np.array(names)
         levels = columns.levels
         name2level = {name: level for name, level in zip(names, levels)}
         show = False
-        for axes_names in names[comb_index(len(names), 3)]:
+        if axes_names is not None:
+            axes_names_l = [axes_names]
+        else:
+            axes_names_l = choose_three(names)
+        for axes_names in axes_names_l:
             other_names = list(set(names) - set(axes_names))
             for poss in cartesian([name2level[name] for name in other_names]):
-                try:
-                    _df = df.copy()
-                    for _name, _poss in zip(other_names, poss):
-                        _df = self.select(_df, _name, _poss, regexp=False)
-                        if _df is None: break
-                    if _df is None: continue
-                    fig, sup_title = self.plot(_df, axes_names, other_names)
-                    utils.mkdir_p(Config.output_path + save_path + '/')
-
-                    fig.savefig(Config.output_path + save_path + '/' + sup_title + '.png')
-                    if show: plt.show()
-                    plt.close()
-                except Exception as inst:
-                    print inst
-
-
-from itertools import combinations, chain
-from scipy.misc import comb
+                # try:
+                _df = df.copy()
+                for _name, _poss in zip(other_names, poss):
+                    _df = self.select(_df, _name, _poss, regexp=False)
+                    if _df is None: break
+                if _df is None: continue
+                fig, sup_title = self.plot(_df, axes_names, other_names)
+                utils.mkdir_p(Config.output_path + save_path + '/')
+                fig.savefig(Config.output_path + save_path + '/' + re.sub('/', '', sup_title) + '.png')
+                if show: plt.show()
+                plt.close()
+                # except Exception as inst:
+                #     from IPython import embed
+                #     embed()
+                # print inst
 
 
 def cartesian(arrays, out=None):
@@ -308,15 +314,22 @@ def cartesian(arrays, out=None):
     return out
 
 
-def comb_index(n, k):
-    assert k == 3, 'choose 3 dim'
-    count = comb(n, k, exact=True)
-    index = np.fromiter(chain.from_iterable(combinations(range(n), k)),
-                        int, count=count * k)
-    index = index.reshape(-1, k)
-    index = np.concatenate((index, index[:, [1, 2, 0]], index[:, [0, 2, 1]]), axis=0)
-    np.random.shuffle(index)
-    return index
+def choose_three(names):
+    def comb_index(n, k):
+        assert k == 3, 'choose 3 dim'
+        count = comb(n, k, exact=True)
+        index = np.fromiter(chain.from_iterable(combinations(range(n), k)),
+                            int, count=count * k)
+        index = index.reshape(-1, k)
+        index = np.concatenate((index, index[:, [1, 2, 0]], index[:, [0, 2, 1]]), axis=0)
+        # np.random.shuffle(index)
+        return index
+
+    for axes_names in names[comb_index(len(names), 3)]:
+        if axes_names[-1] != 'lr':
+            continue
+        else:
+            yield axes_names
 
 
 def expand_level(columns):
@@ -331,6 +344,24 @@ def expand_level(columns):
         finds.append(list(inds[:-1]) + list(split_path(inds[-1])))
     finds = np.array(finds).astype(basestring).transpose()
     fcolumns = pd.MultiIndex.from_arrays(finds, names=list(fname))
+    return fcolumns
+
+
+def merge_level(columns, name1, name2):
+    levels = columns.levels
+    names = columns.names
+    name2level = {name: level for name, level in zip(names, levels)}
+    name2ind = {name: ind for ind, name in enumerate(names)}
+    ind1 = name2ind[name1]
+    ind2 = name2ind[name2]
+    assert ind1 + 1 == ind2
+    fnames = names[:ind1] + [name1 + '/' + name2] + names[ind2 + 1:]
+
+    finds = []
+    for inds in columns:
+        finds.append(list(inds[:ind1] + (inds[ind1] + '/' + inds[ind2],) + inds[ind2 + 1:]))
+    finds = np.array(finds).astype(basestring).transpose()
+    fcolumns = pd.MultiIndex.from_arrays(finds, names=list(fnames))
     return fcolumns
 
 
@@ -351,6 +382,7 @@ def split_path(path):
 
 
 if __name__ == '__main__':
+    utils.rm('../output  ')
     tic = time.time()
     config_dict = {'model_type': ['vgg6', 'vgg10', 'resnet6', 'resnet10'],
                    'lr': np.concatenate((np.logspace(0, -5, 6), np.logspace(-1.5, -2.5, 0))),
@@ -358,26 +390,30 @@ if __name__ == '__main__':
                    }
     visualizer = Visualizer(config_dict, join='inner', stat_only=True, paranet_folder='stat')
 
-    # perf_df = visualizer.perf_df
-    # visualizer.auto_plot(perf_df, '_perf')
+    perf_df = visualizer.perf_df
+    visualizer.auto_plot(perf_df, '_perf')
 
-    # _df = perf_df
-    # # _df = visualizer.select(_df, 'dataset_type', 'cifar10')
-    # _df = visualizer.select(_df, 'model_type', 'vgg6')
-    #
-    # visualizer.plot(_df, ('dataset_type', 'name', 'lr'))
-    # visualizer.plot(_df, ('lr', 'name', 'dataset_type'))
+    perf_df = visualizer.select(perf_df, 'name', 'val_acc$')
+    visualizer.auto_plot(perf_df, '_val_acc')
+
     print time.time() - tic
 
     df = stat_df = visualizer.stat_df
     df.columns = expand_level(df.columns)
-    visualizer.auto_plot(df,'_stat')
+    # # name0 1 2 3 -- obs0 conv2d act iqr
+    df.columns = merge_level(df.columns, 'name0', 'name1')
 
-    # df = visualizer.select(df, 'name2', 'act')
-    # df = visualizer.select(df, 'name1', 'conv2d')
-    # df = visualizer.select(df, 'model_type', 'vgg6')
-    # df = visualizer.select(df, 'dataset_type', 'cifar10$')
-    # # df = visualizer.select(df, 'lr', '1.*?e-02')
-    # visualizer.plot_stat(df, ('name0', 'name3', 'lr'))
+    visualizer.auto_plot(visualizer.select(df, 'name3', '(?:mean|median|iqr|std)'), '_std_iqr',
+                         axes_names=('name0/name1', 'name3', 'lr'))
+
+    visualizer.auto_plot(df, '_all_stat',
+                         axes_names=('name0/name1', 'name3', 'lr'))
+
+    # todo
+    # df.columns = merge_level(df.columns, 'model_type', 'dataset_type')
+    # df = visualizer.select(df, 'name3', '(?:mean|std')
+    #
+    # visualizer.auto_plot(df, '_cross_dataset_model',
+    #                      axes_names=('dataset_type/model_type', ''))
 
     # plt.show()
