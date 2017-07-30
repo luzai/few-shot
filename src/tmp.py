@@ -1,3 +1,6 @@
+from __future__ import division
+
+
 def run(model_type='vgg5', lr=1e-2, limit_val=True, dataset='cifar10', queue=None):
     import utils
     import warnings
@@ -74,18 +77,20 @@ subprocess.call('rm -r ../tfevents ../output ../tfevents_loss'.split())
 # run('resnet6', 1e-2)
 # run('vgg5',1e-5)
 
-queue = mp.Queue()
-tasks = []
-for dataset in ['cifar10', 'cifar100']:  # , 'cifar100'
-    for model_type in ['vgg6', 'resnet6', 'vgg10', 'resnet10', ]:  # 'vgg8', 'resnet8',
-        for lr in np.concatenate((np.logspace(0, -5, 6), np.logspace(-1.5, -2.5, 4))):  # 10,1e-1, 1e-3, 1e-5
-            print dataset, model_type, lr
-            p = mp.Process(target=run, args=(model_type, lr, True, dataset, queue))
-            p.start()
-            tasks.append(p)
-            _res = queue.get()
-            logger.info('last task return {}'.format(_res))
-            time.sleep(15)
+# queue = mp.Queue()
+# tasks = []
+# for dataset in ['cifar10', 'cifar100']:  # , 'cifar100'
+#     for model_type in ['vgg6', 'resnet6', 'vgg10', 'resnet10', ]:  # 'vgg8', 'resnet8',
+#         for lr in np.concatenate((np.logspace(0, -5, 6), np.logspace(-1.5, -2.5, 4))):  # 10,1e-1, 1e-3, 1e-5
+#             print dataset, model_type, lr
+#             p = mp.Process(target=run, args=(model_type, lr, True, dataset, queue))
+#             p.start()
+#             tasks.append(p)
+#             _res = queue.get()
+#             logger.info('last task return {}'.format(_res))
+#             time.sleep(15)
+#
+# for p in tasks:
+#     p.join()
 
-for p in tasks:
-    p.join()
+

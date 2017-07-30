@@ -9,10 +9,12 @@ from models import VGG
 from opts import Config
 from log import logger
 import matplotlib
+import utils
 
-matplotlib.use('TkAgg')
+matplotlib.use('GTKAgg')
 matplotlib.style.use('ggplot')
 import matplotlib.pylab as plt
+from matplotlib import colors as mcolors
 
 
 def drop_level(perf_df, other_name=None):
@@ -21,7 +23,8 @@ def drop_level(perf_df, other_name=None):
     names = np.array(names)
     levels = columns.levels
     name2level = {name: level for name, level in zip(names, levels)}
-    res_str = 'Ttl_'
+    # res_str = 'Ttl_'
+    res_str = ''
     if other_name is None:
         while True:
             levels_len = [len(level) for level in perf_df.columns.levels]
@@ -38,7 +41,22 @@ def drop_level(perf_df, other_name=None):
         for name in other_name:
             level = name2level[name]
             res_str += str(name) + '_' + str(level[0]) + '_'
-    return perf_df, res_str[:-1]
+    return perf_df, res_str
+
+
+@utils.static_vars(ind=0)
+def get_colors():
+    colors = [u'#E24A33', u'#348ABD', u'#988ED5', u'#777777', u'#FBC15E', u'#8EBA42', u'#FFB5B8', u'#4B0082',
+              u'#FFFF00', u'#FF8C00', u'#FFEFD5', u'#FFA500', u'#6B8E23', u'#87CEEB', u'#006400', u'#008080',
+              u'#9ACD32', u'#696969', u'#F0FFF0', u'#BDB76B', u'#FFE4C4', u'#F5DEB3', u'#4682B4', u'#800080',
+              u'#F5F5DC', u'#FDF5E6', u'#A0522D', u'#00FF00', u'#00FA9A', u'#CD853F', u'#D3D3D3', u'#D2691E',
+              u'#808000', u'#FFFAF0', u'#808080', u'#FF1493', u'#800000', u'#D2B48C', u'#DB7093', u'#B0E0E6',
+              u'#191970', u'#9932CC', u'#90EE90', u'#FFF0F5', u'#008000']
+    color = colors[get_colors.ind]
+    get_colors.ind += 1
+    if get_colors.ind >= len(color):
+        get_colors.ind = 0
+    return color
 
 
 class Visualizer(object):
@@ -52,7 +70,14 @@ class Visualizer(object):
         self.perf_df = self.select(self.df, 'name', "(?:val_loss|loss|val_acc|acc)")
         self.stat_df = self.select(self.df, 'name', "^obs.*")
 
-    def _plot(self, perf_df, axes_names, legend):
+    def plot(self, perf_df, axes_names, other_names=None, legend=True):
+        # #  order of axes is (row,col,inside fig)
+        # # assert
+        perf_df, sup_title = drop_level(perf_df, other_names)
+        if len(perf_df.columns.names) != 3:
+            from IPython import embed;
+            embed()
+
         row_name, col_name, inside = axes_names
         names2levels = {name: level for level, name in zip(perf_df.columns.levels, perf_df.columns.names)}
         row_level = names2levels[row_name]
@@ -66,18 +91,21 @@ class Visualizer(object):
         inside_level = names2levels[inside]
         level2inside = {val: ind for ind, val in enumerate(inside_level)}
         insides = len(inside_level)
+        from cycler import cycler
 
-        fig, targets = plt.subplots(rows, cols, figsize=(18, 9))  # , sharex=True)
-        if len(targets.shape) == 1: targets = targets.reshape(rows, cols)
+        # # arrange xlabel ylabel
+        # plt.rc('axes', prop_cycle=(cycler('color', get_colors()[:insides])))
+        fig, axes = plt.subplots(rows, cols, figsize=(max(18 / 5. * cols, 18), 9 / 4. * rows))  # , sharex=True)
+        if len(axes.shape) == 1: axes = axes.reshape(rows, cols)
         for _i in range(rows):
             try:
-                targets[_i][0].set_ylabel(row_level[_i])
+                axes[_i][0].set_ylabel(row_level[_i])
             except:
                 from IPython import embed;
                 embed()
         for _j in range(cols):
-            targets[0][_j].set_title(col_level[_j])
-
+            axes[0][_j].set_title(col_level[_j])
+        #  # plot to right place
         target = []
         legends = np.zeros((rows, cols)).astype(object)
         for inds in perf_df.columns:
@@ -90,30 +118,35 @@ class Visualizer(object):
                         legends[_row, _col] = [ind]
                     else:
                         legends[_row, _col] += [ind]
-            target.append(targets[_row, _col])
-
+            target.append(axes[_row, _col])
         perf_df.plot(subplots=True, legend=False, ax=target, marker=None)
+        #  # change color
+        label2color = {}
+        for axis in axes.flatten():
+            for line in axis.get_lines():
+                _label = line.get_label()
+                for level in inside_level:
+                    if level in _label: label = level
+                if label not in label2color:
+                    color = label2color[label] = get_colors()
+                else:
+                    color = label2color[label]
+                line.set_color(color)
 
+        # [ax.set_prop_cycle(cycler('color', get_colors()[:insides])) for ax in target]
+        # #plot legend
+        # targets[0, 0].legend(list(legends[0, 0]))
         for _row in range(legends.shape[0]):
             for _col in range(legends.shape[1]):
                 if legend:
-                    targets[_row, _col].legend(legends[_row, _col])
+                    axes[_row, _col].legend(list(legends[_row, _col]))
                 else:
-                    targets[_row, _col].legend([])
+                    axes[_row, _col].legend([])
 
-        return fig
-
-    def plot(self, perf_df, axes_names, other_names=None, legend=True):
-        # order of axes is (row,col,inside fig)
-        perf_df, super_title = drop_level(perf_df, other_names)
-        if len(perf_df.columns.names) != 3:
-            from IPython import embed;
-            embed()
-
-        fig = self._plot(perf_df, axes_names, legend)
-        fig.suptitle(super_title)
-        fig.savefig(Config.output_path + '/' + super_title + '.png')
-        return fig
+        sup_title += 'legend_' + inside
+        fig.suptitle(sup_title)
+        # plt.show()
+        return fig, sup_title
 
     def select(self, df, level_name, par_name, sort_names=None, regexp=True):
         sel_name = df.columns.get_level_values(level_name)
@@ -194,22 +227,30 @@ class Visualizer(object):
         df.index.name = 'epoch' if not stat_only else 'iter'
         self.df = df
 
-    def auto_plot(self, df, ):
+    def auto_plot(self, df, save_path=''):
         columns = df.columns
         names = columns.names
         names = np.array(names)
         levels = columns.levels
         name2level = {name: level for name, level in zip(names, levels)}
+        show = False
         for axes_names in names[comb_index(len(names), 3)]:
             other_names = list(set(names) - set(axes_names))
             for poss in cartesian([name2level[name] for name in other_names]):
-                _df = df.copy()
-                for _name, _poss in zip(other_names, poss):
-                    _df = self.select(_df, _name, _poss, regexp=False)
-                    if _df is None:    break
-                if _df is None: continue
-                self.plot(_df, axes_names, other_names)
-                plt.close()
+                try:
+                    _df = df.copy()
+                    for _name, _poss in zip(other_names, poss):
+                        _df = self.select(_df, _name, _poss, regexp=False)
+                        if _df is None: break
+                    if _df is None: continue
+                    fig, sup_title = self.plot(_df, axes_names, other_names)
+                    utils.mkdir_p(Config.output_path + save_path + '/')
+
+                    fig.savefig(Config.output_path + save_path + '/' + sup_title + '.png')
+                    if show: plt.show()
+                    plt.close()
+                except Exception as inst:
+                    print inst
 
 
 from itertools import combinations, chain
@@ -268,10 +309,14 @@ def cartesian(arrays, out=None):
 
 
 def comb_index(n, k):
+    assert k == 3, 'choose 3 dim'
     count = comb(n, k, exact=True)
     index = np.fromiter(chain.from_iterable(combinations(range(n), k)),
                         int, count=count * k)
-    return index.reshape(-1, k)
+    index = index.reshape(-1, k)
+    index = np.concatenate((index, index[:, [1, 2, 0]], index[:, [0, 2, 1]]), axis=0)
+    np.random.shuffle(index)
+    return index
 
 
 def expand_level(columns):
@@ -314,7 +359,8 @@ if __name__ == '__main__':
     visualizer = Visualizer(config_dict, join='inner', stat_only=True, paranet_folder='stat')
 
     # perf_df = visualizer.perf_df
-    # visualizer.auto_plot(perf_df)
+    # visualizer.auto_plot(perf_df, '_perf')
+
     # _df = perf_df
     # # _df = visualizer.select(_df, 'dataset_type', 'cifar10')
     # _df = visualizer.select(_df, 'model_type', 'vgg6')
@@ -325,13 +371,13 @@ if __name__ == '__main__':
 
     df = stat_df = visualizer.stat_df
     df.columns = expand_level(df.columns)
-    visualizer.auto_plot(df)
+    visualizer.auto_plot(df,'_stat')
+
     # df = visualizer.select(df, 'name2', 'act')
     # df = visualizer.select(df, 'name1', 'conv2d')
     # df = visualizer.select(df, 'model_type', 'vgg6')
     # df = visualizer.select(df, 'dataset_type', 'cifar10$')
     # # df = visualizer.select(df, 'lr', '1.*?e-02')
-    # # todo plot title
     # visualizer.plot_stat(df, ('name0', 'name3', 'lr'))
 
-    plt.show()
+    # plt.show()
