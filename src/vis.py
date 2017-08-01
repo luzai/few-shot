@@ -1,13 +1,12 @@
+import matplotlib
+
+matplotlib.use('Agg')
+
 from loader import Loader
 from log import logger
 from opts import Config
 from datasets import Dataset
 from models import VGG
-
-import matplotlib
-
-matplotlib.use('GTKAgg')
-matplotlib.style.use('ggplot')
 
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.ticker import NullFormatter
@@ -15,15 +14,20 @@ from matplotlib import colors as mcolors
 
 from sklearn import preprocessing, manifold, datasets
 
-import time,  utils, glob, os, re, copy
-import numpy as np,os.path as osp, pandas as pd, matplotlib.pylab as plt
+import time, utils, glob, os, re, copy
+import numpy as np, os.path as osp, pandas as pd, matplotlib.pylab as plt
 
 from itertools import combinations, chain
 from scipy.misc import comb
+from moviepy.video.io.bindings import mplfig_to_npimage
+import moviepy.editor as mpy
+
+matplotlib.style.use('ggplot')
 
 Axes3D
 
-dbg = True
+dbg = False
+
 
 def drop_level(perf_df, other_name=None, keep_num_levels=3):
     perf_df = perf_df.copy()
@@ -32,7 +36,7 @@ def drop_level(perf_df, other_name=None, keep_num_levels=3):
     names = np.array(names)
     levels = columns.levels
     name2level = {name: level for name, level in zip(names, levels)}
-    # res_str = 'Ttl_'
+
     res_str = ''
     if other_name is None:
         while True:
@@ -53,20 +57,27 @@ def drop_level(perf_df, other_name=None, keep_num_levels=3):
     return perf_df, res_str
 
 
-@utils.static_vars(ind=0)
-def get_colors():
-
-    colors = [u'#E24A33', u'#348ABD', u'#988ED5', u'#777777', u'#FBC15E', u'#8EBA42', u'#FFB5B8', u'#4B0082', ]
-    # u'#FFFF00', u'#FF8C00', u'#FFEFD5', u'#FFA500', u'#6B8E23', u'#87CEEB', u'#006400', u'#008080',
-    # u'#9ACD32', u'#696969', u'#F0FFF0', u'#BDB76B', u'#FFE4C4', u'#F5DEB3', u'#4682B4', u'#800080',
-    # u'#F5F5DC', u'#FDF5E6', u'#A0522D', u'#00FF00', u'#00FA9A', u'#CD853F', u'#D3D3D3', u'#D2691E',
-    # u'#808000', u'#FFFAF0', u'#808080', u'#FF1493', u'#800000', u'#D2B48C', u'#DB7093', u'#B0E0E6',
-    # u'#191970', u'#9932CC', u'#90EE90', u'#FFF0F5', u'#008000']
-
-    color = colors[get_colors.ind]
-    get_colors.ind += 1
-    if get_colors.ind + 1 >= len(color):
-        get_colors.ind = 0
+@utils.static_vars(ind=0, label2color={u'1.00e+00': u'#E24A33',
+                                       u'1.00e-01': u'#348ABD',
+                                       u'1.00e-02': u'#988ED5',
+                                       u'1.00e-03': u'#777777',
+                                       u'1.00e-04': u'#FBC15E',
+                                       u'1.00e-05': u'#8EBA42'})
+def get_colors(label):
+    colors = [u'#FFFF00', u'#FF8C00', u'#FFEFD5', u'#FFA500', u'#6B8E23', u'#87CEEB', u'#006400', u'#008080',
+              u'#9ACD32', u'#696969', u'#F0FFF0', u'#BDB76B', u'#FFE4C4', u'#F5DEB3', u'#4682B4', u'#800080',
+              u'#F5F5DC', u'#FDF5E6', u'#A0522D', u'#00FF00', u'#00FA9A', u'#CD853F', u'#D3D3D3', u'#D2691E',
+              u'#808000', u'#FFFAF0', u'#808080', u'#FF1493', u'#800000', u'#D2B48C', u'#DB7093', u'#B0E0E6',
+              u'#191970', u'#9932CC', u'#90EE90', u'#FFF0F5', u'#008000']
+    if label not in get_colors.label2color:
+        color = colors[get_colors.ind]
+        get_colors.ind += 1
+        if get_colors.ind + 1 >= len(color):
+            get_colors.ind = 0
+        get_colors.label2color[label] = color
+        logger.info('update label2color {}'.format(get_colors.label2color))
+    else:
+        color = get_colors.label2color[label]
     return color
 
 
@@ -82,13 +93,11 @@ class Visualizer(object):
         self.stat_df = self.select(self.df, 'name', "^obs.*")
 
     def plot(self, perf_df, axes_names, other_names=None, legend=True):
-        global label2color
+
         # #  order of axes is (row,col,inside fig)
-        # # assert
         perf_df, sup_title = drop_level(perf_df, other_names)
         assert len(perf_df.columns.names) == 3, 'plot only accept input 3'
 
-        label2color = {}
         row_name, col_name, inside = axes_names
         names2levels = {name: level for level, name in zip(perf_df.columns.levels, perf_df.columns.names)}
         row_level = names2levels[row_name]
@@ -105,7 +114,6 @@ class Visualizer(object):
         from cycler import cycler
 
         # # arrange xlabel ylabel
-        # plt.rc('axes', prop_cycle=(cycler('color', get_colors()[:insides])))
         fig, axes = plt.subplots(rows, cols, figsize=(max(18 / 5. * cols, 18), 9 / 4. * rows))  # , sharex=True)
         axes = np.array(axes).reshape(rows, cols)
 
@@ -139,11 +147,7 @@ class Visualizer(object):
                 _label = line.get_label()
                 for level in inside_level:
                     if level in _label: label = level
-                if label not in label2color:
-                    label2color[label] = get_colors()
-                    color = label2color[label]
-                else:
-                    color = label2color[label]
+                color = get_colors(label)
                 line.set_color(color)
 
         # # plot legend
@@ -243,6 +247,7 @@ class Visualizer(object):
         self.df = df
 
     def auto_plot(self, df, path_suffix, axes_names=None):
+
         columns = df.columns
         levels, names, name2level, name2ind = get_columns_alias(columns)
         show = False
@@ -264,10 +269,13 @@ class Visualizer(object):
                 fig.savefig(Config.output_path + path_suffix + '/' + re.sub('/', '', sup_title) + '.png')
                 if show: plt.show()
                 plt.close()
-                # except Exception as inst:
-                #     from IPython import embed
-                #     embed()
-                # print inst
+                if globals()['dbg']:
+                    logger.info('dbg mode break')
+                    break
+                    # except Exception as inst:
+                    #     from IPython import embed
+                    #     embed()
+                    # print inst
 
 
 def cartesian(arrays, out=None):
@@ -407,6 +415,12 @@ def subplots(visualizer, path_suffix):
 
     # plot statistics
     df = visualizer.stat_df.copy()
+
+    if 'stable' in path_suffix:
+        # columns = perf_df.columns
+        # levels, names, name2level, name2ind = get_columns_alias(columns)
+        df = visualizer.select(df, 'lr', '1.00e-0[2-9].*')
+
     df.columns = expand_level(df.columns)
     # # name0 1 2 3 -- obs0 conv2d act iqr
     df.columns = merge_level(df.columns, 'name0', 'name1')
@@ -418,36 +432,21 @@ def subplots(visualizer, path_suffix):
     #                      axes_names=('name0/name1', 'name3', 'lr'))
 
 
-if __name__ == '__main__':
-    # utils.rm('../output  ')
-    tic = time.time()
-    config_dict = {'model_type': ['vgg6', 'vgg10', 'resnet6', 'resnet10'],
-                   'lr': np.concatenate((np.logspace(0, -5, 6), np.logspace(-1.5, -2.5, 0))),
-                   'dataset_type': ['cifar10', 'cifar100']
-                   }
-    # visualizer = Visualizer(config_dict, join='inner', stat_only=True, paranet_folder='stat1')
-    # subplots(visualizer, path_suffix='_1')
-    # subplots(visualizer, path_suffix='_1_stable_lr')
-
-    visualizer = Visualizer(config_dict, join='inner', stat_only=True, paranet_folder='stat')
-    # subplots(visualizer, path_suffix='_2')
-    # subplots(visualizer, path_suffix='_2_stable_lr')
-
-    print time.time() - tic
-
-    stat_df = visualizer.stat_df
-    stat_df = visualizer.select(stat_df, 'lr', '1.00e-0[2-9].*')
+def t_sne(visualizer, model_type, dataset_type, start_lr):
+    logger.info('start ' + '_'.join((model_type, dataset_type, 'start_lr', str(start_lr))))
+    stat_df = visualizer.stat_df.copy()
+    stat_df = visualizer.select(stat_df, 'lr', '1.00e[+-]0[{}-9].*'.format(start_lr))
     stat_df = visualizer.select(stat_df, 'name', '(?:.*/dense/.*|.*/conv2d/.*)')
-    stat_df = visualizer.select(stat_df, 'dataset_type', 'cifar10$')
-    stat_df = visualizer.select(stat_df, 'model_type', 'resnet6')
+    stat_df = visualizer.select(stat_df, 'dataset_type', dataset_type, regexp=False)
+    stat_df = visualizer.select(stat_df, 'model_type', model_type, regexp=False)
 
     stat_df, suptitle = drop_level(stat_df, keep_num_levels=2)
 
-    perf_df = visualizer.perf_df
-    perf_df = visualizer.select(perf_df, 'lr', '1.00e-0[2-9].*')
-    perf_df = visualizer.select(perf_df, 'dataset_type', 'cifar10$')
-    perf_df = visualizer.select(perf_df, 'model_type', 'resnet6')
-    perf_df = visualizer.select(perf_df, 'name', 'val_acc')
+    perf_df = visualizer.perf_df.copy()
+    perf_df = visualizer.select(perf_df, 'lr', '1.00e[+-]0[{}-9].*'.format(start_lr))
+    perf_df = visualizer.select(perf_df, 'dataset_type', dataset_type, regexp=False)
+    perf_df = visualizer.select(perf_df, 'model_type', model_type, regexp=False)
+    perf_df = visualizer.select(perf_df, 'name', 'val_acc', regexp=False)
 
     perf_df, suptitle = drop_level(perf_df, keep_num_levels=2)
 
@@ -455,10 +454,12 @@ if __name__ == '__main__':
     colors = []
     val_accs = []
 
-    for ind, lr in enumerate(stat_df.columns.levels[0]):
+    levels, names, name2level, name2ind = get_columns_alias(stat_df.columns)
+    for ind, lr in enumerate(name2level['lr']):
         _perf_df = visualizer.select(perf_df, 'lr', lr, regexp=False)
         _perf_df, _suptitle = drop_level(_perf_df, other_name=['lr'],
                                          keep_num_levels=1)
+        logger.debug ('{}'.format(_perf_df.columns))
         val_accs.append(_perf_df.as_matrix())
 
         _stat_df = visualizer.select(stat_df, 'lr', lr, regexp=False)
@@ -472,26 +473,85 @@ if __name__ == '__main__':
     # val_accs = np.concatenate(val_accs, axis=0)
 
     stats_all = preprocessing.scale(stats_all, axis=0)
-    for multitime in range(5):
-        stats_dim2_all = manifold.TSNE(n_components=2).fit_transform(stats_all)
+    # for multitime in range(1):
+    stats_dim2_all = manifold.TSNE(n_components=2).fit_transform(stats_all)
 
-        stats_dim2 = []
-        ind = 0
-        for stat in stats:
-            stats_dim2.append(stats_dim2_all[ind:ind + stat.shape[0]])
-            ind+=stat.shape[0]
+    stats_dim2 = []
+    ind = 0
+    for stat in stats:
+        stats_dim2.append(stats_dim2_all[ind:ind + stat.shape[0]])
+        ind += stat.shape[0]
 
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    if globals()['dbg']:
+        dur = 0.1
+    else:
+        dur = 9.
+    freq = stats_dim2[0].shape[0] / dur
+    has_legend = False
 
-        global label2color
-        for ind,(stat_dim2, color, val_acc) in enumerate(zip(stats_dim2, colors, val_accs)):
-            ax.scatter(stat_dim2[:, 0],
-                       stat_dim2[:, 1],
-                       val_acc.reshape(val_acc.shape[0]),
-                       c=[u'#988ED5', u'#777777', u'#FBC15E', u'#8EBA42'][ind]
-                       #                cmap=plt.cm.Spectral,
+    def make_frame_mpl(t):
+        ax.clear()
+        time_i = int(t * freq)
+        for ind, (stat_dim2, color, val_acc) in enumerate(zip(stats_dim2, colors, val_accs)):
+            try:
+                val_acc[:time_i].reshape((time_i,))
+            except Exception as inst:
+                print inst
+                from IPython import embed
+                embed()
+            lr = name2level['lr'][ind]
+            ax.scatter(stat_dim2[:time_i, 0],
+                       stat_dim2[:time_i, 1],
+                       val_acc[:time_i].reshape((time_i,)),
+                       c=get_colors(lr),
+                       label=lr
+                       # cmap=plt.cm.Spectral,
                        )
-        plt.legend(list(stat_df.columns.levels[0]))
-        ax.view_init(elev=90, azim=10)
-    plt.show()
+
+        ax.legend(loc='upper right')
+        # ax.legend()
+        # ax.get_xaxis().set_ticklabels([])
+        # ax.get_yaxis().set_ticklabels([])
+        ax.set_xlim3d([stats_dim2_all[:, 0].min(), stats_dim2_all[:, 0].max()])
+        ax.set_ylim3d([stats_dim2_all[:, 1].min(), stats_dim2_all[:, 1].max()])
+        ax.set_zlim3d([0, 1])
+        ax.view_init(elev=20., azim=t / dur * 130)
+        fig.suptitle('_'.join((model_type, dataset_type, 'start_lr', str(start_lr))))
+        return mplfig_to_npimage(fig)
+
+    # from scipy.misc import imshow
+    # t=make_frame_mpl(0.01)
+    animation = mpy.VideoClip(make_frame_mpl, duration=dur)
+    animation.write_gif('_'.join((model_type, dataset_type, 'start_lr', str(start_lr))) + '.gif', fps=20)
+
+
+if __name__ == '__main__':
+    # utils.rm('../output  ')
+    tic = time.time()
+    config_dict = {'model_type': ['vgg6', 'vgg10', 'resnet6', 'resnet10'],
+                   'lr': np.concatenate((np.logspace(0, -5, 6), np.logspace(-1.5, -2.5, 0))),
+                   'dataset_type': ['cifar10', 'cifar100']
+                   }
+    # visualizer = Visualizer(config_dict, join='inner', stat_only=True, paranet_folder='stat1')
+    # subplots(visualizer, path_suffix='_1')
+    # subplots(visualizer, path_suffix='_1_stable_lr')
+
+    # visualizer = Visualizer(config_dict, join='inner', stat_only=True, paranet_folder='stat2')
+    # subplots(visualizer, path_suffix='_2')
+    # subplots(visualizer, path_suffix='_2_stable_lr')
+
+    visualizer = Visualizer(config_dict, join='inner', stat_only=True, paranet_folder='stat3')
+    subplots(visualizer, path_suffix='_3')
+    subplots(visualizer, path_suffix='_3_stable_lr')
+
+    print time.time() - tic
+
+    dataset, model_type = 'cifar100', 'resnet10'
+
+    for lr in [0, 2, 4]:
+        t_sne(visualizer, model_type, dataset, lr)
+    for dataset in ['cifar10', 'cifar100']:  # , 'cifar100'
+        for model_type in ['vgg6', 'resnet6', 'vgg10', 'resnet10', ]:  # 'vgg8', 'resnet8',
+            t_sne(visualizer, model_type, dataset, 2)
