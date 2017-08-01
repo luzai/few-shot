@@ -63,7 +63,7 @@ class TensorBoard2(Callback):
         self.act_l = {}
         if self.histogram_freq and self.merged is None:
             for layer in self.model.layers:
-                if 'obs' not in layer.name: # only log obs
+                if 'obs' not in layer.name:  # only log obs
                     continue
                 for weight in layer.weights:
                     # todo more clean way to name
@@ -133,7 +133,7 @@ class TensorBoard2(Callback):
         self.iter = iter = self.epoch * self.iter_per_epoch + self.batch
         self.update_log(logs)
         if self.validation_data and self.histogram_freq and self.log_flag:
-            logger.info('Epoch {} Batch {} Iter {} end'.format(self.epoch,self.batch,iter))
+            logger.info('Epoch {} Batch {} Iter {} end'.format(self.epoch, self.batch, iter))
             if not self.stat_only:
                 act_summ_str_l, weight_summ_str = self.get_act_param_summ_str()
                 self.new_writer(act_summ_str_l, weight_summ_str, iter)
@@ -188,7 +188,7 @@ class TensorBoard2(Callback):
             batch_val.append(val_data[1][i:i + step])
             batch_val.append(val_data[2][i:i + step])
             if self.model.uses_learning_phase:
-                batch_val.append(val_data[3])
+                batch_val.append(np.zeros_like(val_data[3]))  # do not use dropout!
             feed_dict = dict(zip(tensors, batch_val))
 
             for _act_name, _act in self.sess.run(self.act_l, feed_dict=feed_dict).items():
@@ -220,7 +220,7 @@ class TensorBoard2(Callback):
             batch_val.append(val_data[1][i:i + step])
             batch_val.append(val_data[2][i:i + step])
             if self.model.uses_learning_phase:
-                batch_val.append(val_data[3])
+                batch_val.append(np.zeros_like(val_data[3]))
             feed_dict = dict(zip(tensors, batch_val))
             if i == 0:
                 weight_summ_str, act_summ_str = self.sess.run([self.weight_summ, self.act_summ],

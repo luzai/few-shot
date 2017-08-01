@@ -3,6 +3,9 @@ from log import logger
 from opts import Config
 from datasets import Dataset
 from models import VGG
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib.ticker import NullFormatter
+from sklearn import preprocessing, manifold, datasets
 
 import time, numpy as np, utils
 import pandas as pd, re, copy
@@ -18,8 +21,11 @@ matplotlib.style.use('ggplot')
 import matplotlib.pylab as plt
 from matplotlib import colors as mcolors
 
+Axes3D
 
-def drop_level(perf_df, other_name=None):
+
+def drop_level(perf_df, other_name=None, keep_num_levels=3):
+    perf_df = perf_df.copy()
     columns = perf_df.columns
     names = columns.names
     names = np.array(names)
@@ -31,18 +37,18 @@ def drop_level(perf_df, other_name=None):
         while True:
             levels_len = [len(level) for level in perf_df.columns.levels]
             levels_len = np.array(levels_len)
-            if (levels_len != np.ones_like(levels_len)).all() or len(perf_df.columns.levels) == 3: break
+            if (levels_len != np.ones_like(levels_len)).all() or len(perf_df.columns.levels) == keep_num_levels: break
 
             for ind, level in enumerate(perf_df.columns.levels):
                 if len(level) == 1:
-                    res_str += level.name + '_' + level[0] + '_'
+                    res_str += level[0] + '_'
                     perf_df.columns = perf_df.columns.droplevel(ind)
                     break
     else:
         perf_df.columns = perf_df.columns.droplevel(other_name)
         for name in other_name:
             level = name2level[name]
-            res_str += str(level[0]) + '_'
+            res_str += level[0] + '_'
     return perf_df, res_str
 
 
@@ -137,7 +143,6 @@ class Visualizer(object):
                     color = label2color[label]
                 line.set_color(color)
 
-        # [ax.set_prop_cycle(cycler('color', get_colors()[:insides])) for ax in target]
         # # plot legend
         axes[0, 0].legend(list(legends[0, 0]))
         for _row in range(legends.shape[0]):
@@ -154,6 +159,7 @@ class Visualizer(object):
         return fig, sup_title
 
     def select(self, df, level_name, par_name, sort_names=None, regexp=True):
+        df = df.copy()
         sel_name = df.columns.get_level_values(level_name)
         f_sel_name = set()
         pat = re.compile(par_name)
@@ -207,6 +213,7 @@ class Visualizer(object):
             # loader.join()
             scalar = loader.scalars
             act = loader.act
+            act = act.round(7)
             param = loader.params
 
             df_l.append(scalar)
@@ -232,12 +239,9 @@ class Visualizer(object):
         df.index.name = 'epoch' if not stat_only else 'iter'
         self.df = df
 
-    def auto_plot(self, df, save_path='', axes_names=None):
+    def auto_plot(self, df, path_suffix, axes_names=None):
         columns = df.columns
-        names = columns.names
-        names = np.array(names)
-        levels = columns.levels
-        name2level = {name: level for name, level in zip(names, levels)}
+        levels, names, name2level, name2ind = get_columns_alias(columns)
         show = False
         if axes_names is not None:
             axes_names_l = [axes_names]
@@ -253,8 +257,8 @@ class Visualizer(object):
                     if _df is None: break
                 if _df is None: continue
                 fig, sup_title = self.plot(_df, axes_names, other_names)
-                utils.mkdir_p(Config.output_path + save_path + '/')
-                fig.savefig(Config.output_path + save_path + '/' + re.sub('/', '', sup_title) + '.png')
+                utils.mkdir_p(Config.output_path + path_suffix + '/')
+                fig.savefig(Config.output_path + path_suffix + '/' + re.sub('/', '', sup_title) + '.png')
                 if show: plt.show()
                 plt.close()
                 # except Exception as inst:
@@ -325,6 +329,7 @@ def choose_three(names):
         # np.random.shuffle(index)
         return index
 
+    names = np.array(names)
     for axes_names in names[comb_index(len(names), 3)]:
         if axes_names[-1] != 'lr':
             continue
@@ -333,12 +338,10 @@ def choose_three(names):
 
 
 def expand_level(columns):
-    levels = columns.levels
-    names = columns.names
+    levels, names, name2level, name2ind = get_columns_alias(columns)
     fname = copy.deepcopy(names[:-1])
     for _ind, _name in enumerate(split_path(columns[0][-1])):
-        fname += ['name' + str(_ind)]
-    # finds = np.zeros((len(columns),len(fname)),basestring)
+        fname.append('name' + str(_ind))
     finds = []
     for inds in columns:
         finds.append(list(inds[:-1]) + list(split_path(inds[-1])))
@@ -347,11 +350,16 @@ def expand_level(columns):
     return fcolumns
 
 
-def merge_level(columns, name1, name2):
+def get_columns_alias(columns):
     levels = columns.levels
     names = columns.names
     name2level = {name: level for name, level in zip(names, levels)}
     name2ind = {name: ind for ind, name in enumerate(names)}
+    return list(levels), list(names), name2level, name2ind
+
+
+def merge_level(columns, name1, name2):
+    levels, names, name2level, name2ind = get_columns_alias(columns)
     ind1 = name2ind[name1]
     ind2 = name2ind[name2]
     assert ind1 + 1 == ind2
@@ -367,7 +375,7 @@ def merge_level(columns, name1, name2):
 
 def split_path(path):
     folders = []
-    while 1:
+    while True:
         path, folder = os.path.split(path)
 
         if folder != "":
@@ -381,39 +389,95 @@ def split_path(path):
     return folders
 
 
+def subplots(visualizer, path_suffix):
+    # plot all performance
+    perf_df = visualizer.perf_df.copy()
+    if 'stable' in path_suffix:
+        # columns = perf_df.columns
+        # levels, names, name2level, name2ind = get_columns_alias(columns)
+        perf_df = visualizer.select(perf_df, 'lr', '1.00e-0[2-9].*')
+
+    # visualizer.auto_plot(perf_df, path_suffix + '_all_perf')
+    # plot only val acc
+    perf_df = visualizer.select(perf_df, 'name', 'val_acc$')
+    visualizer.auto_plot(perf_df, path_suffix + '_val_acc')
+
+    # plot statistics
+    df = visualizer.stat_df.copy()
+    df.columns = expand_level(df.columns)
+    # # name0 1 2 3 -- obs0 conv2d act iqr
+    df.columns = merge_level(df.columns, 'name0', 'name1')
+
+    visualizer.auto_plot(visualizer.select(df, 'name3', '(?:mean|median|iqr|std)'), path_suffix + '_std_iqr',
+                         axes_names=('name0/name1', 'name3', 'lr'))
+
+    # visualizer.auto_plot(df, path_suffix + '_all_stat',
+    #                      axes_names=('name0/name1', 'name3', 'lr'))
+
+
 if __name__ == '__main__':
-    utils.rm('../output  ')
+    # utils.rm('../output  ')
     tic = time.time()
     config_dict = {'model_type': ['vgg6', 'vgg10', 'resnet6', 'resnet10'],
                    'lr': np.concatenate((np.logspace(0, -5, 6), np.logspace(-1.5, -2.5, 0))),
                    'dataset_type': ['cifar10', 'cifar100']
                    }
+    visualizer = Visualizer(config_dict, join='inner', stat_only=True, paranet_folder='stat1')
+    subplots(visualizer, path_suffix='_1')
+    subplots(visualizer, path_suffix='_1_stable_lr')
+
     visualizer = Visualizer(config_dict, join='inner', stat_only=True, paranet_folder='stat')
+    subplots(visualizer, path_suffix='_2')
+    subplots(visualizer, path_suffix='_2_stable_lr')
+
+    stat_df = visualizer.stat_df
+    stat_df = visualizer.select(stat_df, 'lr', '1.00e-0[2-9].*')
+    # stat_df = visualizer.select(stat_df, 'name', '(?:.*/act/mean|.*/act/median)')
+    stat_df = visualizer.select(stat_df, 'dataset_type', 'cifar10$')
+    stat_df = visualizer.select(stat_df, 'model_type', 'resnet6')
+
+    stat_df, suptitle = drop_level(stat_df, keep_num_levels=2)
 
     perf_df = visualizer.perf_df
-    visualizer.auto_plot(perf_df, '_perf')
+    perf_df = visualizer.select(perf_df, 'lr', '1.00e-0[2-9].*')
+    perf_df = visualizer.select(perf_df, 'dataset_type', 'cifar10$')
+    perf_df = visualizer.select(perf_df, 'model_type', 'resnet6')
+    perf_df = visualizer.select(perf_df, 'name', 'val_acc')
 
-    perf_df = visualizer.select(perf_df, 'name', 'val_acc$')
-    visualizer.auto_plot(perf_df, '_val_acc')
+    perf_df, suptitle = drop_level(perf_df, keep_num_levels=2)
 
+    stats = []
+    colors = []
+    val_accs = []
+
+    for ind, lr in enumerate(stat_df.columns.levels[0]):
+        _perf_df = visualizer.select(perf_df, 'lr', lr, regexp=False)
+        _perf_df, _suptitle = drop_level(_perf_df, other_name=['lr'],
+                                         keep_num_levels=1)
+        val_accs.append(_perf_df.as_matrix())
+
+        _stat_df = visualizer.select(stat_df, 'lr', lr, regexp=False)
+        _stat_df, _suptitle = drop_level(_stat_df, other_name=['lr'],
+                                         keep_num_levels=1)
+        colors.append(np.ones((_stat_df.shape[0], 1)) * ind)
+        stats.append(_stat_df.as_matrix())
+
+    stats = np.concatenate(stats, axis=0)
+    colors = np.concatenate(colors, axis=0)
+    val_accs = np.concatenate(val_accs, axis=0)
+
+    stats = preprocessing.scale(stats, axis=0)
+    stats.mean(axis=0)
+    plt.plot(stats.std(axis=0))
+    stats.std(axis=0)[-5:]
+    plt.plot(preprocessing.scale(stats, axis=0,with_mean=True).mean(axis=0))
+    plt.plot(preprocessing.scale(stats, axis=0,with_mean=True,with_std=True).std(axis=0))
+    stats_dim2 = manifold.TSNE(n_components=2).fit_transform(stats)
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.scatter(stats_dim2[:, 0], stats_dim2[:, 1], val_accs.reshape(val_accs.shape[0]), c=colors,cmap=plt.cm.Spectral)
+    # plt.legend(list(stat_df.columns.levels[0]))
+    # todo legend
+    # todo line3d
+    plt.show()
     print time.time() - tic
-
-    df = stat_df = visualizer.stat_df
-    df.columns = expand_level(df.columns)
-    # # name0 1 2 3 -- obs0 conv2d act iqr
-    df.columns = merge_level(df.columns, 'name0', 'name1')
-
-    visualizer.auto_plot(visualizer.select(df, 'name3', '(?:mean|median|iqr|std)'), '_std_iqr',
-                         axes_names=('name0/name1', 'name3', 'lr'))
-
-    visualizer.auto_plot(df, '_all_stat',
-                         axes_names=('name0/name1', 'name3', 'lr'))
-
-    # todo
-    # df.columns = merge_level(df.columns, 'model_type', 'dataset_type')
-    # df = visualizer.select(df, 'name3', '(?:mean|std')
-    #
-    # visualizer.auto_plot(df, '_cross_dataset_model',
-    #                      axes_names=('dataset_type/model_type', ''))
-
-    # plt.show()
