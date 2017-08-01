@@ -3,26 +3,27 @@ from log import logger
 from opts import Config
 from datasets import Dataset
 from models import VGG
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib.ticker import NullFormatter
-from sklearn import preprocessing, manifold, datasets
-
-import time, numpy as np, utils
-import pandas as pd, re, copy
-import time, glob, os, os.path as osp
-
-from itertools import combinations, chain
-from scipy.misc import comb
 
 import matplotlib
 
 matplotlib.use('GTKAgg')
 matplotlib.style.use('ggplot')
-import matplotlib.pylab as plt
+
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib.ticker import NullFormatter
 from matplotlib import colors as mcolors
+
+from sklearn import preprocessing, manifold, datasets
+
+import time,  utils, glob, os, re, copy
+import numpy as np,os.path as osp, pandas as pd, matplotlib.pylab as plt
+
+from itertools import combinations, chain
+from scipy.misc import comb
 
 Axes3D
 
+dbg = True
 
 def drop_level(perf_df, other_name=None, keep_num_levels=3):
     perf_df = perf_df.copy()
@@ -54,6 +55,7 @@ def drop_level(perf_df, other_name=None, keep_num_levels=3):
 
 @utils.static_vars(ind=0)
 def get_colors():
+
     colors = [u'#E24A33', u'#348ABD', u'#988ED5', u'#777777', u'#FBC15E', u'#8EBA42', u'#FFB5B8', u'#4B0082', ]
     # u'#FFFF00', u'#FF8C00', u'#FFEFD5', u'#FFA500', u'#6B8E23', u'#87CEEB', u'#006400', u'#008080',
     # u'#9ACD32', u'#696969', u'#F0FFF0', u'#BDB76B', u'#FFE4C4', u'#F5DEB3', u'#4682B4', u'#800080',
@@ -80,6 +82,7 @@ class Visualizer(object):
         self.stat_df = self.select(self.df, 'name', "^obs.*")
 
     def plot(self, perf_df, axes_names, other_names=None, legend=True):
+        global label2color
         # #  order of axes is (row,col,inside fig)
         # # assert
         perf_df, sup_title = drop_level(perf_df, other_names)
@@ -422,17 +425,19 @@ if __name__ == '__main__':
                    'lr': np.concatenate((np.logspace(0, -5, 6), np.logspace(-1.5, -2.5, 0))),
                    'dataset_type': ['cifar10', 'cifar100']
                    }
-    visualizer = Visualizer(config_dict, join='inner', stat_only=True, paranet_folder='stat1')
-    subplots(visualizer, path_suffix='_1')
-    subplots(visualizer, path_suffix='_1_stable_lr')
+    # visualizer = Visualizer(config_dict, join='inner', stat_only=True, paranet_folder='stat1')
+    # subplots(visualizer, path_suffix='_1')
+    # subplots(visualizer, path_suffix='_1_stable_lr')
 
     visualizer = Visualizer(config_dict, join='inner', stat_only=True, paranet_folder='stat')
-    subplots(visualizer, path_suffix='_2')
-    subplots(visualizer, path_suffix='_2_stable_lr')
+    # subplots(visualizer, path_suffix='_2')
+    # subplots(visualizer, path_suffix='_2_stable_lr')
+
+    print time.time() - tic
 
     stat_df = visualizer.stat_df
     stat_df = visualizer.select(stat_df, 'lr', '1.00e-0[2-9].*')
-    # stat_df = visualizer.select(stat_df, 'name', '(?:.*/act/mean|.*/act/median)')
+    stat_df = visualizer.select(stat_df, 'name', '(?:.*/dense/.*|.*/conv2d/.*)')
     stat_df = visualizer.select(stat_df, 'dataset_type', 'cifar10$')
     stat_df = visualizer.select(stat_df, 'model_type', 'resnet6')
 
@@ -459,25 +464,34 @@ if __name__ == '__main__':
         _stat_df = visualizer.select(stat_df, 'lr', lr, regexp=False)
         _stat_df, _suptitle = drop_level(_stat_df, other_name=['lr'],
                                          keep_num_levels=1)
-        colors.append(np.ones((_stat_df.shape[0], 1)) * ind)
+        colors.append(ind)
         stats.append(_stat_df.as_matrix())
 
-    stats = np.concatenate(stats, axis=0)
-    colors = np.concatenate(colors, axis=0)
-    val_accs = np.concatenate(val_accs, axis=0)
+    stats_all = np.concatenate(stats, axis=0)
+    # colors = np.concatenate(colors, axis=0)
+    # val_accs = np.concatenate(val_accs, axis=0)
 
-    stats = preprocessing.scale(stats, axis=0)
-    stats.mean(axis=0)
-    plt.plot(stats.std(axis=0))
-    stats.std(axis=0)[-5:]
-    plt.plot(preprocessing.scale(stats, axis=0,with_mean=True).mean(axis=0))
-    plt.plot(preprocessing.scale(stats, axis=0,with_mean=True,with_std=True).std(axis=0))
-    stats_dim2 = manifold.TSNE(n_components=2).fit_transform(stats)
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-    ax.scatter(stats_dim2[:, 0], stats_dim2[:, 1], val_accs.reshape(val_accs.shape[0]), c=colors,cmap=plt.cm.Spectral)
-    # plt.legend(list(stat_df.columns.levels[0]))
-    # todo legend
-    # todo line3d
+    stats_all = preprocessing.scale(stats_all, axis=0)
+    for multitime in range(5):
+        stats_dim2_all = manifold.TSNE(n_components=2).fit_transform(stats_all)
+
+        stats_dim2 = []
+        ind = 0
+        for stat in stats:
+            stats_dim2.append(stats_dim2_all[ind:ind + stat.shape[0]])
+            ind+=stat.shape[0]
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+
+        global label2color
+        for ind,(stat_dim2, color, val_acc) in enumerate(zip(stats_dim2, colors, val_accs)):
+            ax.scatter(stat_dim2[:, 0],
+                       stat_dim2[:, 1],
+                       val_acc.reshape(val_acc.shape[0]),
+                       c=[u'#988ED5', u'#777777', u'#FBC15E', u'#8EBA42'][ind]
+                       #                cmap=plt.cm.Spectral,
+                       )
+        plt.legend(list(stat_df.columns.levels[0]))
+        ax.view_init(elev=90, azim=10)
     plt.show()
-    print time.time() - tic
