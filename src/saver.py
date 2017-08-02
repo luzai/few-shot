@@ -103,7 +103,7 @@ class TensorBoard2(Callback):
         writer_weight.add_summary(weight, epoch)
         writer_weight.close()
 
-    def update_log(self, logs):
+    def update_log_flag(self, logs):
         # todo lr scheme
         if self.iter < 30 * 200 and self.iter % 50 == 0:
             self.log_flag = True
@@ -131,7 +131,7 @@ class TensorBoard2(Callback):
     def on_batch_end(self, batch, logs=None):
         self.batch = batch
         self.iter = iter = self.epoch * self.iter_per_epoch + self.batch
-        self.update_log(logs)
+        self.update_log_flag(logs)
         if self.validation_data and self.histogram_freq and self.log_flag:
             logger.info('Epoch {} Batch {} Iter {} end'.format(self.epoch, self.batch, iter))
             if not self.stat_only:
@@ -149,6 +149,7 @@ class TensorBoard2(Callback):
                 d = utils.dict_concat(dl)
 
             val_loss, val_acc = self.model.evaluate(self.dataset.x_test, self.dataset.y_test, verbose=2)
+
             logs['val_loss'] = val_loss
             logs['val_acc'] = val_acc
             logs = utils.dict_concat([logs, d])
@@ -243,6 +244,8 @@ class TensorBoard2(Callback):
                 continue
             summary = tf.Summary()
             summary_value = summary.value.add()
-            summary_value.simple_value = value.item()
+            summary_value.simple_value = value
             summary_value.tag = name
             self.writer.add_summary(summary, epoch_iter)
+
+

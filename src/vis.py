@@ -425,11 +425,11 @@ def subplots(visualizer, path_suffix):
     # # name0 1 2 3 -- obs0 conv2d act iqr
     df.columns = merge_level(df.columns, 'name0', 'name1')
 
-    visualizer.auto_plot(visualizer.select(df, 'name3', '(?:mean|median|iqr|std)'), path_suffix + '_std_iqr',
-                         axes_names=('name0/name1', 'name3', 'lr'))
-
-    # visualizer.auto_plot(df, path_suffix + '_all_stat',
+    # visualizer.auto_plot(visualizer.select(df, 'name3', '(?:mean|median|iqr|std)'), path_suffix + '_std_iqr',
     #                      axes_names=('name0/name1', 'name3', 'lr'))
+
+    visualizer.auto_plot(df, path_suffix + '_all_stat',
+                         axes_names=('name0/name1', 'name3', 'lr'))
 
 
 def t_sne(visualizer, model_type, dataset_type, start_lr):
@@ -495,12 +495,8 @@ def t_sne(visualizer, model_type, dataset_type, start_lr):
         ax.clear()
         time_i = int(t * freq)
         for ind, (stat_dim2, color, val_acc) in enumerate(zip(stats_dim2, colors, val_accs)):
-            try:
-                val_acc[:time_i].reshape((time_i,))
-            except Exception as inst:
-                print inst
-                from IPython import embed
-                embed()
+
+            val_acc[:time_i].reshape((time_i,))
             lr = name2level['lr'][ind]
             ax.scatter(stat_dim2[:time_i, 0],
                        stat_dim2[:time_i, 1],
@@ -511,21 +507,22 @@ def t_sne(visualizer, model_type, dataset_type, start_lr):
                        )
 
         ax.legend(loc='upper right')
-        # ax.legend()
         # ax.get_xaxis().set_ticklabels([])
         # ax.get_yaxis().set_ticklabels([])
         ax.set_xlim3d([stats_dim2_all[:, 0].min(), stats_dim2_all[:, 0].max()])
         ax.set_ylim3d([stats_dim2_all[:, 1].min(), stats_dim2_all[:, 1].max()])
         ax.set_zlim3d([0, 1])
-        ax.view_init(elev=20., azim=t / dur * 130)
+        ax.view_init(elev=20., azim=t / dur * 130.)
         fig.suptitle('_'.join((model_type, dataset_type, 'start_lr', str(start_lr))))
         return mplfig_to_npimage(fig)
-
-    # from scipy.misc import imshow
-    # t=make_frame_mpl(0.01)
-    animation = mpy.VideoClip(make_frame_mpl, duration=dur)
-    animation.write_gif('_'.join((model_type, dataset_type, 'start_lr', str(start_lr))) + '.gif', fps=20)
-
+    ## animation
+    # animation = mpy.VideoClip(make_frame_mpl, duration=dur)
+    # animation.write_gif('_'.join((model_type, dataset_type, 'start_lr', str(start_lr))) + '.gif', fps=20)
+    # plot fig
+    make_frame_mpl(dur)
+    ax.view_init(elev=90., azim=0.)
+    # ax.view_init(elev=20., azim=45.)
+    plt.savefig('_'.join((model_type, dataset_type, 'start_lr', str(start_lr)))+'.png')
 
 if __name__ == '__main__':
     # utils.rm('../output  ')
@@ -538,13 +535,13 @@ if __name__ == '__main__':
     # subplots(visualizer, path_suffix='_1')
     # subplots(visualizer, path_suffix='_1_stable_lr')
 
-    # visualizer = Visualizer(config_dict, join='inner', stat_only=True, paranet_folder='stat2')
+    visualizer = Visualizer(config_dict, join='inner', stat_only=True, paranet_folder='stat2')
     # subplots(visualizer, path_suffix='_2')
     # subplots(visualizer, path_suffix='_2_stable_lr')
 
-    visualizer = Visualizer(config_dict, join='inner', stat_only=True, paranet_folder='stat3')
-    subplots(visualizer, path_suffix='_3')
-    subplots(visualizer, path_suffix='_3_stable_lr')
+    # visualizer = Visualizer(config_dict, join='inner', stat_only=True, paranet_folder='stat3')
+    # subplots(visualizer, path_suffix='_3')
+    # subplots(visualizer, path_suffix='_3_stable_lr')
 
     print time.time() - tic
 
@@ -555,3 +552,4 @@ if __name__ == '__main__':
     for dataset in ['cifar10', 'cifar100']:  # , 'cifar100'
         for model_type in ['vgg6', 'resnet6', 'vgg10', 'resnet10', ]:  # 'vgg8', 'resnet8',
             t_sne(visualizer, model_type, dataset, 2)
+

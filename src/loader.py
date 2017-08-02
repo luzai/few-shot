@@ -27,6 +27,7 @@ class Loader(object):
                            event_accumulator.HISTOGRAMS: 1,
                            event_accumulator.TENSORS: 0},
             path=path)
+
         self.reload()
 
     def reload(self):
@@ -284,15 +285,7 @@ class Loader(threading.Thread):
 
 if __name__ == '__main__':
 
-    # for path in glob.glob(Config.root_path + '/epoch/*'):
-    #     print path
-    #     # try:
-    #     loader = Loader(path=path)
-    #     loader.load(stat_only=False, parallel=True)
-    #     # except Exception as inst:
-    #     #     print  inst
-
-    for path in glob.glob(Config.root_path + '/stat/*'):
+    for path in glob.glob(Config.root_path + '/stat2/*'):
         print path
         # try:
         loader = Loader(path=path)
