@@ -285,10 +285,12 @@ class Loader(threading.Thread):
 
 if __name__ == '__main__':
 
-    for path in glob.glob(Config.root_path + '/stat2/*'):
+    for path in glob.glob(Config.root_path + '/tfevents/*'):
         print path
         # try:
         loader = Loader(path=path)
         loader.load(stat_only=True, parallel=True)
+        print loader.scalars
         # except Exception as inst:
         #     print  inst
+        # from IPython import embed;embed()

@@ -72,11 +72,10 @@ class ParamStat(Stat):
                 del _stat[key]
         self.stat = utils.dict_concat([self.stat, _stat])
 
-    # def diff(self, tensor, name=None,iter=None):
-    #     return self.diff_inst.diff(tensor, iter, name)
+    def diff(self, tensor, name=None, iter=None):
+        return self.diff_inst.diff(tensor, iter, name)
 
     def orthogonality(self, tensor, name=None, iter=None):
-        import numpy as np
 
         def unit_vector(vector):
             """ Returns the unit vector of the vector.  """
@@ -105,9 +104,8 @@ class ParamStat(Stat):
 
         return angle.mean()
 
-        # def stdtime(self, tensor, name=None,iter=None):
-        #     self.stdtime_inst.online_std(tensor, iter, name)
-        #     return None
+    def stdtime(self, tensor, name=None, iter=None):
+        return self.stdtime_inst.online_std(tensor, iter, name)
 
 
 class Diff(object):
@@ -118,8 +116,11 @@ class Diff(object):
     def diff(self, tensor, iter, name):
         # mean
         # todo iter 12 continue
-        if iter == self.l_iter[name]:
-            res = (tensor - self.l_tensor[name]).abs().mean()
+        # if iter == self.l_iter[name]:
+        if name in self.l_tensor:
+            res = np.abs(tensor - self.l_tensor[name]).mean()
+        else:
+            res = None
         self.l_iter[name] = iter
         self.l_tensor[name] = tensor
         return res
@@ -133,9 +134,9 @@ class OnlineStd(object):
         # todo sample per 100 make sure
         if name not in self.l_std:
             self.l_std[name] = _OnlineStd()
-        assert iter % 100 == 0, 'todo'
+        # assert iter % 100 == 0, 'todo'
         self.l_std[name].include(tensor)
-        return {name + '/' + 'online_std': self.l_std[name].std}
+        return np.mean(self.l_std[name].std)
 
 
 class _OnlineStd(object):
@@ -153,7 +154,8 @@ class _OnlineStd(object):
     def include(self, datum):
         if self.n == 0:
             self.n += 1
-            self.mean, self.M2 = np.zeros_like(datum, dtype=np.float)
+            self.mean, self.M2 = np.zeros_like(datum, dtype=np.float), \
+                                 np.zeros_like(datum, dtype=np.float)
         else:
             self.n += 1
             self.delta = datum - self.mean
