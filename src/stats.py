@@ -1,5 +1,5 @@
 import numpy as np
-from log import logger
+from logs import logger
 import utils
 
 

@@ -1,6 +1,6 @@
 import time, glob, os, os.path as osp, re, pandas as pd
-from log import logger
-from opts import Config
+from logs import logger
+from configs import Config
 from tensorflow.tensorboard.backend.event_processing import event_accumulator
 # from tensorflow.tensorboard.backend.event_processing import event_multiplexer
 import tensorflow as tf

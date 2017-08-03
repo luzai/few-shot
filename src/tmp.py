@@ -11,9 +11,9 @@ def run(model_type='vgg5', lr=1e-2, limit_val=True, dataset='cifar10', queue=Non
     from keras.callbacks import TensorBoard
     from datasets import Dataset
     from models import VGG, ResNet
-    from opts import Config
+    from configs import Config
     from loader import Loader
-    from log import logger
+    from logs import logger
     import tensorflow as tf
 
     try:
@@ -65,7 +65,7 @@ def run(model_type='vgg5', lr=1e-2, limit_val=True, dataset='cifar10', queue=Non
 
 import multiprocessing as mp, time
 import subprocess
-from log import logger
+from logs import logger
 import numpy as np
 
 subprocess.call('rm -r ../tfevents ../output ../tfevents_loss'.split())

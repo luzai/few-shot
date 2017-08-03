@@ -3,7 +3,7 @@ import keras.backend as K
 import tensorflow as tf
 from tensorflow.contrib.tensorboard.plugins import projector
 import os, numpy as np
-from log import logger
+from logs import logger
 from stats import Stat
 import utils
 

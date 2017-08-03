@@ -1,12 +1,18 @@
-import os, csv, time, cPickle, random, os.path as osp, subprocess, json, matplotlib, numpy as np, GPUtil, pandas as pd, \
+import os, csv, time, cPickle, \
+    random, os.path as osp, \
+    subprocess, json, matplotlib, \
+    numpy as np, GPUtil, pandas as pd, \
     glob, re
 
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 from IPython import embed
 from IPython.display import display, HTML, SVG
-from opts import Config
-from log import logger
+from logs import logger
+
+root_path = osp.normpath(
+    osp.join(osp.abspath(osp.dirname(__file__)), "..")
+)
 
 
 def init_dev(n=0):
@@ -180,9 +186,9 @@ def vis_graph(graph, name='net2net', show=False):
     name = osp.basename(name)
     if path == '':
         path = name
-    mkdir_p(osp.join(Config.root_path, "output", path), delete=False)
+    mkdir_p(osp.join(root_path, "output", path), delete=False)
     restore_path = os.getcwd()
-    os.chdir(osp.join(Config.root_path, "output", path))
+    os.chdir(osp.join(root_path, "output", path))
     with open(name + "_graph.json", "w") as f:
         f.write(graph.to_json())
     try:
@@ -336,4 +342,5 @@ if __name__ == '__main__':
     # to_single_dir()
     # merge_dir(['loss', 'tfevents'])
     # print np.array( parse_dir_name())
-    print np.array(parse_dir_name('tfevents_loss'))
+    # print np.array(parse_dir_name('tfevents_loss'))
+    print root_path

@@ -3,8 +3,8 @@ import matplotlib
 matplotlib.use('Agg')
 
 from loader import Loader
-from log import logger
-from opts import Config
+from logs import logger
+from configs import Config
 from datasets import Dataset
 from models import VGG
 

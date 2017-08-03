@@ -1,13 +1,14 @@
 import keras
 from keras.datasets import cifar10, cifar100
-from opts import Config
+from configs import Config
 import numpy as np
 import utils
 
 
 class Dataset(object):
-    dataset_type=['cifar10','cifar100','imagenet']
-    def __init__(self, name='cifar10', debug=False,limit_val=True):
+    dataset_type = ['cifar10', 'cifar100', 'imagenet']
+
+    def __init__(self, name='cifar10', debug=False, limit_val=True):
         if name == 'cifar10':
             self.input_shape = (32, 32, 3)
             self.classes = 10
@@ -32,8 +33,9 @@ class Dataset(object):
                                                                        [self.x_train, self.y_train,
                                                                         self.x_test, self.y_test])
 
+
 @utils.static_vars(ind=None)
-def sample_data(data, n=256+16):
+def sample_data(data, n=256 + 16):
     # todo
     np.random.seed(1)
     if sample_data.ind is None:
@@ -92,6 +94,7 @@ def load_data_svhn():
     test_x = np.transpose(test_x, (3, 0, 1, 2))
 
     return (train_x, train_y), (test_x, test_y)
+
 
 if __name__ == '__main__':
     config = Config(epochs=301, batch_size=256, verbose=2,
