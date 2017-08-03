@@ -13,33 +13,36 @@ class Stat(object):
                     del self.stat[key]
 
     # todo more and specified for weight
-    def min(self, tensor, name=None):
+    def min(self, tensor, **kwargs):
         return tensor.min()
 
-    def max(self, tensor, name=None):
+    def max(self, tensor, **kwargs):
         return tensor.max()
 
-    def mean(self, tensor, name=None):
+    def mean(self, tensor, **kwargs):
         return tensor.mean()
 
-    def median(self, tensor, name=None):
+    def median(self, tensor, **kwargs):
         return np.median(tensor)
 
-    def std(self, tensor, name=None):
+    def std(self, tensor, **kwargs):
         return tensor.std()
 
-    def iqr(self, tensor, name=None):
+    def iqr(self, tensor, **kwargs):
         return np.subtract.reduce(np.percentile(tensor, [75, 25]))
 
-    def posmean(self, tensor, name=None):
+    def posmean(self, tensor, **kwargs):
         return tensor[tensor > 0].mean()
 
-    def negmean(self, tensor, name=None):
-        if (tensor < 0.).all():
-            logger.error('is it bias that all positive? name {}'.format(name))
+    def negmean(self, tensor, **kwargs):
+        name = kwargs.get('name')
+        if (tensor > 0.).all():
+            logger.error(' bias all positive? name {}'.format(name))
+        elif (tensor < 0.).all():
+            logger.error('bias all neg? name {}'.format(name))
         return tensor[tensor < 0].mean()
 
-    def posratio(self, tensor, name=None):
+    def posproportion(self, tensor, **kwargs):
         pos_len = float(tensor[tensor > 0].shape[0])
         neg_len = float(tensor[tensor < 0.].shape[0])
         return pos_len / (pos_len + neg_len)  # to avoid divided by zero
@@ -47,18 +50,18 @@ class Stat(object):
     def calc_all(self, tensor, name):
         res = {}
         for key, val in self.stat.iteritems():
-            res[name + '/' + key] = val(self, tensor, name)
+            res[name + '/' + key] = val(self, tensor, name=name)
         return res
 
-    def magmean(self, tensor, name=None):
+    def magmean(self, tensor, **kwargs):
         return np.abs(tensor).mean()
 
-    def sparsity(self, tensor, name=None):
+    def sparsity(self, tensor, **kwargs):
         tensor = tensor.flatten()
         mean = tensor.mean()  # todo median or mean
         thresh = mean / 10.
         return float((tensor[tensor < thresh]).shape[0]) / float(tensor.shape[0])
-        # for bias we usually set lr mult=0.01?? --> bias is not sparse
+        # for bias we usually set lr mult=0.1? --> bias is not sparse
 
 
 class ParamStat(Stat):
@@ -177,13 +180,17 @@ class _OnlineStd(object):
             return np.sqrt(self.variance)
 
 
+class ActStat(Stat):
+    pass
+
+
 if __name__ == '__main__':
-    stat = Stat()
-    print stat.stat
-    for _i in range(10):
-        v = np.random.randn(10, 10, 10)
-        print stat.calc_all(v, 'ok')
     param_stat = ParamStat()
+    v_l = []
     for _i in range(10):
         v = np.random.randn(10, 10, 10, 10)
-        print param_stat.calc_all(v, 'ok')
+        v_l.append(v)
+        res = param_stat.calc_all(v, 'ok')
+        print res['ok/stdtime']
+        _v = np.stack(v_l, axis=0)
+        print _v.std(axis=0).mean(), '\n'

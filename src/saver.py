@@ -112,7 +112,7 @@ class TensorBoard2(Callback):
         elif self.iter > 90 * 200 and self.iter % 300 == 0:
             self.log_flag = True
         else:
-            self.log_flag = False
+            self.log_flag = True
 
     def on_epoch_end(self, epoch, logs=None):
         logs = logs or {}

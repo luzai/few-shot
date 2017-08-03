@@ -172,7 +172,7 @@ def bottleneck(filters, init_strides=(1, 1), is_first_block_of_first_layer=False
         else:
             conv_1_1 = _bn_relu_conv(filters=filters, kernel_size=(1, 1),
                                      strides=init_strides)(input)
-        obs+=1
+        obs += 1
         conv_3_3 = _bn_relu_conv(filters=filters, kernel_size=(3, 3))(conv_1_1)
         residual = _bn_relu_conv(filters=filters * 4, kernel_size=(1, 1))(conv_3_3)
         return _shortcut(input, residual)
@@ -264,7 +264,6 @@ class ResnetBuilder(object):
         model = Model(inputs=input, outputs=dense)
         return model
 
-
     @staticmethod
     def build_resnet_18(input_shape, num_outputs):
         return ResnetBuilder.build(input_shape, num_outputs, basic_block, [2, 2, 2, 2])
@@ -284,25 +283,28 @@ class ResnetBuilder(object):
     @staticmethod
     def build_resnet_152(input_shape, num_outputs):
         return ResnetBuilder.build(input_shape, num_outputs, bottleneck, [3, 8, 36, 3])
+
+
 from models import BaseModel
 
 
 class ResNet(BaseModel):
     model_type = ['resnet5', 'resnet11', 'resnet32']
 
-    def __init__(self, input_shape, classes, type='resnet8', with_bn=True, with_dp=True, name=None):
-        super(ResNet, self).__init__(input_shape, classes, type, with_bn, with_dp)
+    def __init__(self, input_shape, classes, config, with_bn=True, with_dp=True):
+        super(ResNet, self).__init__(input_shape, classes,config, with_bn, with_dp)
+        type = config.model_type
         cfg = {
-            'resnet6':[1,1],
+            'resnet6': [1, 1],
             'resnet8': [1, 1, 1],
             'resnet10': [1, 2, 1],
             # 'resnet10': [1, 1, 1, 1],
-            'resnet12':[1,2,1,1]
+            'resnet12': [1, 2, 1, 1]
         }
 
         self.model = ResnetBuilder.build(input_shape, classes, basic_block, cfg[type])
-
+        self.vis()
 
 if __name__ == '__main__':
-    model = ResNet((32, 32, 3), 10, type='resnet8')
+    model = ResNet((32, 32, 3), 10)
     model.model.summary()

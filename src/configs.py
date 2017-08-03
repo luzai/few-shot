@@ -26,8 +26,9 @@ class Config(object):
                 for key, val in others.iteritems():
                     # if isinstance(val, bool): key, val =( key, '') if val else ('', '')
                     # if isinstance(val, bool): key, val = (key, 'T') if val else (key, 'F')
-                    if (isinstance(val, float) or isinstance(val,
-                                                             int)) and key == 'lr':  key, val = key, '{:.2e}'.format(
+                    if (isinstance(val, float) or
+                            isinstance(val,int)) \
+                            and key == 'lr':  key, val = key, '{:.2e}'.format(
                         val)
                     name += '_' + str(key) + '_' + str(val)
         self.name = name
@@ -38,6 +39,7 @@ class Config(object):
         self.clean_model_path(clean)
         self.epochs = epochs
         self.verbose = verbose
+        self.to_pkl()
 
     def to_dict(self):
         d = {'model_type': self.model_type,

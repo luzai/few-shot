@@ -9,8 +9,9 @@ from models import BaseModel
 class VGG(BaseModel):
     model_type = ['vgg11', 'vgg13', 'vgg16', 'vgg6', 'vgg19', 'vgg10', 'vgg9', 'vgg8']
 
-    def __init__(self, input_shape, classes, type='vgg11', with_bn=True, with_dp=True, name=None):
-        super(VGG, self).__init__(input_shape, classes, type, with_bn, with_dp)
+    def __init__(self, input_shape, classes, config, with_bn=True, with_dp=True):
+        super(VGG, self).__init__(input_shape, classes, config, with_bn, with_dp)
+        type=config.model_type
         cfg = {
             'vgg11': [[64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'], [512, 512, self.classes]],
             'vgg13': [[64, 64, 'M', 128, 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
@@ -28,9 +29,10 @@ class VGG(BaseModel):
         self.arch = [['conv2d', config] if config != 'M' else ['maxpooling2d'] for config in cfg[type][0]]
         self.arch += [['flatten']]
         self.arch += [['dense', config] for config in cfg[type][1]]
-        self.model = self.build(name=name)
+        self.model = self.build(name=config.name)
+        self.vis()
 
-    def build(self, name=None):
+    def build(self, name):
         x = input = Input(self.input_shape)
         depth = 0
         for config in self.arch:
@@ -65,5 +67,5 @@ class VGG(BaseModel):
 
 
 if __name__ == '__main__':
-    vgg = VGG((32, 32, 3), 10, type='vgg6')
+    vgg = VGG((32, 32, 3), 10)
     vgg.model.summary()
