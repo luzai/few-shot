@@ -1,7 +1,7 @@
 import numpy as np, Queue, pandas as pd
 from logs import logger
 import utils
-
+import math
 NOKEY = 200
 NAN = float('nan')
 
@@ -115,7 +115,8 @@ class Stat(object):
             for win_size in [11,  101]:
                 _name = name + '/' + fn_name + '_win_size_' + str(win_size)
                 _iter, _val = self.totvar(name=name, iter=iter, tensor=tensor, win_size=win_size)
-                res.loc[iter, _name] = _val
+                _iter = iter if math.isnan(_iter) else _iter
+                res.loc[_iter, _name] = _val
 
         fn_name = 'ptrate'
         if fn_name in self.stat:
@@ -123,7 +124,8 @@ class Stat(object):
                 for win_size in [11, 101]:
                     _name = name + '/' + fn_name + '_win_size_' + str(win_size) + '_thresh_' + str(thresh)
                     _iter, _val = self.ptrate(name=name, iter=iter, tensor=tensor, win_size=win_size, thresh=thresh)
-                    res.loc[iter, _name] = _val
+                    _iter = iter if math.isnan(_iter) else _iter
+                    res.loc[_iter, _name] = _val
 
         return res
 
@@ -196,7 +198,7 @@ class Windows(object):
 
     def isfull(self, name, win_size):
         if name not in self.l_tensor:
-            return NOKEY
+            return False # NOKEY
         elif len(self.l_tensor[name]) >= win_size:
             return True
         else:
@@ -339,35 +341,37 @@ class Histogram(object):
 
 
 if __name__ == '__main__':
-    kernel_stat = KernelStat()
-    print kernel_stat.stat
-    v_l = []
-    res = []
-    for _ind in range(102):
-        v = np.random.randn(10, 10, 10, 10)
-        v_l.append(v)
-        res.append(kernel_stat.calc_all(v, 'ok/kernel', _ind))
-        _v = np.stack(v_l, axis=0)
-        # assert np.allclose(res['ok/kernel/stdtime'], _v.std(axis=0).mean()), ' should close '
-    res = pd.concat(res, axis=0)
+    # kernel_stat = KernelStat()
+    # print kernel_stat.stat
+    # v_l = []
+    # res = []
+    # for _ind in range(102):
+    #     v = np.random.randn(10, 10, 10, 10)
+    #     v_l.append(v)
+    #     res.append(kernel_stat.calc_all(v, 'ok/kernel', _ind))
+    #     _v = np.stack(v_l, axis=0)
+    #     # assert np.allclose(res['ok/kernel/stdtime'], _v.std(axis=0).mean()), ' should close '
+    # res = pd.concat(res, axis=0)
 
     res = []
     act_stat = ActStat()
     print act_stat.stat
     for _ind in range(102):
         v = np.random.randn(10, 10, 10, 10)
-        res.append(act_stat.calc_all(v, 'ok/act', _ind))
+        _res =act_stat.calc_all(v, 'ok/act', _ind)
+        res.append(_res)
+        print _res.shape
     res = pd.concat(res, axis=0)
 
     res = []
-    bias_stat = BiasStat()
-    print bias_stat.stat
-
-    for _ind in range(102):
-        v = np.random.randn(10, 10, 10, 10)
-        res.append(bias_stat.calc_all(v, 'ok/bias', _ind))
-
-    res = pd.concat(res, axis=0)
-    print 'ok'
+    # bias_stat = BiasStat()
+    # print bias_stat.stat
+    #
+    # for _ind in range(102):
+    #     v = np.random.randn(10, 10, 10, 10)
+    #     res.append(bias_stat.calc_all(v, 'ok/bias', _ind))
+    #
+    # res = pd.concat(res, axis=0)
+    # print 'ok'
 
 

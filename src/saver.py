@@ -6,7 +6,7 @@ import os, numpy as np
 from logs import logger
 from stats import KernelStat, ActStat, BiasStat
 from utils import clean_name
-import utils
+import utils,math
 
 
 # todo save on the fly
@@ -102,14 +102,20 @@ class TensorBoard2(Callback):
 
     def update_log_flag(self, logs):
         # todo lr scheme
-        if self.iter < 30 * 200 and self.iter % 50 == 0:
-            self.log_flag = True
-        elif self.iter < 90 * 200 and self.iter % 100 == 0:
-            self.log_flag = True
-        elif self.iter > 90 * 200 and self.iter % 300 == 0:
-            self.log_flag = True
+        # if self.iter < 30 * 200 and self.iter % 50 == 0:
+        #     self.log_flag = True
+        # elif self.iter < 90 * 200 and self.iter % 100 == 0:
+        #     self.log_flag = True
+        # elif self.iter > 90 * 200 and self.iter % 300 == 0:
+        #     self.log_flag = True
+        # else:
+        #     self.log_flag = True
+
+        if self.iter%10==0:
+            self.log_flag =True
         else:
-            self.log_flag = True
+            self.log_flag =False
+        # self.log_flag=True
 
     def on_epoch_end(self, epoch, logs=None):
         logs = logs or {}
@@ -123,7 +129,7 @@ class TensorBoard2(Callback):
             self.new_writer(act_summ_str_l, weight_summ_str, epoch)
 
         if self.batch_based:
-            self.write_single_value(logs, epoch)
+            self.write_dict(logs, epoch)
 
     def on_batch_end(self, batch, logs=None):
         self.batch = batch
@@ -135,23 +141,20 @@ class TensorBoard2(Callback):
                 act_summ_str_l, weight_summ_str = self.get_act_param_summ_str()
                 self.new_writer(act_summ_str_l, weight_summ_str, iter)
             else:
-                _d_l = []
                 act = self.get_act()
                 for name, val in act.iteritems():
-                    _d_l.append(self.act_stat.calc_all(val, name))
+                    self.write_df(self.act_stat.calc_all(val, name,iter))
                 kernel, bias = self.get_param()
                 for name, val in kernel.iteritems():
-                    _d_l.append(self.kernel_stat.calc_all(val, name))
+                    self.write_df(self.kernel_stat.calc_all(val, name,iter))
                 for name, val in bias.iteritems():
-                    _d_l.append(self.bias_stat.calc_all(val, name))
-                d = utils.dict_concat(_d_l)
+                    self.write_df(self.bias_stat.calc_all(val, name,iter))
 
             val_loss, val_acc = self.model.evaluate(self.dataset.x_test, self.dataset.y_test, verbose=2)
 
             logs['val_loss'] = val_loss
             logs['val_acc'] = val_acc
-            logs = utils.dict_concat([logs, d])
-            self.write_single_value(logs, iter)
+            self.write_dict(logs, iter)
 
     def on_train_end(self, logs=None):
         self.writer.close()
@@ -236,13 +239,22 @@ class TensorBoard2(Callback):
             i += self.batch_size
         return act_summ_str_l, weight_summ_str
 
-    def write_single_value(self, logs, epoch_iter):
+    def write_df(self,df):
+        for name,series in df.iteritems():
+            for _iter,val in series.iteritems():
+                if not math.isnan(val):
+                    self.write_single_val(val,_iter,name)
+
+    def write_dict(self, logs, epoch_iter):
         for name, value in logs.items():
             if name in ['batch', 'size']:
                 continue
-            summary = tf.Summary()
-            summary_value = summary.value.add()
+            self.write_single_val(value,epoch_iter,name)
 
-            summary_value.simple_value = value
-            summary_value.tag = name
-            self.writer.add_summary(summary, epoch_iter)
+    def write_single_val(self,value,epoch_iter,name):
+        summary = tf.Summary()
+        summary_value = summary.value.add()
+
+        summary_value.simple_value = value
+        summary_value.tag = name
+        self.writer.add_summary(summary, epoch_iter)
