@@ -2,7 +2,6 @@ def run(model_type='vgg5', lr=1e-2, limit_val=True, dataset='cifar10', queue=Non
     import utils
     import warnings
     warnings.filterwarnings("ignore")
-    # todo report/observe speed
 
     utils.init_dev(utils.get_dev())
     utils.allow_growth()
@@ -29,10 +28,10 @@ def run(model_type='vgg5', lr=1e-2, limit_val=True, dataset='cifar10', queue=Non
 
     model.model.summary()
     # todo lr scheme
-    # todo plataea auto detect and variant sample rate
     # todo verify!! validation dataset size sensitivity
     model.model.compile(
         # keras.optimizers.rmsprop(lr=0.0001, decay=1e-6),
+        # in fact rmsprop is much better at least on small dataset
         keras.optimizers.sgd(lr, momentum=0.9),
         loss='categorical_crossentropy',
         metrics=['accuracy'])
