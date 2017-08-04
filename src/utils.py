@@ -337,6 +337,11 @@ def parse_dir_name(dir='_res'):
         # move( '/'.join(path.split('/')[:2]), '/'.join(path.split('/')[:1]+ [_name]))
     return res
 
+def clean_name(name):
+    import re
+    name = re.findall('([a-zA-Z0-9/]+)(?::\d+)?', name)[0]
+    name = re.findall('([a-zA-Z0-9/]+)(?:_\d+)?', name)[0]
+    return name
 
 if __name__ == '__main__':
     # to_single_dir()

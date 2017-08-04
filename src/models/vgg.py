@@ -26,9 +26,9 @@ class VGG(BaseModel):
             'vgg8': [[64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M'], [512, self.classes]],
         }
         # convert to my coding
-        self.arch = [['conv2d', config] if config != 'M' else ['maxpooling2d'] for config in cfg[type][0]]
+        self.arch = [['conv2d', _config] if _config != 'M' else ['maxpooling2d'] for _config in cfg[type][0]]
         self.arch += [['flatten']]
-        self.arch += [['dense', config] for config in cfg[type][1]]
+        self.arch += [['dense', _config] for _config in cfg[type][1]]
         self.model = self.build(name=config.name)
         self.vis()
 

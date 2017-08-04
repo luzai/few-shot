@@ -4,15 +4,9 @@ import tensorflow as tf
 from tensorflow.contrib.tensorboard.plugins import projector
 import os, numpy as np
 from logs import logger
-from stats import Stat
+from stats import KernelStat, ActStat, BiasStat
+from utils import clean_name
 import utils
-
-
-def clean_name(name):
-    import re
-    name = re.findall('([a-zA-Z0-9/]+)(?::\d+)?', name)[0]
-    name = re.findall('([a-zA-Z0-9/]+)(?:_\d+)?', name)[0]
-    return name
 
 
 # todo save on the fly
@@ -52,6 +46,9 @@ class TensorBoard2(Callback):
         self.epoch = 0
         self.batch_based = batch_based
         self.stat_only = stat_only
+        self.kernel_stat = KernelStat()
+        self.bias_stat = BiasStat()
+        self.act_stat = ActStat()
 
     def set_model(self, model):
         self.name = model.name
@@ -99,7 +96,7 @@ class TensorBoard2(Callback):
             writer_act.close()
 
         writer_weight = tf.summary.FileWriter(self.log_dir + '/param' + '/' + str(epoch))
-        # param include weight and bias
+        # param include kernels(weights) and bias
         writer_weight.add_summary(weight, epoch)
         writer_weight.close()
 
@@ -138,15 +135,16 @@ class TensorBoard2(Callback):
                 act_summ_str_l, weight_summ_str = self.get_act_param_summ_str()
                 self.new_writer(act_summ_str_l, weight_summ_str, iter)
             else:
-                dl = []
+                _d_l = []
                 act = self.get_act()
-                stat = Stat()
                 for name, val in act.iteritems():
-                    dl.append(stat.calc_all(val, name))
-                param = self.get_param()
-                for name, val in param.iteritems():
-                    dl.append(stat.calc_all(val, name))
-                d = utils.dict_concat(dl)
+                    _d_l.append(self.act_stat.calc_all(val, name))
+                kernel, bias = self.get_param()
+                for name, val in kernel.iteritems():
+                    _d_l.append(self.kernel_stat.calc_all(val, name))
+                for name, val in bias.iteritems():
+                    _d_l.append(self.bias_stat.calc_all(val, name))
+                d = utils.dict_concat(_d_l)
 
             val_loss, val_acc = self.model.evaluate(self.dataset.x_test, self.dataset.y_test, verbose=2)
 
@@ -159,14 +157,14 @@ class TensorBoard2(Callback):
         self.writer.close()
 
     def get_param(self):
-        res = {}
+        res_kernel, res_bias = {}, {}
         for layer in self.model.layers:
             if 'conv2d' not in layer.name:
                 continue
             kernel, bias = layer.get_weights()
-            res[clean_name(layer.name) + '/kernel'] = kernel
-            res[clean_name(layer.name) + '/bias'] = bias
-        return res
+            res_kernel[clean_name(layer.name) + '/kernel'] = kernel
+            res_bias[clean_name(layer.name) + '/bias'] = bias
+        return res_kernel, res_bias
 
     def get_act(self):
         val_data = self.validation_data
@@ -244,8 +242,7 @@ class TensorBoard2(Callback):
                 continue
             summary = tf.Summary()
             summary_value = summary.value.add()
+
             summary_value.simple_value = value
             summary_value.tag = name
             self.writer.add_summary(summary, epoch_iter)
-
-

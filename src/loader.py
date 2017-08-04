@@ -11,7 +11,7 @@ import utils
 from utils import timer
 from stats import Stat
 import threading
-
+from utils import clean_name
 
 class Loader(object):
     def __init__(self, name, path):
@@ -91,11 +91,6 @@ def df_sort_index(tensors):
     return tensors
 
 
-def clean_name(name):
-    import re
-    name = re.findall('([a-zA-Z0-9/]+)(?::\d+)?', name)[0]
-    name = re.findall('([a-zA-Z0-9/]+)(?:_\d+)?', name)[0]
-    return name
 
 
 def test_df(df):
