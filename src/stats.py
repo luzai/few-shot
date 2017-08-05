@@ -47,7 +47,10 @@ def thresh_proportion(arr, thresh):
 
 class Stat(object):
     def __init__(self, max_win_size, log_pnt):
-        self.common_interval =  common_interval = np.diff(log_pnt)
+        self.common_interval = common_interval = np.diff(log_pnt.where(log_pnt == 3).dropna().index)[0]
+        assert np.diff(log_pnt.where(log_pnt == 3).dropna().index)[0] \
+               == np.diff(log_pnt.where(log_pnt == 3).dropna().index)[1] \
+            , 'level 3 is euqal interval'
         self.log_pnt = log_pnt
         self.stdtime_inst = OnlineStd(common_interval)
         self.diff_inst = Diff(common_interval)
@@ -58,10 +61,12 @@ class Stat(object):
         self.stat = get_name2fn(Stat)
 
     def diff(self, tensor, name=None, iter=None):
-        return self.diff_inst.diff(tensor, iter, name)
+        if iter in self.log_pnt and self.log_pnt.loc[iter] == 3:
+            return self.diff_inst.diff(tensor, iter, name)
 
     def stdtime(self, tensor, name=None, iter=None):
-        return self.stdtime_inst.online_std(tensor, iter, name)
+        if iter in self.log_pnt and self.log_pnt.loc[iter] == 3:
+            return self.stdtime_inst.online_std(tensor, iter, name)
 
     def min(self, tensor, **kwargs):
         return tensor.min()
@@ -113,35 +118,55 @@ class Stat(object):
         # for bias we usually set lr mult=0.1? --> bias is not sparse
 
     def totvar(self, tensor, name, iter, win_size):
-        return self.totvar_inst.tot_var(tensor, iter, name, win_size)
+        if self.log_pnt[iter] != 1:
+            mode = 'load'
+        else:
+            mode = 'save'
+        return self.totvar_inst.tot_var(tensor, iter, name, win_size, mode)
 
     def calc_all(self, tensor, name, iter):
-        # logger.info('calc tensor shape {} name {} iter {}'.format(tensor.shape,name,iter))
         res = pd.DataFrame()
-        shield = ['totvar', 'ptrate']
-        if iter in
-        for fn_name, fn in self.stat.iteritems():
-            if fn_name in shield: continue
-            _name = name + '/' + fn_name
-            _val = fn(self, tensor, name=name, iter=iter)
-            res.loc[iter, _name] = _val
+        level1 = ['totvar', 'ptrate']
+        level2 = ['diff', 'stdtime']
+        level3 = [key for key in self.stat.keys() if key not in level1 and key not in level2]
+        if iter not in self.log_pnt:
+            return NAN
 
-        fn_name = 'totvar'
-        if fn_name in self.stat:
-            for win_size in [11, 101]:
-                _name = name + '/' + fn_name + '_win_size_' + str(win_size)
-                _iter, _val = self.totvar(name=name, iter=iter, tensor=tensor, win_size=win_size)
-                _iter = iter if math.isnan(_iter) else _iter
-                res.loc[_iter, _name] = _val
+        def calc_level1():
+            logger.debug('level1 calc tensor shape {} name {} iter {}'.format(tensor.shape,name,iter))
 
-        fn_name = 'ptrate'
-        if fn_name in self.stat:
-            for thresh in [.2, .6, 'mean']:
+            fn_name = 'totvar'
+            if fn_name in self.stat:
                 for win_size in [11, 101]:
-                    _name = name + '/' + fn_name + '_win_size_' + str(win_size) + '_thresh_' + str(thresh)
-                    _iter, _val = self.ptrate(name=name, iter=iter, tensor=tensor, win_size=win_size, thresh=thresh)
-                    _iter = iter if math.isnan(_iter) else _iter
+                    _name = name + '/' + fn_name + '_win_size_' + str(win_size)
+                    _iter, _val = self.totvar(name=name, iter=iter, tensor=tensor, win_size=win_size)
+                    if math.isnan(_iter): continue
                     res.loc[_iter, _name] = _val
+
+            fn_name = 'ptrate'
+            if fn_name in self.stat:
+                for thresh in [.2, .6, 'mean']:
+                    for win_size in [11, 101]:
+                        _name = name + '/' + fn_name + '_win_size_' + str(win_size) + '_thresh_' + str(thresh)
+                        _iter, _val = self.ptrate(name=name, iter=iter, tensor=tensor, win_size=win_size, thresh=thresh)
+                        if math.isnan(_iter): continue
+                        res.loc[_iter, _name] = _val
+
+        def calc_level23(level):
+            logger.debug('level23 calc tensor shape {} name {} iter {}'.format(tensor.shape,name,iter))
+
+            for fn_name, fn in self.stat.iteritems():
+                if name not in level: continue
+                _name = name + '/' + fn_name
+                _val = fn(self, tensor, name=name, iter=iter)
+                res.loc[iter, _name] = _val
+
+        if self.log_pnt[iter] == 3:
+            calc_level1(), calc_level23(level2), calc_level23(level3)
+        elif self.log_pnt[iter] == 2:
+            calc_level23(level3), calc_level1()
+        else:
+            calc_level1()
 
         return res
 
@@ -203,7 +228,11 @@ class ActStat(Stat):
         return angle.mean()
 
     def ptrate(self, tensor, name, iter, win_size, thresh):
-        return self.ptrate_inst.pt_rate(tensor, name=name, iter=iter, win_size=win_size, thresh=thresh)
+        if self.log_pnt[iter] != 1:
+            mode = 'load'
+        else:
+            mode = 'save'
+        return self.ptrate_inst.pt_rate(tensor, name=name, iter=iter, win_size=win_size, thresh=thresh, mode=mode)
 
 
 class Windows(object):
@@ -245,34 +274,40 @@ class TotVar(object):
     def __init__(self, windows):
         self.windows = windows
 
-    def tot_var(self, tensor, iter, name, win_size):
+    def tot_var(self, tensor, iter, name, win_size, mode):
         self.windows.include(tensor, iter, name)
-        if not self.windows.isfull(name, win_size=win_size):
-            return NAN, NAN
+        if mode == 'load':
+            if not self.windows.isfull(name, win_size=win_size):
+                return NAN, NAN
+            else:
+                _tensor = self.windows.get_tensor(name, win_size)
+                _diff = np.abs(_tensor[1:] - _tensor[:-1])
+                return self.windows.get_iter(), _diff.mean()
         else:
-            _tensor = self.windows.get_tensor(name, win_size)
-            _diff = np.abs(_tensor[1:] - _tensor[:-1])
-            return self.windows.get_iter(), _diff.mean()
+            return NAN, NAN
 
 
 class PTRate(object):
     def __init__(self, windows):
         self.windows = windows
 
-    def pt_rate(self, tensor, iter, name, win_size, thresh):
+    def pt_rate(self, tensor, iter, name, win_size, thresh, mode):
         self.windows.include(tensor, iter, name)
-        if not self.windows.isfull(name, win_size=win_size):
-            return NAN, NAN
-        else:
-            _tensor = self.windows.get_tensor(name, win_size)
-            _tensor = _tensor.reshape(_tensor.shape[0], -1)
-            polarity_time_space = (-np.sign(_tensor[1:] * _tensor[:-1]) + 1.) / 2.
-            polarity_space = polarity_time_space.mean(axis=0)
-            if thresh == 'mean':
-                res = polarity_space.mean()
+        if mode == 'load':
+            if not self.windows.isfull(name, win_size=win_size):
+                return NAN, NAN
             else:
-                _, res = thresh_proportion(arr=polarity_space, thresh=thresh)
-            return self.windows.get_iter(), res
+                _tensor = self.windows.get_tensor(name, win_size)
+                _tensor = _tensor.reshape(_tensor.shape[0], -1)
+                polarity_time_space = (-np.sign(_tensor[1:] * _tensor[:-1]) + 1.) / 2.
+                polarity_space = polarity_time_space.mean(axis=0)
+                if thresh == 'mean':
+                    res = polarity_space.mean()
+                else:
+                    _, res = thresh_proportion(arr=polarity_space, thresh=thresh)
+                return self.windows.get_iter(), res
+        else:
+            return NAN, NAN
 
 
 class OnlineStd(object):
@@ -355,28 +390,36 @@ if __name__ == '__main__':
     epochs = 301
     iter_per_epoch = 196
     max_win_size = 11
-    log_freq = np.array([4, 2, 1])
-    log_freq_bin = np.array([0, epochs // 10, epochs // 3, epochs])
+    series = pd.Series(data=3,
+                       index=np.arange(epochs) * iter_per_epoch)
+    series1 = pd.Series()
+    for (ind0, _), (ind1, _) in zip(series.iloc[:-1].iteritems(), series.iloc[1:].iteritems()):
+        if ind0 < 30 * iter_per_epoch:
+            sample_rate = 4
+        elif ind0 < 100 * iter_per_epoch:
+            sample_rate = 2
+        else:
+            sample_rate = 1
 
-    log_freq_bin_iter = log_freq_bin * iter_per_epoch
-    # log_freq_bin_iter[0] = self.max_win_zise//2
-    log_num = np.diff(log_freq_bin) * log_freq
-    log_pnt = np.concatenate([
-        np.linspace(start, stop, num, endpoint=False).astype(int)
-        for num, start, stop in
-        zip(log_num, log_freq_bin_iter[:-1], log_freq_bin_iter[1:])
-    ])
-    log_pnts_l = []
-    for pnt in log_pnt:
-        _arr = np.arange(pnt - int(max_win_size // 2),
-                         pnt + int(max_win_size // 2) + 1).astype(int)
-        if (_arr < 0).any():
-            _arr += - _arr.min()
-        log_pnts_l.append(_arr)
-    log_pnts = np.concatenate(log_pnts_l)
+        series1 = series1.append(
+            pd.Series(data=2,
+                      index=np.linspace(ind0, ind1, sample_rate, endpoint=False)[1:].astype(int))
+        )
+
+    series = series.append(series1)
+    series1 = pd.Series()
+    for ind, _ in series.iteritems():
+        series1 = series1.append([
+            pd.Series(data=1, index=np.arange(ind - max_win_size // 2, ind)),
+            pd.Series(data=1, index=np.arange(ind + 1, ind + max_win_size // 2)),
+        ])
+    log_pnts = series.append(series1).sort_index()
+    log_pnts.index = - log_pnts.index.min() + log_pnts.index
+    log_pnts
+
     print log_pnts.shape
 
-    kernel_stat = KernelStat(max_win_size=max_win_size, log_pnt=196)
+    kernel_stat = KernelStat(max_win_size=max_win_size, log_pnt=log_pnts)
     print kernel_stat.stat
     v_l = []
     res = []

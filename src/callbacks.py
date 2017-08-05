@@ -2,26 +2,23 @@ from keras.callbacks import Callback
 import keras.backend as K
 import tensorflow as tf
 from tensorflow.contrib.tensorboard.plugins import projector
-import os, numpy as np
+import os, numpy as np, pandas as pd
 from logs import logger
 from stats import KernelStat, ActStat, BiasStat
 from utils import clean_name
 import utils, math
 
-
-# todo save on the fly
-
 # tensorboard2 is batch beased
 class TensorBoard2(Callback):
     def __init__(self,
                  tot_epochs,
-                 log_dir='./logs',
+                 log_dir,
                  batch_size=32,
                  write_graph=True,
                  write_grads=False,
                  dataset=None,
-                 batch_based=False,
-                 stat_only=True,
+                 batch_based=True,
+                 stat_only=True, # save on the fly
                  max_win_size=33,
                  ):
         super(TensorBoard2, self).__init__()
@@ -38,33 +35,40 @@ class TensorBoard2(Callback):
 
         self.merged = None
         self.iter_per_epoch = int(np.ceil(dataset.x_train.shape[0] / float(batch_size)))
-        self.epoch, self.iter = 0, 0
+        self.epoch, self.iter = 0, -1
         self.batch_based = batch_based
         self.stat_only = stat_only
 
-        log_freq = np.array([4, 2, 1])
-        log_freq_bin = np.array([0, self.epochs // 10, self.epochs // 3, self.epochs])
+        series = pd.Series(data=3,
+                           index=np.arange(self.epochs) * self.iter_per_epoch)
+        series1 = pd.Series()
+        for (ind0, _), (ind1, _) in zip(series.iloc[:-1].iteritems(), series.iloc[1:].iteritems()):
+            if ind0 < 30 * self.iter_per_epoch:
+                sample_rate = 4
+            elif ind0 < 100 * self.iter_per_epoch:
+                sample_rate = 2
+            else:
+                sample_rate = 1
 
-        log_freq_bin_iter = log_freq_bin * self.iter_per_epoch
-        # log_freq_bin_iter[0] = self.max_win_zise//2
-        log_num = np.diff(log_freq_bin) * log_freq
-        log_pnt = np.concatenate([
-            np.linspace(start, stop, num, endpoint=False).astype(int)
-            for num, start, stop in
-            zip(log_num, log_freq_bin_iter[:-1], log_freq_bin_iter[1:])
-        ])
-        log_pnts_l = []
-        for pnt in log_pnt:
-            _arr = np.arange(pnt - int(self.max_win_zise // 2),
-                             pnt + int(self.max_win_zise // 2) + 1).astype(int)
-            if (_arr < 0).any():
-                _arr += - _arr.min()
-            log_pnts_l.append(_arr)
-        self.log_pnts =log_pnts = np.concatenate(log_pnts_l)
+            series1 = series1.append(
+                pd.Series(data=2,
+                          index=np.linspace(ind0, ind1, sample_rate, endpoint=False)[1:].astype(int))
+            )
 
-        self.kernel_stat = KernelStat(self.max_win_zise, log_pnt)
-        self.bias_stat = BiasStat(self.max_win_zise, log_pnt)
-        self.act_stat = ActStat(self.max_win_zise, log_pnt)
+        series = series.append(series1)
+        series1 = pd.Series()
+        for ind, _ in series.iteritems():
+            series1 = series1.append([
+                pd.Series(data=1, index=np.arange(ind - self.max_win_zise // 2, ind)),
+                pd.Series(data=1, index=np.arange(ind + 1, ind + self.max_win_zise // 2 + 1)),
+            ])
+        log_pnts = series.append(series1).sort_index()
+        log_pnts.index = - log_pnts.index.min() + log_pnts.index
+        self.log_pnts = log_pnts
+
+        self.kernel_stat = KernelStat(self.max_win_zise, log_pnts)
+        self.bias_stat = BiasStat(self.max_win_zise, log_pnts)
+        self.act_stat = ActStat(self.max_win_zise, log_pnts)
 
     def set_model(self, model):
         self.name = model.name
@@ -119,15 +123,19 @@ class TensorBoard2(Callback):
 
     def judge_log(self, logs):
         # todo sample scheme
-
         if self.iter in self.log_pnts:
             return True
         else:
             return False
 
-    def on_epoch_end(self, epoch, logs=None):
-        logs = logs or {}
+    def on_epoch_begin(self, epoch, logs=None):
         self.epoch = epoch
+
+    def on_epoch_end(self, epoch, logs=None):
+        logger.info('Model {} Epoch {} begin'.format(self.name, epoch))
+
+        logs = logs or {}
+
         logger.info('Model {} Epoch {} end'.format(self.name, epoch))
         assert self.batch == self.iter_per_epoch - 1, 'should equal '
 
@@ -142,11 +150,13 @@ class TensorBoard2(Callback):
     def on_batch_end(self, batch, logs=None):
         self.batch = batch
         iter = self.epoch * self.iter_per_epoch + self.batch
-        assert self.iter == iter, 'should same'
-        self.iter = iter
+        self.iter += 1
 
+        assert self.iter == iter, 'epoch {} batch {} iter {} selgiter  {}'.format(self.epochs, batch, iter,
+                                                                                      self.iter)
+        # logger.debug('Epoch {} Batch {} Iter {} end'.format(self.epoch, self.batch, iter))
         if self.validation_data and self.judge_log(logs):
-            logger.info('Epoch {} Batch {} Iter {} end'.format(self.epoch, self.batch, iter))
+            logger.debug('Epoch {} Batch {} Iter {} end'.format(self.epoch, self.batch, iter))
             if not self.stat_only:
                 act_summ_str_l, weight_summ_str = self.get_act_param_summ_str()
                 self.new_writer(act_summ_str_l, weight_summ_str, iter)
