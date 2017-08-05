@@ -134,7 +134,6 @@ class Stat(object):
 
         def calc_level1():
             logger.debug('level1 calc tensor shape {} name {} iter {}'.format(tensor.shape,name,iter))
-
             fn_name = 'totvar'
             if fn_name in self.stat:
                 for win_size in [11, 101]:
@@ -154,9 +153,8 @@ class Stat(object):
 
         def calc_level23(level):
             logger.debug('level23 calc tensor shape {} name {} iter {}'.format(tensor.shape,name,iter))
-
             for fn_name, fn in self.stat.iteritems():
-                if name not in level: continue
+                if fn_name not in level: continue
                 _name = name + '/' + fn_name
                 _val = fn(self, tensor, name=name, iter=iter)
                 res.loc[iter, _name] = _val

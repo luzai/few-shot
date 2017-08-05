@@ -8,18 +8,19 @@ from stats import KernelStat, ActStat, BiasStat
 from utils import clean_name
 import utils, math
 
+
 # tensorboard2 is batch beased
 class TensorBoard2(Callback):
     def __init__(self,
                  tot_epochs,
                  log_dir,
+                 max_win_size,
                  batch_size=32,
                  write_graph=True,
                  write_grads=False,
                  dataset=None,
                  batch_based=True,
-                 stat_only=True, # save on the fly
-                 max_win_size=33,
+                 stat_only=True,  # save on the fly
                  ):
         super(TensorBoard2, self).__init__()
         if K.backend() != 'tensorflow':
@@ -153,7 +154,7 @@ class TensorBoard2(Callback):
         self.iter += 1
 
         assert self.iter == iter, 'epoch {} batch {} iter {} selgiter  {}'.format(self.epochs, batch, iter,
-                                                                                      self.iter)
+                                                                                  self.iter)
         # logger.debug('Epoch {} Batch {} Iter {} end'.format(self.epoch, self.batch, iter))
         if self.validation_data and self.judge_log(logs):
             logger.debug('Epoch {} Batch {} Iter {} end'.format(self.epoch, self.batch, iter))

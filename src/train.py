@@ -47,7 +47,7 @@ def run(model_type='vgg5', lr=1e-2, limit_val=True, dataset='cifar10', queue=Non
                                      write_graph=True,
                                      write_grads=False,
                                      dataset=dataset,
-                                     max_win_size=33,
+                                     max_win_size=11,
                                      ),
                         # TensorBoard(log_dir=config.model_tfevents_path)
                     ])
@@ -64,7 +64,7 @@ from logs import logger
 import numpy as np
 import utils
 
-dbg = True
+dbg = False
 utils.rm(utils.root_path + '/tfevents  ' + utils.root_path + '/output')
 if dbg:
     run('vgg6', dataset='cifar10', lr=1e-2)
