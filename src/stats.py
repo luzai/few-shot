@@ -2,7 +2,9 @@ import numpy as np, Queue, pandas as pd
 from logs import logger
 import utils
 import math
+
 NOKEY = 200
+
 NAN = float('nan')
 
 
@@ -32,14 +34,25 @@ def get_name2fn(class_name):
             if '_' not in key}
 
 
+def thresh_proportion(arr, thresh):
+    thresh = max(thresh, arr.min())
+    thresh = min(thresh, arr.max())
+    hist, _ = np.histogram(arr, [arr.min(), thresh, arr.max() + np.finfo(float).eps])
+    hist = hist / hist.astype(float).sum()
+    assert np.allclose(hist.sum(), [1.]), 'histogram sum close to 1.'
+    return hist
+
+
 # todo piandu fengdu
 
 class Stat(object):
-    def __init__(self, max_win_size=102):
-        self.stdtime_inst = OnlineStd()
+    def __init__(self, max_win_size, log_pnt):
+        self.common_interval =  common_interval = np.diff(log_pnt)
+        self.log_pnt = log_pnt
+        self.stdtime_inst = OnlineStd(common_interval)
+        self.diff_inst = Diff(common_interval)
 
         self.window = windows = Windows(win_size=max_win_size)
-        self.diff_inst = Diff(windows)
         self.totvar_inst = TotVar(windows)
 
         self.stat = get_name2fn(Stat)
@@ -85,7 +98,8 @@ class Stat(object):
         neg_len = float(tensor[tensor < 0.].shape[0])
         res = pos_len / (pos_len + neg_len)
         _, res2 = thresh_proportion(tensor, 0.)
-        assert np.isclose(res2, np.array([res])), 'different method calc pso_proportion should close'
+        if not abs(res2 - res) < np.finfo(float).eps:
+            print 'different method calc pso_proportion should close {} {}'.format(res, res2)
         return res
 
     def magmean(self, tensor, **kwargs):
@@ -102,8 +116,10 @@ class Stat(object):
         return self.totvar_inst.tot_var(tensor, iter, name, win_size)
 
     def calc_all(self, tensor, name, iter):
+        # logger.info('calc tensor shape {} name {} iter {}'.format(tensor.shape,name,iter))
         res = pd.DataFrame()
         shield = ['totvar', 'ptrate']
+        if iter in
         for fn_name, fn in self.stat.iteritems():
             if fn_name in shield: continue
             _name = name + '/' + fn_name
@@ -112,7 +128,7 @@ class Stat(object):
 
         fn_name = 'totvar'
         if fn_name in self.stat:
-            for win_size in [11,  101]:
+            for win_size in [11, 101]:
                 _name = name + '/' + fn_name + '_win_size_' + str(win_size)
                 _iter, _val = self.totvar(name=name, iter=iter, tensor=tensor, win_size=win_size)
                 _iter = iter if math.isnan(_iter) else _iter
@@ -131,8 +147,8 @@ class Stat(object):
 
 
 class KernelStat(Stat):
-    def __init__(self):
-        super(KernelStat, self).__init__()
+    def __init__(self, max_win_size, log_pnt):
+        super(KernelStat, self).__init__(max_win_size=max_win_size, log_pnt=log_pnt)
         _stat = dict(KernelStat.__dict__)
         for key in _stat.keys():
             if '_' in key:
@@ -140,6 +156,7 @@ class KernelStat(Stat):
         self.stat = utils.dict_concat([self.stat, _stat])
         self.totvar_inst = TotVar(self.window)
 
+    # todo for fc kernel different!
     def orthogonality(self, tensor, name=None, iter=None):
         tensor = tensor.reshape(-1, tensor.shape[-1])
         angle = np.zeros((tensor.shape[-1], tensor.shape[-1]))
@@ -151,8 +168,8 @@ class KernelStat(Stat):
 
 
 class BiasStat(Stat):
-    def __init__(self):
-        super(BiasStat, self).__init__()
+    def __init__(self, max_win_size, log_pnt):
+        super(BiasStat, self).__init__(max_win_size=max_win_size, log_pnt=log_pnt)
         _stat = dict(BiasStat.__dict__)
         for key in _stat.keys():
             if '_' in key:
@@ -162,8 +179,8 @@ class BiasStat(Stat):
 
 
 class ActStat(Stat):
-    def __init__(self):
-        super(ActStat, self).__init__()
+    def __init__(self, max_win_size, log_pnt):
+        super(ActStat, self).__init__(max_win_size=max_win_size, log_pnt=log_pnt)
         _stat = dict(ActStat.__dict__)
         for key in _stat.keys():
             if '_' in key:
@@ -189,7 +206,6 @@ class ActStat(Stat):
         return self.ptrate_inst.pt_rate(tensor, name=name, iter=iter, win_size=win_size, thresh=thresh)
 
 
-# todo tot var & pt rate should share mem
 class Windows(object):
     def __init__(self, win_size):
         self.l_tensor = {}
@@ -198,7 +214,7 @@ class Windows(object):
 
     def isfull(self, name, win_size):
         if name not in self.l_tensor:
-            return False # NOKEY
+            return False  # NOKEY
         elif len(self.l_tensor[name]) >= win_size:
             return True
         else:
@@ -223,20 +239,6 @@ class Windows(object):
     def get_iter(self):
         _queue = self.l_iter
         return _queue[len(_queue) // 2]
-
-
-class Diff(object):
-    def __init__(self, windows):
-        self.windows = windows
-
-    def diff(self, tensor, iter, name):
-        self.windows.include(tensor, iter, name)
-        if self.windows.isfull(name, win_size=2):
-            tensors = self.windows.get_tensor(name, win_size=2)
-            res = (tensors[1] - tensors[0]).mean()
-        else:
-            res = NAN
-        return res
 
 
 class TotVar(object):
@@ -264,22 +266,13 @@ class PTRate(object):
         else:
             _tensor = self.windows.get_tensor(name, win_size)
             _tensor = _tensor.reshape(_tensor.shape[0], -1)
-            polarity_time_space = (-np.sign(_tensor[1:] * _tensor[:-1])+1.)/2.
+            polarity_time_space = (-np.sign(_tensor[1:] * _tensor[:-1]) + 1.) / 2.
             polarity_space = polarity_time_space.mean(axis=0)
             if thresh == 'mean':
                 res = polarity_space.mean()
             else:
                 _, res = thresh_proportion(arr=polarity_space, thresh=thresh)
             return self.windows.get_iter(), res
-
-
-def thresh_proportion(arr, thresh):
-    thresh = max( thresh,arr.min())
-    thresh = min(thresh,arr.max() )
-    hist, _ = np.histogram(arr, [arr.min(), thresh, arr.max() + np.finfo(float).eps])
-    hist = hist / hist.astype(float).sum()
-    assert np.allclose(hist.sum(), [1.]), 'histogram sum close to 1.'
-    return hist
 
 
 class OnlineStd(object):
@@ -320,16 +313,34 @@ class OnlineStd(object):
             else:
                 return np.sqrt(self.variance)
 
-    def __init__(self):
-        self.l_std = {}
+    def __init__(self, interval):
+        self.last_std = {}
+        self.interval = interval
+        self.last_iter = {}
 
     def online_std(self, tensor, iter, name):
-        # todo sample per 100 make sure
-        if name not in self.l_std:
-            self.l_std[name] = self._OnlineStd()
-        # assert iter % 100 == 0, 'todo'
-        self.l_std[name].include(tensor)
-        return np.mean(self.l_std[name].std)
+        if name not in self.last_iter or self.last_iter[name] + self.interval == iter:
+            if name not in self.last_std:
+                self.last_std[name] = self._OnlineStd()
+            self.last_iter[name] = iter
+            self.last_std[name].include(tensor)
+        return np.mean(self.last_std[name].std)
+
+
+class Diff(object):
+    def __init__(self, interval):
+        self.interval = interval
+        self.last_tensor = {}
+        self.last_iter = {}
+
+    def diff(self, tensor, iter, name):
+        res = NAN
+        if name not in self.last_iter or self.last_iter[name] + self.interval == iter:
+            if name in self.last_tensor:
+                res = np.abs(tensor - self.last_tensor[name]).mean()
+            self.last_iter[name] = iter
+            self.last_tensor[name] = tensor
+        return res
 
 
 class OnlineTotVar(object):
@@ -341,29 +352,61 @@ class Histogram(object):
 
 
 if __name__ == '__main__':
-    # kernel_stat = KernelStat()
-    # print kernel_stat.stat
-    # v_l = []
+    epochs = 301
+    iter_per_epoch = 196
+    max_win_size = 11
+    log_freq = np.array([4, 2, 1])
+    log_freq_bin = np.array([0, epochs // 10, epochs // 3, epochs])
+
+    log_freq_bin_iter = log_freq_bin * iter_per_epoch
+    # log_freq_bin_iter[0] = self.max_win_zise//2
+    log_num = np.diff(log_freq_bin) * log_freq
+    log_pnt = np.concatenate([
+        np.linspace(start, stop, num, endpoint=False).astype(int)
+        for num, start, stop in
+        zip(log_num, log_freq_bin_iter[:-1], log_freq_bin_iter[1:])
+    ])
+    log_pnts_l = []
+    for pnt in log_pnt:
+        _arr = np.arange(pnt - int(max_win_size // 2),
+                         pnt + int(max_win_size // 2) + 1).astype(int)
+        if (_arr < 0).any():
+            _arr += - _arr.min()
+        log_pnts_l.append(_arr)
+    log_pnts = np.concatenate(log_pnts_l)
+    print log_pnts.shape
+
+    kernel_stat = KernelStat(max_win_size=max_win_size, log_pnt=196)
+    print kernel_stat.stat
+    v_l = []
+    res = []
+    from utils import timer
+
+    timer.tic()
+    for _ind in range(196 * 2 + 1):
+        v = np.random.randn(3, 3, 3, 32) * (_ind + 1) / 100.
+        v_l.append(v)
+        if _ind in log_pnts:
+            res.append(kernel_stat.calc_all(v, 'ok/kernel', _ind))
+            # print timer.toc()
+        _v = np.stack(v_l, axis=0)
+        # assert np.allclose(res['ok/kernel/stdtime'], _v.std(axis=0).mean()), ' should close '
+    res_df = pd.DataFrame(index=np.arange(196 * 2 + 1), columns=res[0].columns)
+    for _df in res[1:]:
+        res_df.update(_df)
+    res_df.dropna(how='all', inplace=True)
+
     # res = []
+    # act_stat = ActStat()
+    # print act_stat.stat
     # for _ind in range(102):
     #     v = np.random.randn(10, 10, 10, 10)
-    #     v_l.append(v)
-    #     res.append(kernel_stat.calc_all(v, 'ok/kernel', _ind))
-    #     _v = np.stack(v_l, axis=0)
-    #     # assert np.allclose(res['ok/kernel/stdtime'], _v.std(axis=0).mean()), ' should close '
+    #     _res = act_stat.calc_all(v, 'ok/act', _ind)
+    #     res.append(_res)
+    #     print _res.shape
     # res = pd.concat(res, axis=0)
-
-    res = []
-    act_stat = ActStat()
-    print act_stat.stat
-    for _ind in range(102):
-        v = np.random.randn(10, 10, 10, 10)
-        _res =act_stat.calc_all(v, 'ok/act', _ind)
-        res.append(_res)
-        print _res.shape
-    res = pd.concat(res, axis=0)
-
-    res = []
+    #
+    # res = []
     # bias_stat = BiasStat()
     # print bias_stat.stat
     #
@@ -372,6 +415,4 @@ if __name__ == '__main__':
     #     res.append(bias_stat.calc_all(v, 'ok/bias', _ind))
     #
     # res = pd.concat(res, axis=0)
-    # print 'ok'
-
-
+    print 'ok'

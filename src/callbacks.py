@@ -6,49 +6,65 @@ import os, numpy as np
 from logs import logger
 from stats import KernelStat, ActStat, BiasStat
 from utils import clean_name
-import utils,math
+import utils, math
 
 
 # todo save on the fly
 
 # tensorboard2 is batch beased
 class TensorBoard2(Callback):
-    def __init__(self, log_dir='./logs',
-                 histogram_freq=1,
+    def __init__(self,
+                 tot_epochs,
+                 log_dir='./logs',
                  batch_size=32,
                  write_graph=True,
                  write_grads=False,
-                 write_images=False,
-                 embeddings_freq=0,
-                 embeddings_layer_names=None,
-                 embeddings_metadata=None,
                  dataset=None,
-
                  batch_based=False,
-                 stat_only=True):
+                 stat_only=True,
+                 max_win_size=33,
+                 ):
         super(TensorBoard2, self).__init__()
         if K.backend() != 'tensorflow':
             raise RuntimeError('TensorBoard callback only works '
                                'with the TensorFlow backend.')
+        self.epochs = tot_epochs
         self.log_dir = log_dir
-        self.histogram_freq = histogram_freq
-        self.merged = None
         self.write_graph = write_graph
         self.write_grads = write_grads
-        self.write_images = write_images
-        self.embeddings_freq = embeddings_freq
-        self.embeddings_layer_names = embeddings_layer_names
-        self.embeddings_metadata = embeddings_metadata or {}
         self.batch_size = batch_size
         self.dataset = dataset
+        self.max_win_zise = max_win_size
+
+        self.merged = None
         self.iter_per_epoch = int(np.ceil(dataset.x_train.shape[0] / float(batch_size)))
-        self.log_flag = True
-        self.epoch = 0
+        self.epoch, self.iter = 0, 0
         self.batch_based = batch_based
         self.stat_only = stat_only
-        self.kernel_stat = KernelStat()
-        self.bias_stat = BiasStat()
-        self.act_stat = ActStat()
+
+        log_freq = np.array([4, 2, 1])
+        log_freq_bin = np.array([0, self.epochs // 10, self.epochs // 3, self.epochs])
+
+        log_freq_bin_iter = log_freq_bin * self.iter_per_epoch
+        # log_freq_bin_iter[0] = self.max_win_zise//2
+        log_num = np.diff(log_freq_bin) * log_freq
+        log_pnt = np.concatenate([
+            np.linspace(start, stop, num, endpoint=False).astype(int)
+            for num, start, stop in
+            zip(log_num, log_freq_bin_iter[:-1], log_freq_bin_iter[1:])
+        ])
+        log_pnts_l = []
+        for pnt in log_pnt:
+            _arr = np.arange(pnt - int(self.max_win_zise // 2),
+                             pnt + int(self.max_win_zise // 2) + 1).astype(int)
+            if (_arr < 0).any():
+                _arr += - _arr.min()
+            log_pnts_l.append(_arr)
+        self.log_pnts =log_pnts = np.concatenate(log_pnts_l)
+
+        self.kernel_stat = KernelStat(self.max_win_zise, log_pnt)
+        self.bias_stat = BiasStat(self.max_win_zise, log_pnt)
+        self.act_stat = ActStat(self.max_win_zise, log_pnt)
 
     def set_model(self, model):
         self.name = model.name
@@ -58,7 +74,7 @@ class TensorBoard2(Callback):
         grad_summ_l = []
         act_summ_l = []
         self.act_l = {}
-        if self.histogram_freq and self.merged is None:
+        if self.merged is None:
             for layer in self.model.layers:
                 if 'obs' not in layer.name:  # only log obs
                     continue
@@ -90,6 +106,7 @@ class TensorBoard2(Callback):
             self.writer = tf.summary.FileWriter(self.log_dir + '/miscellany')
 
     def new_writer(self, act_l, weight, epoch):
+        # todo use cleaned dir
         for ind, act in enumerate(act_l):
             writer_act = tf.summary.FileWriter(self.log_dir + '/act' + '/' + str(epoch) + '/' + str(ind))
             writer_act.add_summary(act, global_step=epoch)
@@ -100,22 +117,13 @@ class TensorBoard2(Callback):
         writer_weight.add_summary(weight, epoch)
         writer_weight.close()
 
-    def update_log_flag(self, logs):
-        # todo lr scheme
-        # if self.iter < 30 * 200 and self.iter % 50 == 0:
-        #     self.log_flag = True
-        # elif self.iter < 90 * 200 and self.iter % 100 == 0:
-        #     self.log_flag = True
-        # elif self.iter > 90 * 200 and self.iter % 300 == 0:
-        #     self.log_flag = True
-        # else:
-        #     self.log_flag = True
+    def judge_log(self, logs):
+        # todo sample scheme
 
-        if self.iter%10==0:
-            self.log_flag =True
+        if self.iter in self.log_pnts:
+            return True
         else:
-            self.log_flag =False
-        # self.log_flag=True
+            return False
 
     def on_epoch_end(self, epoch, logs=None):
         logs = logs or {}
@@ -123,7 +131,7 @@ class TensorBoard2(Callback):
         logger.info('Model {} Epoch {} end'.format(self.name, epoch))
         assert self.batch == self.iter_per_epoch - 1, 'should equal '
 
-        if self.batch_based and self.validation_data and self.histogram_freq and epoch % self.histogram_freq == 0:
+        if self.batch_based and self.validation_data:
             logger.info('Epoch {} record tf merged summary'.format(epoch))
             act_summ_str_l, weight_summ_str = self.get_act_param_summ_str()
             self.new_writer(act_summ_str_l, weight_summ_str, epoch)
@@ -133,9 +141,11 @@ class TensorBoard2(Callback):
 
     def on_batch_end(self, batch, logs=None):
         self.batch = batch
-        self.iter = iter = self.epoch * self.iter_per_epoch + self.batch
-        self.update_log_flag(logs)
-        if self.validation_data and self.histogram_freq and self.log_flag:
+        iter = self.epoch * self.iter_per_epoch + self.batch
+        assert self.iter == iter, 'should same'
+        self.iter = iter
+
+        if self.validation_data and self.judge_log(logs):
             logger.info('Epoch {} Batch {} Iter {} end'.format(self.epoch, self.batch, iter))
             if not self.stat_only:
                 act_summ_str_l, weight_summ_str = self.get_act_param_summ_str()
@@ -143,12 +153,12 @@ class TensorBoard2(Callback):
             else:
                 act = self.get_act()
                 for name, val in act.iteritems():
-                    self.write_df(self.act_stat.calc_all(val, name,iter))
+                    self.write_df(self.act_stat.calc_all(val, name, iter))
                 kernel, bias = self.get_param()
                 for name, val in kernel.iteritems():
-                    self.write_df(self.kernel_stat.calc_all(val, name,iter))
+                    self.write_df(self.kernel_stat.calc_all(val, name, iter))
                 for name, val in bias.iteritems():
-                    self.write_df(self.bias_stat.calc_all(val, name,iter))
+                    self.write_df(self.bias_stat.calc_all(val, name, iter))
 
             val_loss, val_acc = self.model.evaluate(self.dataset.x_test, self.dataset.y_test, verbose=2)
 
@@ -239,19 +249,19 @@ class TensorBoard2(Callback):
             i += self.batch_size
         return act_summ_str_l, weight_summ_str
 
-    def write_df(self,df):
-        for name,series in df.iteritems():
-            for _iter,val in series.iteritems():
+    def write_df(self, df):
+        for name, series in df.iteritems():
+            for _iter, val in series.iteritems():
                 if not math.isnan(val):
-                    self.write_single_val(val,_iter,name)
+                    self.write_single_val(val, _iter, name)
 
     def write_dict(self, logs, epoch_iter):
         for name, value in logs.items():
             if name in ['batch', 'size']:
                 continue
-            self.write_single_val(value,epoch_iter,name)
+            self.write_single_val(value, epoch_iter, name)
 
-    def write_single_val(self,value,epoch_iter,name):
+    def write_single_val(self, value, epoch_iter, name):
         summary = tf.Summary()
         summary_value = summary.value.add()
 

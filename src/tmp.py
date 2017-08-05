@@ -7,7 +7,7 @@ def run(model_type='vgg5', lr=1e-2, limit_val=True, dataset='cifar10', queue=Non
     utils.init_dev(utils.get_dev())  #
     utils.allow_growth()
     import tensorflow as tf, keras
-    from saver import TensorBoard2
+    from callbacks import TensorBoard2
     from keras.callbacks import TensorBoard
     from datasets import Dataset
     from models import VGG, ResNet
