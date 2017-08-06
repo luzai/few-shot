@@ -92,18 +92,19 @@ class Stat(object):
     def negmean(self, tensor, **kwargs):
         # todo do not observe softmax
         name = kwargs.get('name')
-        if (tensor > 0.).all():
-            logger.error(' softmax all positive? name {}'.format(name))
-        elif (tensor < 0.).all():
-            logger.error('softmax all neg? name {}'.format(name))
+        # if (tensor > 0.).all():
+        #     logger.error(' softmax all positive? name {}'.format(name))
+        # elif (tensor < 0.).all():
+        #     logger.error('softmax all neg? name {}'.format(name))
         return tensor[tensor < 0].mean()
 
     def posproportion(self, tensor, **kwargs):
-        pos_len = float(tensor[tensor > 0].shape[0])
+        # in fact we use non-negative proportion
+        pos_len = float(tensor[tensor >= 0].shape[0])
         neg_len = float(tensor[tensor < 0.].shape[0])
         res = pos_len / (pos_len + neg_len)
         _, res2 = thresh_proportion(tensor, 0.)
-        if not abs(res2 - res) < np.finfo(float).eps:
+        if not np.allclose(np.array([res]), np.array(res2)):
             logger.error('different method calc pso_proportion should close {} {}'.format(res, res2))
         return res
 
@@ -118,11 +119,19 @@ class Stat(object):
         # for bias we usually set lr mult=0.1? --> bias is not sparse
 
     def totvar(self, tensor, name, iter, win_size):
-        if self.log_pnt[iter] != 1:
+        if self.log_pnt[iter] == 1 \
+                and iter - win_size // 2 in self.log_pnt \
+                and self.log_pnt[iter - win_size // 2] >= 2:
             mode = 'load'
+            _iter, _val = self.totvar_inst.tot_var(tensor, iter, name, win_size, mode)
+            if _iter != iter - win_size // 2:
+                _iter = iter - win_size // 2
+                logger.error('should log to right iter!')
         else:
             mode = 'save'
-        return self.totvar_inst.tot_var(tensor, iter, name, win_size, mode)
+            _iter, _val = self.totvar_inst.tot_var(tensor, iter, name, win_size, mode)
+
+        return _iter, _val
 
     def calc_all(self, tensor, name, iter):
         res = pd.DataFrame()
@@ -133,10 +142,10 @@ class Stat(object):
             return NAN
 
         def calc_level1():
-            logger.debug('level1 calc tensor shape {} name {} iter {}'.format(tensor.shape,name,iter))
+            logger.debug('level1 calc tensor shape {} name {} iter {}'.format(tensor.shape, name, iter))
             fn_name = 'totvar'
             if fn_name in self.stat:
-                for win_size in [11, 101]:
+                for win_size in [11, 21, 31, 33]:
                     _name = name + '/' + fn_name + '_win_size_' + str(win_size)
                     _iter, _val = self.totvar(name=name, iter=iter, tensor=tensor, win_size=win_size)
                     if math.isnan(_iter): continue
@@ -145,14 +154,14 @@ class Stat(object):
             fn_name = 'ptrate'
             if fn_name in self.stat:
                 for thresh in [.2, .6, 'mean']:
-                    for win_size in [11, 101]:
+                    for win_size in [11, 21, 31, 33]:
                         _name = name + '/' + fn_name + '_win_size_' + str(win_size) + '_thresh_' + str(thresh)
                         _iter, _val = self.ptrate(name=name, iter=iter, tensor=tensor, win_size=win_size, thresh=thresh)
                         if math.isnan(_iter): continue
                         res.loc[_iter, _name] = _val
 
         def calc_level23(level):
-            logger.debug('level23 calc tensor shape {} name {} iter {}'.format(tensor.shape,name,iter))
+            logger.debug('level23 calc tensor shape {} name {} iter {}'.format(tensor.shape, name, iter))
             for fn_name, fn in self.stat.iteritems():
                 if fn_name not in level: continue
                 _name = name + '/' + fn_name
@@ -179,10 +188,9 @@ class KernelStat(Stat):
         self.stat = utils.dict_concat([self.stat, _stat])
         self.totvar_inst = TotVar(self.window)
 
-    # todo for fc kernel different!
-    def orthogonality(self, tensor, name=None, iter=None):
-        tensor = tensor.reshape(-1, tensor.shape[-1])
-        angle = np.zeros((tensor.shape[-1], tensor.shape[-1]))
+    def orthogonality(self, tensor, name=None, iter=None, axis=-1):
+        tensor = tensor.reshape(-1, tensor.shape[axis])
+        angle = np.zeros((tensor.shape[axis], tensor.shape[axis]))
         it = np.nditer(angle, flags=['multi_index'], op_flags=['writeonly'])
         while not it.finished:
             it[0] = angle_between(tensor[:, it.multi_index[0]], tensor[:, it.multi_index[1]])
@@ -212,10 +220,10 @@ class ActStat(Stat):
         self.ptrate_inst = PTRate(self.window)
 
     def orthogonality(self, tensor, name=None, iter=None):
-        if len(tensor.shape) == 2:
-            pass
-        elif len(tensor.shape):
-            pass
+        # if len(tensor.shape) == 2:
+        #     pass
+        # elif len(tensor.shape):
+        #     pass
         tensor = tensor.reshape(tensor.shape[0], -1)
         angle = np.zeros((tensor.shape[0], tensor.shape[0]))
         it = np.nditer(angle, flags=['multi_index'], op_flags=['writeonly'])
@@ -226,11 +234,20 @@ class ActStat(Stat):
         return angle.mean()
 
     def ptrate(self, tensor, name, iter, win_size, thresh):
-        if self.log_pnt[iter] != 1:
+        if self.log_pnt[iter] == 1 \
+                and iter - win_size // 2 in self.log_pnt \
+                and self.log_pnt[iter - win_size // 2] >= 2:
             mode = 'load'
+            _iter, _val = self.ptrate_inst.pt_rate(tensor, name=name, iter=iter, win_size=win_size, thresh=thresh,
+                                                   mode=mode)
+            if _iter != iter - win_size // 2:
+                _iter = iter - win_size // 2
+                logger.error('should log to right iter!')
         else:
             mode = 'save'
-        return self.ptrate_inst.pt_rate(tensor, name=name, iter=iter, win_size=win_size, thresh=thresh, mode=mode)
+            _iter, _val = self.ptrate_inst.pt_rate(tensor, name=name, iter=iter, win_size=win_size, thresh=thresh,
+                                                   mode=mode)
+        return _iter, _val
 
 
 class Windows(object):
@@ -263,9 +280,9 @@ class Windows(object):
     def get_tensor(self, name, win_size):
         return np.array(list(self.l_tensor[name])[-win_size:])
 
-    def get_iter(self):
+    def get_iter(self, win_size):
         _queue = self.l_iter
-        return _queue[len(_queue) // 2]
+        return _queue[- (win_size // 2) - 1]
 
 
 class TotVar(object):
@@ -280,7 +297,7 @@ class TotVar(object):
             else:
                 _tensor = self.windows.get_tensor(name, win_size)
                 _diff = np.abs(_tensor[1:] - _tensor[:-1])
-                return self.windows.get_iter(), _diff.mean()
+                return self.windows.get_iter(win_size), _diff.mean()
         else:
             return NAN, NAN
 
@@ -303,7 +320,7 @@ class PTRate(object):
                     res = polarity_space.mean()
                 else:
                     _, res = thresh_proportion(arr=polarity_space, thresh=thresh)
-                return self.windows.get_iter(), res
+                return self.windows.get_iter(win_size), res
         else:
             return NAN, NAN
 
@@ -384,10 +401,7 @@ class Histogram(object):
     pass
 
 
-if __name__ == '__main__':
-    epochs = 301
-    iter_per_epoch = 196
-    max_win_size = 11
+def _fake_data(max_win_size, epochs, iter_per_epoch):
     series = pd.Series(data=3,
                        index=np.arange(epochs) * iter_per_epoch)
     series1 = pd.Series()
@@ -409,51 +423,87 @@ if __name__ == '__main__':
     for ind, _ in series.iteritems():
         series1 = series1.append([
             pd.Series(data=1, index=np.arange(ind - max_win_size // 2, ind)),
-            pd.Series(data=1, index=np.arange(ind + 1, ind + max_win_size // 2)),
+            pd.Series(data=1, index=np.arange(ind + 1, ind + max_win_size // 2 + 1)),
         ])
     log_pnts = series.append(series1).sort_index()
     log_pnts.index = - log_pnts.index.min() + log_pnts.index
-    log_pnts
+    hist_ = np.zeros(log_pnts.index.max() + 1)
+    hist_[log_pnts.index] = log_pnts
+    # from vis import *
+    # plt.stem(hist)
+    # plt.show()
 
     print log_pnts.shape
+    return log_pnts
+
+
+if __name__ == '__main__':
+    epochs = 301
+    iter_per_epoch = 196
+    max_win_size = 33
+    log_pnts = _fake_data(max_win_size, epochs, iter_per_epoch)
 
     kernel_stat = KernelStat(max_win_size=max_win_size, log_pnt=log_pnts)
     print kernel_stat.stat
-    v_l = []
+    # v_l = []
     res = []
     from utils import timer
 
     timer.tic()
-    for _ind in range(196 * 2 + 1):
+    for _ind in range(epochs * iter_per_epoch):  # 393  # epochs * iter_per_epoch
         v = np.random.randn(3, 3, 3, 32) * (_ind + 1) / 100.
-        v_l.append(v)
+        # v_l.append(v)
         if _ind in log_pnts:
             res.append(kernel_stat.calc_all(v, 'ok/kernel', _ind))
             # print timer.toc()
-        _v = np.stack(v_l, axis=0)
-        # assert np.allclose(res['ok/kernel/stdtime'], _v.std(axis=0).mean()), ' should close '
-    res_df = pd.DataFrame(index=np.arange(196 * 2 + 1), columns=res[0].columns)
-    for _df in res[1:]:
-        res_df.update(_df)
-    res_df.dropna(how='all', inplace=True)
+            # _v = np.stack(v_l, axis=0)
+            # assert np.allclose(res['ok/kernel/stdtime'], _v.std(axis=0).mean()), ' should close '
+    columns = np.unique(np.concatenate([
+        _res.columns for _res in res
+    ]))
 
-    # res = []
-    # act_stat = ActStat()
-    # print act_stat.stat
-    # for _ind in range(102):
-    #     v = np.random.randn(10, 10, 10, 10)
-    #     _res = act_stat.calc_all(v, 'ok/act', _ind)
-    #     res.append(_res)
-    #     print _res.shape
-    # res = pd.concat(res, axis=0)
-    #
-    # res = []
-    # bias_stat = BiasStat()
-    # print bias_stat.stat
-    #
-    # for _ind in range(102):
-    #     v = np.random.randn(10, 10, 10, 10)
-    #     res.append(bias_stat.calc_all(v, 'ok/bias', _ind))
-    #
-    # res = pd.concat(res, axis=0)
+    # res_df = pd.DataFrame(index=np.arange(epochs * iter_per_epoch), columns=columns)
+    # print timer.toc()
+    # for _df in res:
+    #     res_df.update(_df)
+    # res_df.dropna(how='all', inplace=True)
+    # print timer.toc()
+
+    res = []
+    act_stat = ActStat(max_win_size=max_win_size, log_pnt=log_pnts)
+    print act_stat.stat
+    for _ind in range(102):
+        v = np.random.randn(272, 8, 8, 128)
+        _res = act_stat.calc_all(v, 'ok/act', _ind)
+        res.append(_res)
+        # print _res.shape
+    # columns = np.unique(np.concatenate([
+    #     _res.columns for _res in res
+    # ]))
+    # res_df = pd.DataFrame(index=np.arange(epochs * iter_per_epoch), columns=columns)
+    # print timer.toc()
+    # for _df in res:
+    #     res_df.update(_df)
+    # res_df.dropna(how='all', inplace=True)
+    # print timer.toc()
+
+    res = []
+    bias_stat = BiasStat(max_win_size=max_win_size, log_pnt=log_pnts)
+    print bias_stat.stat
+
+    for _ind in range(102):
+        v = np.random.randn(10)
+        res.append(bias_stat.calc_all(v, 'ok/bias', _ind))
+    # columns = np.unique(np.concatenate([
+    #     _res.columns for _res in res
+    # ]))
+    # res_df = pd.DataFrame(index=np.arange(epochs * iter_per_epoch), columns=columns)
+    # print timer.toc()
+    # for _df in res:
+    #     res_df.update(_df)
+    # res_df.dropna(how='all', inplace=True)
+    # print timer.toc()
+
     print 'ok'
+    # print res_df
+    # print res_df.columns

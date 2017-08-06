@@ -47,7 +47,7 @@ def run(model_type='vgg5', lr=1e-2, limit_val=True, dataset='cifar10', queue=Non
                                      write_graph=True,
                                      write_grads=False,
                                      dataset=dataset,
-                                     max_win_size=11,
+                                     max_win_size=33,
                                      stat_only=True,
                                      batch_based=True
                                      ),

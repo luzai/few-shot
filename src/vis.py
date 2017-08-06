@@ -139,7 +139,8 @@ class Visualizer(object):
                     else:
                         legends[_row, _col] += [ind]
             target.append(axes[_row, _col])
-        perf_df.plot(subplots=True, legend=False, ax=target, marker=None, sharex=True)
+        pd.DataFrame.plot()
+        perf_df.plot(subplots=True, legend=False, ax=target, marker=None, sharex=False)
         #  # change color
 
         for axis in axes.flatten():

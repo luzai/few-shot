@@ -280,7 +280,7 @@ class Loader(threading.Thread):
 
 if __name__ == '__main__':
 
-    for path in glob.glob(Config.root_path + '/tfevents/*'):
+    for path in glob.glob(Config.root_path + '/stat2/*'):
         print path
         # try:
         loader = Loader(path=path)
