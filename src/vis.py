@@ -82,8 +82,8 @@ def get_colors(label):
 
 
 class Visualizer(object):
-    def __init__(self, config_dict, join='inner', stat_only=True, paranet_folder='stat'):
-        self.aggregate(config_dict, join, stat_only=stat_only, parant_folder=paranet_folder)
+    def __init__(self, paranet_folder, join='inner', stat_only=True, ):
+        self.aggregate(join, stat_only=stat_only, parant_folder=paranet_folder)
         self.split()
         # self.names2levels = {level: np.unique(self.columns.get_level_values(level)) for level in self.names}
         self.names2levels = {name: level for level, name in zip(self.df.columns.levels, self.df.columns.names)}
@@ -185,31 +185,18 @@ class Visualizer(object):
         df.sort_index(level=sort_names, axis=1, inplace=True)
         return df
 
-    def aggregate(self, conf_dict_in, join, parant_folder, stat_only):
+    def aggregate(self, join, parant_folder, stat_only):
         conf_name_dict = {}
         loaders = {}
-        for model_type in conf_dict_in.get('model_type', [None]):
-            for lr in conf_dict_in.get('lr', [None]):
-                for dataset_type in conf_dict_in.get('dataset_type', [None]):
-                    conf = Config(epochs=231, batch_size=256, verbose=2,
-                                  model_type=model_type,
-                                  dataset_type=dataset_type,
-                                  debug=False, others={'lr': lr},  # , 'limit_val': True
-                                  clean=False)
+        parant_path = Config.root_path + '/' + parant_folder + '/'
+        for path in glob.glob(parant_path + '/*'):
+            _conf = utils.unpickle(path + '/config.pkl')
+            loader = Loader(path=path, stat_only=stat_only)
+            # loader.start()
+            loader.load(stat_only=stat_only)
+            loaders[_conf.name] = loader
+            conf_name_dict[_conf.name] = _conf.to_dict()
 
-                    path = Config.root_path + '/' + parant_folder + '/' + conf.name
-                    if osp.exists(path):
-                        _res = {}
-                        for ind, val in conf.to_dict().items():
-                            if isinstance(val, float):
-                                _res[ind] = '{:.2e}'.format(val)
-                            else:
-                                _res[ind] = str(val)
-                        conf_name_dict[conf.name] = _res
-                        loader = Loader(path=path, stat_only=stat_only)
-                        # loader.start()
-                        loader.load(stat_only=stat_only)
-                        loaders[conf.name] = loader
         df_l = []
         index_l = []
         assert len(conf_name_dict) != 0, 'should not be empty'
@@ -460,7 +447,7 @@ def t_sne(visualizer, model_type, dataset_type, start_lr):
         _perf_df = visualizer.select(perf_df, 'lr', lr, regexp=False)
         _perf_df, _suptitle = drop_level(_perf_df, other_name=['lr'],
                                          keep_num_levels=1)
-        logger.debug ('{}'.format(_perf_df.columns))
+        logger.debug('{}'.format(_perf_df.columns))
         val_accs.append(_perf_df.as_matrix())
 
         _stat_df = visualizer.select(stat_df, 'lr', lr, regexp=False)
@@ -496,7 +483,6 @@ def t_sne(visualizer, model_type, dataset_type, start_lr):
         ax.clear()
         time_i = int(t * freq)
         for ind, (stat_dim2, color, val_acc) in enumerate(zip(stats_dim2, colors, val_accs)):
-
             val_acc[:time_i].reshape((time_i,))
             lr = name2level['lr'][ind]
             ax.scatter(stat_dim2[:time_i, 0],
@@ -516,6 +502,7 @@ def t_sne(visualizer, model_type, dataset_type, start_lr):
         ax.view_init(elev=20., azim=t / dur * 130.)
         fig.suptitle('_'.join((model_type, dataset_type, 'start_lr', str(start_lr))))
         return mplfig_to_npimage(fig)
+
     ## animation
     # animation = mpy.VideoClip(make_frame_mpl, duration=dur)
     # animation.write_gif('_'.join((model_type, dataset_type, 'start_lr', str(start_lr))) + '.gif', fps=20)
@@ -523,20 +510,18 @@ def t_sne(visualizer, model_type, dataset_type, start_lr):
     make_frame_mpl(dur)
     ax.view_init(elev=90., azim=0.)
     # ax.view_init(elev=20., azim=45.)
-    plt.savefig('_'.join((model_type, dataset_type, 'start_lr', str(start_lr)))+'.png')
+    plt.savefig('_'.join((model_type, dataset_type, 'start_lr', str(start_lr))) + '.png')
+
 
 if __name__ == '__main__':
     # utils.rm('../output  ')
     tic = time.time()
-    config_dict = {'model_type': ['vgg6', 'vgg10', 'resnet6', 'resnet10'],
-                   'lr': np.concatenate((np.logspace(0, -5, 6), np.logspace(-1.5, -2.5, 0))),
-                   'dataset_type': ['cifar10', 'cifar100']
-                   }
+
     # visualizer = Visualizer(config_dict, join='inner', stat_only=True, paranet_folder='stat1')
     # subplots(visualizer, path_suffix='_1')
     # subplots(visualizer, path_suffix='_1_stable_lr')
 
-    visualizer = Visualizer(config_dict, join='inner', stat_only=True, paranet_folder='stat2')
+    visualizer = Visualizer(join='outer', stat_only=True, paranet_folder='stat2')
     # subplots(visualizer, path_suffix='_2')
     # subplots(visualizer, path_suffix='_2_stable_lr')
 
@@ -546,11 +531,10 @@ if __name__ == '__main__':
 
     print time.time() - tic
 
-    dataset, model_type = 'cifar100', 'resnet10'
-
-    for lr in [0, 2, 4]:
-        t_sne(visualizer, model_type, dataset, lr)
-    for dataset in ['cifar10', 'cifar100']:  # , 'cifar100'
-        for model_type in ['vgg6', 'resnet6', 'vgg10', 'resnet10', ]:  # 'vgg8', 'resnet8',
-            t_sne(visualizer, model_type, dataset, 2)
-
+    # dataset, model_type = 'cifar100', 'resnet10'
+    #
+    # for lr in [0, 2, 4]:
+    #     t_sne(visualizer, model_type, dataset, lr)
+    # for dataset in ['cifar10', 'cifar100']:  # , 'cifar100'
+    #     for model_type in ['vgg6', 'resnet6', 'vgg10', 'resnet10', ]:  # 'vgg8', 'resnet8',
+    #         t_sne(visualizer, model_type, dataset, 2)
