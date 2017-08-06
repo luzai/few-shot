@@ -15,12 +15,12 @@ class TensorBoard2(Callback):
                  tot_epochs,
                  log_dir,
                  max_win_size,
-                 batch_size=32,
-                 write_graph=True,
-                 write_grads=False,
-                 dataset=None,
-                 batch_based=True,
-                 stat_only=True,  # save on the fly
+                 batch_size,
+                 write_graph,
+                 write_grads,
+                 dataset,
+                 batch_based,
+                 stat_only,  # True -- save on the fly
                  ):
         super(TensorBoard2, self).__init__()
         if K.backend() != 'tensorflow':
@@ -81,7 +81,7 @@ class TensorBoard2(Callback):
         self.act_l = {}
         if self.merged is None:
             for layer in self.model.layers:
-                if 'obs' not in layer.name:  # only log obs
+                if not layer.name.startswith('obs'):  # only log obs
                     continue
                 for weight in layer.weights:
                     # todo more clean way to name
@@ -130,22 +130,23 @@ class TensorBoard2(Callback):
             return False
 
     def on_epoch_begin(self, epoch, logs=None):
+        logger.info('Model {} Epoch {} begin'.format(self.name, epoch))
+
         self.epoch = epoch
 
     def on_epoch_end(self, epoch, logs=None):
-        logger.info('Model {} Epoch {} begin'.format(self.name, epoch))
 
         logs = logs or {}
 
         logger.info('Model {} Epoch {} end'.format(self.name, epoch))
         assert self.batch == self.iter_per_epoch - 1, 'should equal '
 
-        if self.batch_based and self.validation_data:
-            logger.info('Epoch {} record tf merged summary'.format(epoch))
+        if not self.batch_based and self.validation_data:
+            logger.warning('Descrappted: Epoch {} record tf merged summary'.format(epoch))
             act_summ_str_l, weight_summ_str = self.get_act_param_summ_str()
             self.new_writer(act_summ_str_l, weight_summ_str, epoch)
 
-        if self.batch_based:
+        if not self.batch_based:
             self.write_dict(logs, epoch)
 
     def on_batch_end(self, batch, logs=None):
@@ -155,10 +156,10 @@ class TensorBoard2(Callback):
 
         assert self.iter == iter, 'epoch {} batch {} iter {} selgiter  {}'.format(self.epochs, batch, iter,
                                                                                   self.iter)
-        # logger.debug('Epoch {} Batch {} Iter {} end'.format(self.epoch, self.batch, iter))
         if self.validation_data and self.judge_log(logs):
             logger.debug('Epoch {} Batch {} Iter {} end'.format(self.epoch, self.batch, iter))
             if not self.stat_only:
+                logger.warning('Descrapted: log all weights to spltted dir')
                 act_summ_str_l, weight_summ_str = self.get_act_param_summ_str()
                 self.new_writer(act_summ_str_l, weight_summ_str, iter)
             else:
@@ -171,11 +172,11 @@ class TensorBoard2(Callback):
                 for name, val in bias.iteritems():
                     self.write_df(self.bias_stat.calc_all(val, name, iter))
 
-            val_loss, val_acc = self.model.evaluate(self.dataset.x_test, self.dataset.y_test, verbose=2)
-
-            logs['val_loss'] = val_loss
-            logs['val_acc'] = val_acc
-            self.write_dict(logs, iter)
+            if self.log_pnts[self.iter] >= 2:
+                val_loss, val_acc = self.model.evaluate(self.dataset.x_test, self.dataset.y_test, verbose=2)
+                logs['val_loss'] = val_loss
+                logs['val_acc'] = val_acc
+                self.write_dict(logs, iter)
 
     def on_train_end(self, logs=None):
         self.writer.close()
@@ -183,9 +184,11 @@ class TensorBoard2(Callback):
     def get_param(self):
         res_kernel, res_bias = {}, {}
         for layer in self.model.layers:
-            if 'conv2d' not in layer.name:
-                continue
-            kernel, bias = layer.get_weights()
+            if not layer.name.startswith('obs'): continue
+            # print layer.name
+            weights = layer.get_weights()
+            if weights == []: continue
+            kernel, bias = weights
             res_kernel[clean_name(layer.name) + '/kernel'] = kernel
             res_bias[clean_name(layer.name) + '/bias'] = bias
         return res_kernel, res_bias

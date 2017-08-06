@@ -48,6 +48,8 @@ def run(model_type='vgg5', lr=1e-2, limit_val=True, dataset='cifar10', queue=Non
                                      write_grads=False,
                                      dataset=dataset,
                                      max_win_size=11,
+                                     stat_only=True,
+                                     batch_based=True
                                      ),
                         # TensorBoard(log_dir=config.model_tfevents_path)
                     ])
@@ -61,14 +63,15 @@ def run(model_type='vgg5', lr=1e-2, limit_val=True, dataset='cifar10', queue=Non
 
 import multiprocessing as mp, time
 from logs import logger
+import logs
 import numpy as np
 import utils
 
 dbg = False
 utils.rm(utils.root_path + '/tfevents  ' + utils.root_path + '/output')
 if dbg:
-    run('vgg6', dataset='cifar10', lr=1e-2)
-    # run('resnet10', dataset='cifar10', lr=1e-2)
+    # run('vgg6', dataset='cifar10', lr=1e-2)
+    run('resnet10', dataset='cifar10', lr=1e-2)
     # run('vgg6',1e-5)
 else:
     queue = mp.Queue()

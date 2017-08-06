@@ -13,7 +13,7 @@ class Filter(object):
 
 
 logger = logging.getLogger('global_logger')
-logger.setLevel(logging.DEBUG)
+# logger.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(asctime)s - %(filename)s - [line:%(lineno)d] - %(levelname)s - %(message)s')
 
 # info record only info at info.log

@@ -39,7 +39,7 @@ def allow_growth():
 
 def get_dev(n=1, ok=(0, 1, 2, 3)):
     import GPUtil, time
-    logger.info('Auto select gpu')
+    print('Auto select gpu')
     GPUtil.showUtilization()
 
     def _limit(devs, ok):
@@ -58,9 +58,9 @@ def get_dev(n=1, ok=(0, 1, 2, 3)):
             logger.info('available {}'.format(devs))
             GPUtil.showUtilization()
             return devs[0] if n == 1 else devs
-        logger.info('no device avelaible')
+        print('no device avelaible')
         GPUtil.showUtilization()
-        time.sleep(5)  # 60 * 3
+        time.sleep(60)  # 60 * 3
 
 
 def optional_arg_decorator(fn):

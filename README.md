@@ -8,14 +8,14 @@
 
 | 1~$10^{-5}$                              | $10^{-2}$~$10^{-5}$                      | $10^{-4}$~$10^{-5}$                      |
 | ---------------------------------------- | ---------------------------------------- | ---------------------------------------- |
-| ![](http://ww1.sinaimg.cn/large/0062s0TBgy1fi8psin5k6g30hs0dcx71.gif) | ![](http://ww1.sinaimg.cn/large/0062s0TBgy1fi8psj2abqg30hs0dc1la.gif)| ![](http://ww1.sinaimg.cn/large/0062s0TBgy1fi8pshlr5pg30hs0dcu19.gif)| ![](http://ww1.sinaimg.cn/large/0062s0TBgy1fi8psgbhtig30hs0dcqvh.gif) |
+| ![resnet10_cifar100_start_lr_0](https://github.com/luzai/Perf_Pred/tree/gh-graph/doc/resnet10_cifar100_start_lr_0.gif) | ![resnet10_cifar100_start_lr_2](https://github.com/luzai/Perf_Pred/tree/gh-graph/doc/resnet10_cifar100_start_lr_2.gif) | ![resnet10_cifar100_start_lr_4](https://github.com/luzai/Perf_Pred/tree/gh-graph/doc/resnet10_cifar100_start_lr_4.gif) |
 
 |          | cifar10                                  | cifar100                                 |
 | -------- | ---------------------------------------- | ---------------------------------------- |
-| vgg6     | ![](http://ww1.sinaimg.cn/large/0062s0TBgy1fi8psez6leg30hs0dche5.gif) | ![](http://ww1.sinaimg.cn/large/0062s0TBgy1fi8psevwdig30hs0dce8d.gif) |
-| vgg10    |![](http://ww1.sinaimg.cn/large/0062s0TBgy1fi8psiuogvg30hs0dcu19.gif) | ![](http://ww1.sinaimg.cn/large/0062s0TBgy1fi8psf178jg30hs0dche5.gif) |
-| resnet6  | ![](http://ww1.sinaimg.cn/large/0062s0TBgy1fi8pqtm1ezg30hs0dc4r2.gif) | ![](http://ww1.sinaimg.cn/large/0062s0TBgy1fi8psf4o3og30hs0dcqvh.gif) |
-| resnet10 |  ![](http://ww1.sinaimg.cn/large/0062s0TBgy1fi8qsj6gvag30hs0dcx71.gif) |  ![](http://ww1.sinaimg.cn/large/0062s0TBgy1fi8pshlr5pg30hs0dcu19.gif)|
+| vgg6     | ![vgg6_cifar10_start_lr_2](https://github.com/luzai/Perf_Pred/tree/gh-graph/doc/vgg6_cifar10_start_lr_2.gif) | ![vgg6_cifar100_start_lr_2](https://github.com/luzai/Perf_Pred/tree/gh-graph/doc/vgg6_cifar100_start_lr_2.gif) |
+| vgg10    | ![vgg10_cifar10_start_lr_2](https://github.com/luzai/Perf_Pred/tree/gh-graph/doc/vgg10_cifar10_start_lr_2.gif) | ![vgg10_cifar100_start_lr_2](https://github.com/luzai/Perf_Pred/tree/gh-graph/doc/vgg10_cifar100_start_lr_2.gif) |
+| resnet6  | ![resnet6_cifar10_start_lr_2](https://github.com/luzai/Perf_Pred/tree/gh-graph/doc/resnet6_cifar10_start_lr_2.gif) | ![resnet6_cifar100_start_lr_2](https://github.com/luzai/Perf_Pred/tree/gh-graph/doc/resnet6_cifar100_start_lr_2.gif) |
+| resnet10 | ![resnet10_cifar10_start_lr_2](https://github.com/luzai/Perf_Pred/tree/gh-graph/doc/resnet10_cifar10_start_lr_2.gif) | ![resnet10_cifar100_start_lr_2](https://github.com/luzai/Perf_Pred/tree/gh-graph/doc/resnet10_cifar100_start_lr_2.gif) |
 
 
 
@@ -25,5 +25,4 @@
     - with changelist
 - Experiments 
     - scalable 
-
 

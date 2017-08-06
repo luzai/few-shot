@@ -92,10 +92,10 @@ class Stat(object):
     def negmean(self, tensor, **kwargs):
         # todo do not observe softmax
         name = kwargs.get('name')
-        # if (tensor > 0.).all():
-        #     logger.error(' softmax all positive? name {}'.format(name))
-        # elif (tensor < 0.).all():
-        #     logger.error('softmax all neg? name {}'.format(name))
+        if (tensor > 0.).all():
+            logger.error(' softmax all positive? name {}'.format(name))
+        elif (tensor < 0.).all():
+            logger.error('softmax all neg? name {}'.format(name))
         return tensor[tensor < 0].mean()
 
     def posproportion(self, tensor, **kwargs):
@@ -104,7 +104,7 @@ class Stat(object):
         res = pos_len / (pos_len + neg_len)
         _, res2 = thresh_proportion(tensor, 0.)
         if not abs(res2 - res) < np.finfo(float).eps:
-            print 'different method calc pso_proportion should close {} {}'.format(res, res2)
+            logger.error('different method calc pso_proportion should close {} {}'.format(res, res2))
         return res
 
     def magmean(self, tensor, **kwargs):
