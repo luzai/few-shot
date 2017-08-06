@@ -139,7 +139,7 @@ class Visualizer(object):
                     else:
                         legends[_row, _col] += [ind]
             target.append(axes[_row, _col])
-        pd.DataFrame.plot()
+
         perf_df.plot(subplots=True, legend=False, ax=target, marker=None, sharex=False)
         #  # change color
 
@@ -522,8 +522,8 @@ if __name__ == '__main__':
     # subplots(visualizer, path_suffix='_1_stable_lr')
 
     visualizer = Visualizer(join='outer', stat_only=True, paranet_folder='stat2')
-    # subplots(visualizer, path_suffix='_2')
-    # subplots(visualizer, path_suffix='_2_stable_lr')
+    subplots(visualizer, path_suffix='_2')
+    subplots(visualizer, path_suffix='_2_stable_lr')
 
     # visualizer = Visualizer(config_dict, join='inner', stat_only=True, paranet_folder='stat3')
     # subplots(visualizer, path_suffix='_3')

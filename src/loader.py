@@ -45,13 +45,14 @@ class ScalarLoader(Loader):
     def load_scalars(self, reload=False):
         if reload:
             self.reload()
-        scalars = {}
+        scalars_df=pd.DataFrame()
         for scalar_name in self.scalars_names:
-            scalars[scalar_name] = [e.value for e in self.em.Scalars(scalar_name)]
-        scalars_df = pd.DataFrame.from_dict(dict([(k, pd.Series(v)) for k, v in scalars.iteritems()]))
-        scalars_df.sort_index(axis=0, inplace=True)
-        scalars_df.sort_index(axis=1, inplace=True)
-        return scalars_df
+            for e in self.em.Scalars(scalar_name):
+                iter = e.step
+                val = e.value
+                scalars_df.loc[iter,scalar_name] = val
+
+        return scalars_df.sort_index().sort_index(axis=1)
 
 
 class TensorLoader(Loader):
@@ -280,7 +281,7 @@ class Loader(threading.Thread):
 
 if __name__ == '__main__':
 
-    for path in glob.glob(Config.root_path + '/stat2/*'):
+    for path in glob.glob(Config.root_path + '/stat/*'):
         print path
         # try:
         loader = Loader(path=path)

@@ -18,11 +18,11 @@ root_path = osp.normpath(
 def init_dev(n=0):
     import os
     os.environ["CUDA_VISIBLE_DEVICES"] = str(n)
-    os.environ['PATH'] = '/home/gyzhang/cuda-8.0/bin:' + os.environ['PATH']
+    os.environ['PATH'] = '$HOME/cuda-8.0/bin:' + os.environ['PATH']
     os.environ['PATH'] = '/home/wangxinglu/anaconda2/bin:' + os.environ['PATH']
     os.environ['PATH'] = '/usr/local/cuda-8.0/bin:' + os.environ['PATH']
 
-    os.environ['LD_LIBRARY_PATH'] = '/home/gyzhang/cuda-8.0/lib64'
+    os.environ['LD_LIBRARY_PATH'] = '$HOME/cuda-8.0/lib64'
     os.environ['LD_LIBRARY_PATH'] = '/usr/local/cuda-8.0/lib64'
     # os.environ['PYTHONWARNINGS'] = "ignore"
 
@@ -114,10 +114,11 @@ timer = Timer()
 @optional_arg_decorator
 def timeit(fn, info=''):
     def wrapped_fn(*arg, **kwargs):
+        timer=Timer()
         timer.tic()
         res = fn(*arg, **kwargs)
         diff = timer.toc()
-        logger.info((info + 'takes time {}').format(diff))
+        logger.debug((info + 'takes time {}').format(diff))
         return res
 
     return wrapped_fn
@@ -170,7 +171,7 @@ def vis_model(model, name='model', show_shapes=True):
     name = osp.basename(name)
     if path == '':
         path = name
-    sav_path = osp.join(Config.root_path, "output", path)
+    sav_path = osp.join(root_path, "output", path)
     mkdir_p(sav_path, delete=False)
     keras.models.save_model(model, osp.join(sav_path, name + '.h5'))
     try:
@@ -276,7 +277,7 @@ def add_indent(str):
 def chdir_to_root(fn):
     def wrapped_fn(*args, **kwargs):
         restore_path = os.getcwd()
-        os.chdir(Config.root_path)
+        os.chdir(root_path)
         res = fn(*args, **kwargs)
         os.chdir(restore_path)
         return res
@@ -337,11 +338,13 @@ def parse_dir_name(dir='_res'):
         # move( '/'.join(path.split('/')[:2]), '/'.join(path.split('/')[:1]+ [_name]))
     return res
 
+
 def clean_name(name):
     import re
     name = re.findall('([a-zA-Z0-9/]+)(?::\d+)?', name)[0]
     name = re.findall('([a-zA-Z0-9/]+)(?:_\d+)?', name)[0]
     return name
+
 
 if __name__ == '__main__':
     # to_single_dir()

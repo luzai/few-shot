@@ -149,6 +149,7 @@ class TensorBoard2(Callback):
         if not self.batch_based:
             self.write_dict(logs, epoch)
 
+    @utils.timeit('batch end log stats consume')
     def on_batch_end(self, batch, logs=None):
         self.batch = batch
         iter = self.epoch * self.iter_per_epoch + self.batch
