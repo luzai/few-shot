@@ -61,31 +61,33 @@ def run(model_type='vgg5', lr=1e-2, limit_val=True, dataset='cifar10', queue=Non
     #     exit(100)
 
 
-import multiprocessing as mp, time
-from logs import logger
-import logs
-import numpy as np
-import utils
+# import multiprocessing as mp, time
+# from logs import logger
+# import logs
+# import numpy as np
+# import utils
+#
+# dbg = False
+# utils.rm(utils.root_path + '/tfevents  ' + utils.root_path + '/output')
+# if dbg:
+#     # run('vgg6', dataset='cifar10', lr=1e-2)
+#     run('resnet10', dataset='cifar10', lr=1e-2)
+#     # run('vgg6',1e-5)
+# else:
+#     queue = mp.Queue()
+#     tasks = []
+#     for dataset in ['cifar10', 'cifar100']:  # , 'cifar100'
+#         for model_type in ['vgg10', 'resnet10', ]:  # 'vgg8', 'resnet8','vgg6', 'resnet6',
+#             for lr in np.concatenate((np.logspace(-2, -3, 2), np.logspace(-1.5, -2.5, 0))):  # 10,1e-1, 1e-3, 1e-5
+#                 print dataset, model_type, lr
+#                 p = mp.Process(target=run, args=(model_type, lr, True, dataset, queue))
+#                 p.start()
+#                 tasks.append(p)
+#                 _res = queue.get()
+#                 logger.info('last task return {}'.format(_res))
+#                 time.sleep(15)
+#
+#     for p in tasks:
+#         p.join()
 
-dbg = False
-utils.rm(utils.root_path + '/tfevents  ' + utils.root_path + '/output')
-if dbg:
-    # run('vgg6', dataset='cifar10', lr=1e-2)
-    run('resnet10', dataset='cifar10', lr=1e-2)
-    # run('vgg6',1e-5)
-else:
-    queue = mp.Queue()
-    tasks = []
-    for dataset in ['cifar10', 'cifar100']:  # , 'cifar100'
-        for model_type in ['vgg10', 'resnet10', ]:  # 'vgg8', 'resnet8','vgg6', 'resnet6',
-            for lr in np.concatenate((np.logspace(-2, -3, 2), np.logspace(-1.5, -2.5, 0))):  # 10,1e-1, 1e-3, 1e-5
-                print dataset, model_type, lr
-                p = mp.Process(target=run, args=(model_type, lr, True, dataset, queue))
-                p.start()
-                tasks.append(p)
-                _res = queue.get()
-                logger.info('last task return {}'.format(_res))
-                time.sleep(15)
-
-    for p in tasks:
-        p.join()
+print 'ok'

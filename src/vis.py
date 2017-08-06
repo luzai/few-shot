@@ -26,7 +26,7 @@ matplotlib.style.use('ggplot')
 
 Axes3D
 
-dbg = False
+dbg = True
 
 
 def drop_level(perf_df, other_name=None, keep_num_levels=3):
@@ -114,14 +114,14 @@ class Visualizer(object):
         from cycler import cycler
 
         # # arrange xlabel ylabel
-        fig, axes = plt.subplots(rows, cols, figsize=(max(18 / 5. * cols, 18), 9 / 4. * rows))  # , sharex=True)
+        fig, axes = plt.subplots(rows, cols, figsize=(4.2 * cols*10, 2.25 * rows*10))  # , sharex=True)
         axes = np.array(axes).reshape(rows, cols)
 
         for _i in range(rows):
-            try:
+            # try:
                 axes[_i][0].set_ylabel(row_level[_i])
-            except Exception as inst:
-                raise ValueError(str(inst))
+            # except Exception as inst:
+            #     raise ValueError(str(inst))
 
         for _j in range(cols):
             axes[0][_j].set_title(col_level[_j])
@@ -140,7 +140,7 @@ class Visualizer(object):
                         legends[_row, _col] += [ind]
             target.append(axes[_row, _col])
 
-        perf_df.plot(subplots=True, legend=False, ax=target, marker=None, sharex=False)
+        perf_df.interpolate().plot(subplots=True, legend=False, ax=target, marker=None, sharex=False)
         #  # change color
 
         for axis in axes.flatten():
@@ -254,7 +254,7 @@ class Visualizer(object):
                 if _df is None: continue
                 fig, sup_title = self.plot(_df, axes_names, other_names)
                 utils.mkdir_p(Config.output_path + path_suffix + '/')
-                fig.savefig(Config.output_path + path_suffix + '/' + re.sub('/', '', sup_title) + '.png')
+                fig.savefig(Config.output_path + path_suffix + '/' + re.sub('/', '', sup_title) + '.pdf')
                 if show: plt.show()
                 plt.close()
                 if globals()['dbg']:
@@ -510,20 +510,21 @@ def t_sne(visualizer, model_type, dataset_type, start_lr):
     make_frame_mpl(dur)
     ax.view_init(elev=90., azim=0.)
     # ax.view_init(elev=20., azim=45.)
-    plt.savefig('_'.join((model_type, dataset_type, 'start_lr', str(start_lr))) + '.png')
+    plt.savefig('_'.join((model_type, dataset_type, 'start_lr', str(start_lr))) + '.pdf')
 
 
 if __name__ == '__main__':
     # utils.rm('../output  ')
+
     tic = time.time()
 
-    # visualizer = Visualizer(config_dict, join='inner', stat_only=True, paranet_folder='stat1')
-    # subplots(visualizer, path_suffix='_1')
+    visualizer = Visualizer(join='outer', stat_only=True, paranet_folder='stat')
+    subplots(visualizer, path_suffix='_1')
     # subplots(visualizer, path_suffix='_1_stable_lr')
 
     visualizer = Visualizer(join='outer', stat_only=True, paranet_folder='stat2')
     subplots(visualizer, path_suffix='_2')
-    subplots(visualizer, path_suffix='_2_stable_lr')
+    # subplots(visualizer, path_suffix='_2_stable_lr')
 
     # visualizer = Visualizer(config_dict, join='inner', stat_only=True, paranet_folder='stat3')
     # subplots(visualizer, path_suffix='_3')
