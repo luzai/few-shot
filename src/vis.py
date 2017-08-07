@@ -271,32 +271,42 @@ def plot(perf_df, axes_names, other_names=None, legend=True):
 
     # # arrange xlabel ylabel
     fig, axes = plt.subplots(rows, cols, figsize=(4.2 * cols, 2.25 * rows))  # , sharex=True)
+    # plt.tight_layout(pad=3, w_pad=.9, h_pad=1.5,rect=(.2,.2,1,1))
+    fig.subplots_adjust(hspace=1., wspace=.6)
     axes = np.array(axes).reshape(rows, cols)
 
     # for _i in range(rows):
-    #     axes[_i][0].set_ylabel(row_level[_i])
+    #     axes[_i][0].set_ylabel(re.sub('/','\n',row_level[_i]),rotation=0, fontsize=15,labelpad=35)
+    #
+    # for _j in range(cols):
+    #     axes[0][_j].set_title(col_level[_j], y=1.09)
 
-    for _j in range(cols):
-        for _i in range(rows):
-            axes[_i][_j].set_title(col_level[_j])
-            axes[_i][_j].set_ylabel(row_level[_i])
+    for _i in range(rows):
+        for _j in range(cols):
+            axes[_i][_j].set_ylabel(re.sub('/', '\n', row_level[_i]), rotation=0, fontsize=13, labelpad=36)
+            axes[_i][_j].set_title(col_level[_j], y=1.09)
 
     # # plot to right place
     target = []
-    legends = np.zeros((rows, cols)).astype(object)
+    legends = np.empty((rows, cols)).astype(object)
+    for _row in range(rows):
+        for _col in range(cols):
+            legends[_row, _col] = []
+
     for inds in perf_df.columns:
         for ind in inds:
             if ind in row_level: _row = level2row[ind]
             if ind in col_level: _col = level2col[ind]
         for ind in inds:
             if ind in inside_level:
-                if legends[_row, _col] == 0:
-                    legends[_row, _col] = [ind]
+                if legends[_row, _col] == []:
+                    legends[_row, _col] = [str(ind)]
                 else:
-                    legends[_row, _col] += [ind]
+                    legends[_row, _col] += [str(ind)]
         target.append(axes[_row, _col])
-    # print  perf_df.interpolate()
-    perf_df.interpolate().plot(subplots=True, legend=True, ax=target, marker=None, sharex=False)
+
+    perf_df.plot(subplots=True, legend=False, ax=target, marker=None, sharex=False)
+    # perf_df.interpolate().plot(subplots=True, legend=False, ax=target, marker=None, sharex=False)
     #  # change color
 
     for axis in axes.flatten():
@@ -310,17 +320,32 @@ def plot(perf_df, axes_names, other_names=None, legend=True):
     # # plot legend
     # if legend:
     #     axes[0, 0].legend(list(legends[0, 0]))
-
+    # legend_set=set()
     for _row in range(legends.shape[0]):
         for _col in range(legends.shape[1]):
             axes[_row, _col].yaxis.get_major_formatter().set_powerlimits((-2, 2))
+            _ylim = axes[_row, _col].get_ylim()
+            if np.diff(_ylim) < 1e-7 and np.mean(_ylim) > 1e-3:
+                logger.info('Attatin: float error' + str(_ylim)+ str((_row,_col)))
+                if _row == legends.shape[0]-1:
+                    axes[_row, _col].set_ylim([0, 1])
             # if legend:
-            #     axes[_row, _col].legend(list(legends[_row, _col]))
-            # else:
-            #     axes[_row, _col].legend([])
+            # try:
+            if len(legends[_row, _col]) > 1 and _row ==0:
+                axes[_row, _col].legend(legends[_row, _col])
+                # logger.info('legend' + str(legends[_row, _col]))
+            else:
+                # logger.debug('shouldnot has legend')
+                axes[_row, _col].legend([])
+
+                # except:
+                #     from IPython import  embed;embed()
+                # else:
+                #     axes[_row, _col].legend([])
 
     sup_title += 'legend_' + inside
-    fig.suptitle(sup_title)
+    sup_title = sup_title.strip('_')
+    fig.suptitle(sup_title, fontsize=50)
     # plt.show()
     return fig, sup_title
 
@@ -359,12 +384,13 @@ def auto_plot(df, path_suffix, axes_names, other_names):
         if _df is None: continue
         fig, sup_title = plot(_df, axes_names, other_names)
         utils.mkdir_p(Config.output_path + path_suffix + '/')
-        fig.savefig(Config.output_path + path_suffix + '/' + re.sub('/', '', sup_title) + '3.pdf')
+        fig.savefig((Config.output_path + path_suffix + '/' + re.sub('/', '', sup_title) + '.pdf').strip('_'))
         if show: plt.show()
         plt.close()
         if globals()['dbg']:
             logger.info('dbg mode break')
             break
+    return fig
 
 
 def append_level(columns, name, value=''):
@@ -381,13 +407,13 @@ def append_level(columns, name, value=''):
 def subplots(visualizer, path_suffix):
     perf_df = visualizer.perf_df.copy()
     # plot only val acc
-    perf_df = select(perf_df, {'name': 'val_acc$'})
+    # perf_df = select(perf_df, {'name': 'val_acc$'})
     perf_df.columns = merge_level(perf_df.columns, start=0, stop=3)
-    perf_df.columns = append_level(perf_df.columns, 't1')
+    perf_df.columns = append_level(perf_df.columns, '')
     perf_df.columns = append_level(perf_df.columns, 't2')
-    perf_df.columns.set_names(['hyper', 'metric', 't1', 't2'], inplace=True)
+    perf_df.columns.set_names(['hyper', 'metric', '', 't2'], inplace=True)
     auto_plot(perf_df, path_suffix + '_all_perf',
-              axes_names=['hyper', 'metric', 't1'],
+              axes_names=['hyper', 'metric', ''],
               other_names=['t2'])
 
     # plot statistics
@@ -399,11 +425,11 @@ def subplots(visualizer, path_suffix):
     df.columns = merge_level(df.columns, start=5, stop=7)
     df.columns = merge_level(df.columns, start=3, stop=5)
     df.columns = merge_level(df.columns, start=0, stop=3)
-    df.columns.set_names(['hyper', 'layer', 'stat', 'stat-hyper'], inplace=True)
+    df.columns.set_names(['hyper', 'layer', 'stat', 'winsize'], inplace=True)
     df.head()
 
     auto_plot(df, path_suffix + '_all_stat',
-              axes_names=('layer', 'stat', 'stat-hyper'),
+              axes_names=('layer', 'stat', 'winsize'),
               other_names=['hyper'])
 
 
@@ -505,12 +531,14 @@ def map_name(names):
     name_dict = {'obs': 'layer',
                  'conv2d': 'conv',
                  'dense': 'fc',
-                 '_win_size_': '/winsize-',
-                 '_thresh_': '/thresh-'}
+                 '_win_size_(.*)$': '/winsize-\g<1>',
+                 '_win_size_(\d+)_thresh_(.*)': '-thresh-\g<2>/winsize-\g<1>',
+                 }
     for ind, name in enumerate(names):
         new_name = name
         for pattern, replace in name_dict.iteritems():
             new_name = re.sub(pattern, replace, new_name)
+
         names[ind] = new_name
 
     return names

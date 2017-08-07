@@ -67,7 +67,7 @@ import logs
 import numpy as np
 import utils
 
-dbg = False
+dbg = True
 utils.rm(utils.root_path + '/tfevents  ' + utils.root_path + '/output')
 if dbg:
     # run('vgg6', dataset='cifar10', lr=1e-2)

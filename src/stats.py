@@ -353,6 +353,7 @@ class PTRate(object):
         self.windows = windows
 
     def pt_rate(self, tensor, iter, name, win_size, thresh, mode):
+        _tensor=np.zeros((11,100))
         self.windows.include(tensor, iter, name, win_size)
         if mode == 'load':
             if not self.windows.isfull(name, win_size=win_size):
@@ -484,18 +485,19 @@ def fake_data(max_win_size, epochs, iter_per_epoch):
 
 
 if __name__ == '__main__':
-    epochs = 9
+    epochs = 13
     iter_per_epoch = 196
-    max_win_size = 31
+    max_win_size = 11
     log_pnts = fake_data(max_win_size, epochs, iter_per_epoch)
 
     res = []
-    # act_stat = ActStat(max_win_size=max_win_size, log_pnt=log_pnts)
-    kernel_stat = KernelStat(max_win_size=max_win_size, log_pnt=log_pnts)
+    act_stat = ActStat(max_win_size=max_win_size, log_pnt=log_pnts)
+    # kernel_stat = KernelStat(max_win_size=max_win_size, log_pnt=log_pnts)
 
     for _ind in range(epochs * iter_per_epoch):
         v = np.random.randn(3, 3, 3, 32) * (_ind + 1) / 100.
-        _res = kernel_stat.calc_all(v, 'ok/kernel', _ind)
+        # _res = kernel_stat.calc_all(v, 'ok/kernel', _ind)
+        _res = act_stat.calc_all(v, 'ok/kernel', _ind)
         res.append(_res)
 
     df = pd.concat(res)

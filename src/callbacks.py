@@ -41,7 +41,7 @@ class TensorBoard2(Callback):
         self.stat_only = stat_only
 
         series = pd.Series(data=3,
-                           index=np.arange(self.epochs) * self.iter_per_epoch)
+                           index=np.arange(start=0,stop=self.epochs,step=10) * self.iter_per_epoch)
         series1 = pd.Series()
         for (ind0, _), (ind1, _) in zip(series.iloc[:-1].iteritems(), series.iloc[1:].iteritems()):
             if ind0 < 30 * self.iter_per_epoch:
