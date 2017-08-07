@@ -57,42 +57,38 @@ def drop_level(perf_df, other_name=None, keep_num_levels=3):
     return perf_df, res_str
 
 
-def merge_level(columns, name1, name2):
-    levels, names, name2level, name2ind = get_columns_alias(columns)
-    ind1 = name2ind[name1]
-    ind2 = name2ind[name2]
-    assert ind1 + 1 == ind2
-    fnames = names[:ind1] + [name1 + '/' + name2] + names[ind2 + 1:]
-
-    finds = []
-    for inds in columns:
-        finds.append(list(inds[:ind1] + (inds[ind1] + '/' + inds[ind2],) + inds[ind2 + 1:]))
-    finds = np.array(finds).astype(basestring).transpose()
-    fcolumns = pd.MultiIndex.from_arrays(finds, names=list(fnames))
-    return fcolumns
+def merge_level(columns, start, stop):
+    columns_tuples = [c[:start] + (('/'.join(c[start:stop])).strip('/'),) + c[stop:] for c in columns]
+    return pd.MultiIndex.from_tuples(columns_tuples)
 
 
 def expand_level(columns):
+    df_tuples = [('/'.join(c).split('/')) for c in columns]
+    df_tuples_len = np.array([len(_tmp) for _tmp in df_tuples]).max()
     levels, names, name2level, name2ind = get_columns_alias(columns)
     fname = copy.deepcopy(names[:-1])
-    for _ind, _name in enumerate(columns[0][-1].split('/')):
+
+    for _ind in range(df_tuples_len - len(fname)):
         fname.append('name' + str(_ind))
-    finds = []
-    for inds in columns:
-        finds.append(list(inds[:-1]) + list(inds[-1].split('/')))
-    finds = np.array(finds).astype(basestring).transpose()
-    fcolumns = pd.MultiIndex.from_arrays(finds, names=list(fname))
+    fcolumns = pd.MultiIndex.from_tuples([('/'.join(c).split('/')) for c in columns], names=fname)
+
+    tmp = np.array([list(_tmp) for _tmp in fcolumns])
+    tmp[tmp == float('nan') or tmp == 'nan'] = ''
+    tmp = tmp.astype(basestring)
+    fcolumns = pd.MultiIndex.from_arrays(tmp.transpose(), names=fname)
     return fcolumns
 
 
-@utils.static_vars(ind=0, label2color={u'1.00e+00': u'#E24A33',
-                                       u'1.00e-01': u'#348ABD',
-                                       u'1.00e-02': u'#988ED5',
-                                       u'1.00e-03': u'#777777',
-                                       u'1.00e-04': u'#FBC15E',
-                                       u'1.00e-05': u'#8EBA42'})
+# u'1.00e+00': u'#E24A33',
+# u'1.00e-01': u'#348ABD',
+# u'1.00e-02': u'#988ED5',
+# u'1.00e-03': u'#777777',
+# u'1.00e-04': u'#FBC15E',
+# u'1.00e-05': u'#8EBA42'
+@utils.static_vars(ind=0, label2color={})
 def get_colors(label):
-    colors = [u'#FFFF00', u'#FF8C00', u'#FFEFD5', u'#FFA500', u'#6B8E23', u'#87CEEB', u'#006400', u'#008080',
+    colors = [u'#E24A33', u'#348ABD', u'#988ED5', u'#777777', u'#FBC15E', u'#8EBA42', u'#FFFF00', u'#FF8C00',
+              u'#FFEFD5', u'#FFA500', u'#6B8E23', u'#87CEEB', u'#006400', u'#008080',
               u'#9ACD32', u'#696969', u'#F0FFF0', u'#BDB76B', u'#FFE4C4', u'#F5DEB3', u'#4682B4', u'#800080',
               u'#F5F5DC', u'#FDF5E6', u'#A0522D', u'#00FF00', u'#00FA9A', u'#CD853F', u'#D3D3D3', u'#D2691E',
               u'#808000', u'#FFFAF0', u'#808080', u'#FF1493', u'#800000', u'#D2B48C', u'#DB7093', u'#B0E0E6',
@@ -191,105 +187,12 @@ class Visualizer(object):
     def __init__(self, paranet_folder, join='inner', stat_only=True, ):
         self.aggregate(join, stat_only=stat_only, parant_folder=paranet_folder)
         self.split()
-        # self.names2levels = {level: np.unique(self.columns.get_level_values(level)) for level in self.names}
-        self.names2levels = {name: level for level, name in zip(self.df.columns.levels, self.df.columns.names)}
+        levels, names, name2level, name2ind = get_columns_alias(self.df.columns)
+        self.name2level = name2level
 
     def split(self):
-        self.perf_df = self.select(self.df, 'name', "(?:val_loss|loss|val_acc|acc)")
-        self.stat_df = self.select(self.df, 'name', "(?:^obs.*|^layer.*)")
-
-    def plot(self, perf_df, axes_names, other_names=None, legend=True):
-
-        # #  order of axes is (row,col,inside fig)
-        perf_df, sup_title = drop_level(perf_df, other_names)
-        assert len(perf_df.columns.names) == 3, 'plot only accept input 3'
-
-        row_name, col_name, inside = axes_names
-        names2levels = {name: level for level, name in zip(perf_df.columns.levels, perf_df.columns.names)}
-        row_level = names2levels[row_name]
-        level2row = {val: ind for ind, val in enumerate(row_level)}
-        rows = len(row_level)
-
-        col_level = names2levels[col_name]
-        level2col = {val: ind for ind, val in enumerate(col_level)}
-        cols = len(col_level)
-
-        inside_level = names2levels[inside]
-        level2inside = {val: ind for ind, val in enumerate(inside_level)}
-        insides = len(inside_level)
-        from cycler import cycler
-
-        # # arrange xlabel ylabel
-        fig, axes = plt.subplots(rows, cols, figsize=(4.2 * cols, 2.25 * rows))  # , sharex=True)
-        axes = np.array(axes).reshape(rows, cols)
-
-        for _i in range(rows):
-            # try:
-            axes[_i][0].set_ylabel(row_level[_i])
-            # except Exception as inst:
-            #     raise ValueError(str(inst))
-
-        for _j in range(cols):
-            axes[0][_j].set_title(col_level[_j])
-        # # plot to right place
-        target = []
-        legends = np.zeros((rows, cols)).astype(object)
-        for inds in perf_df.columns:
-            for ind in inds:
-                if ind in row_level: _row = level2row[ind]
-                if ind in col_level: _col = level2col[ind]
-            for ind in inds:
-                if ind in inside_level:
-                    if legends[_row, _col] == 0:
-                        legends[_row, _col] = [ind]
-                    else:
-                        legends[_row, _col] += [ind]
-            target.append(axes[_row, _col])
-        # print  perf_df.interpolate()
-        perf_df.interpolate().plot(subplots=True, legend=False, ax=target, marker=None, sharex=False)
-        #  # change color
-
-        for axis in axes.flatten():
-            for line in axis.get_lines():
-                _label = line.get_label()
-                for level in inside_level:
-                    if level in _label: label = level
-                color = get_colors(label)
-                line.set_color(color)
-
-        # # plot legend
-        axes[0, 0].legend(list(legends[0, 0]))
-        for _row in range(legends.shape[0]):
-            for _col in range(legends.shape[1]):
-                axes[_row, _col].yaxis.get_major_formatter().set_powerlimits((-2, 2))
-                # if legend:
-                #     axes[_row, _col].legend(list(legends[_row, _col]))
-                # else:
-                #     axes[_row, _col].legend([])
-
-        sup_title += 'legend_' + inside
-        fig.suptitle(sup_title)
-        # plt.show()
-        return fig, sup_title
-
-    def select(self, df, level_name, par_name, sort_names=None, regexp=True):
-        df = df.copy()
-        sel_name = df.columns.get_level_values(level_name)
-        f_sel_name = set()
-        pat = re.compile(par_name)
-        for sel_name_ in sel_name:
-            judge = bool(pat.match(sel_name_)) if regexp else par_name == sel_name_
-            if judge: f_sel_name.add(sel_name_)
-        df_l = []
-        for sel_name_ in f_sel_name:
-            df_l.append(df.xs(sel_name_, level=level_name, axis=1, drop_level=False))
-        if df_l != []:
-            df = pd.concat(df_l, axis=1)
-        else:
-            return None
-        if sort_names is None: sort_names = df.columns.names
-        df.sort_index(level=sort_names, axis=1, inplace=True)
-        return df
+        self.perf_df = select(self.df, {'name': "(?:val_loss|loss|val_acc|acc)"})
+        self.stat_df = select(self.df, {'name': "(?:^obs.*|^layer.*)"})
 
     def aggregate(self, join, parant_folder, stat_only):
         conf_name_dict = {}
@@ -343,39 +246,7 @@ class Visualizer(object):
         self.names = index_name
         self.columns = index
         df.index.name = 'epoch' if not stat_only else 'iter'
-        df.columns.levels
         self.df = df
-
-    def auto_plot(self, df, path_suffix, axes_names=None):
-
-        columns = df.columns
-        levels, names, name2level, name2ind = get_columns_alias(columns)
-        show = False
-        if axes_names is not None:
-            axes_names_l = [axes_names]
-        else:
-            axes_names_l = choose_three(names)
-        for axes_names in axes_names_l:
-            other_names = list(set(names) - set(axes_names))
-            for poss in cartesian([name2level[name] for name in other_names]):
-                # try:
-                _df = df.copy()
-                for _name, _poss in zip(other_names, poss):
-                    _df = self.select(_df, _name, _poss, regexp=False)
-                    if _df is None: break
-                if _df is None: continue
-                fig, sup_title = self.plot(_df, axes_names, other_names)
-                utils.mkdir_p(Config.output_path + path_suffix + '/')
-                fig.savefig(Config.output_path + path_suffix + '/' + re.sub('/', '', sup_title) + '.png')
-                if show: plt.show()
-                plt.close()
-                if globals()['dbg']:
-                    logger.info('dbg mode break')
-                    break
-                    # except Exception as inst:
-                    #     from IPython import embed
-                    #     embed()
-                    # print inst
 
 
 def plot(perf_df, axes_names, other_names=None, legend=True):
@@ -402,14 +273,14 @@ def plot(perf_df, axes_names, other_names=None, legend=True):
     fig, axes = plt.subplots(rows, cols, figsize=(4.2 * cols, 2.25 * rows))  # , sharex=True)
     axes = np.array(axes).reshape(rows, cols)
 
-    for _i in range(rows):
-        # try:
-        axes[_i][0].set_ylabel(row_level[_i])
-        # except Exception as inst:
-        #     raise ValueError(str(inst))
+    # for _i in range(rows):
+    #     axes[_i][0].set_ylabel(row_level[_i])
 
     for _j in range(cols):
-        axes[0][_j].set_title(col_level[_j])
+        for _i in range(rows):
+            axes[_i][_j].set_title(col_level[_j])
+            axes[_i][_j].set_ylabel(row_level[_i])
+
     # # plot to right place
     target = []
     legends = np.zeros((rows, cols)).astype(object)
@@ -425,7 +296,7 @@ def plot(perf_df, axes_names, other_names=None, legend=True):
                     legends[_row, _col] += [ind]
         target.append(axes[_row, _col])
     # print  perf_df.interpolate()
-    perf_df.interpolate().plot(subplots=True, legend=False, ax=target, marker=None, sharex=False)
+    perf_df.interpolate().plot(subplots=True, legend=True, ax=target, marker=None, sharex=False)
     #  # change color
 
     for axis in axes.flatten():
@@ -437,7 +308,9 @@ def plot(perf_df, axes_names, other_names=None, legend=True):
             line.set_color(color)
 
     # # plot legend
-    axes[0, 0].legend(list(legends[0, 0]))
+    # if legend:
+    #     axes[0, 0].legend(list(legends[0, 0]))
+
     for _row in range(legends.shape[0]):
         for _col in range(legends.shape[1]):
             axes[_row, _col].yaxis.get_major_formatter().set_powerlimits((-2, 2))
@@ -473,67 +346,65 @@ def select(df, level2pattern, sort_names=None, regexp=True):
     return df
 
 
-def auto_plot(df, path_suffix, axes_names=None):
+def auto_plot(df, path_suffix, axes_names, other_names):
     columns = df.columns
     levels, names, name2level, name2ind = get_columns_alias(columns)
     show = False
-    if axes_names is not None:
-        axes_names_l = [axes_names]
-    else:
-        axes_names_l = choose_three(names)
-    for axes_names in axes_names_l:
-        other_names = list(set(names) - set(axes_names))
-        for poss in cartesian([name2level[name] for name in other_names]):
-            # try:
-            _df = df.copy()
-            for _name, _poss in zip(other_names, poss):
-                _df = select(_df, _name, _poss, regexp=False)
-                if _df is None: break
-            if _df is None: continue
-            fig, sup_title = plot(_df, axes_names, other_names)
-            utils.mkdir_p(Config.output_path + path_suffix + '/')
-            fig.savefig(Config.output_path + path_suffix + '/' + re.sub('/', '', sup_title) + '.png')
-            if show: plt.show()
-            plt.close()
-            if globals()['dbg']:
-                logger.info('dbg mode break')
-                break
-                # except Exception as inst:
-                #     from IPython import embed
-                #     embed()
-                # print inst
+
+    for poss in cartesian([name2level[name] for name in other_names]):
+        _df = df.copy()
+        for _name, _poss in zip(other_names, poss):
+            _df = select(_df, {_name: _poss}, regexp=False)
+            if _df is None: break
+        if _df is None: continue
+        fig, sup_title = plot(_df, axes_names, other_names)
+        utils.mkdir_p(Config.output_path + path_suffix + '/')
+        fig.savefig(Config.output_path + path_suffix + '/' + re.sub('/', '', sup_title) + '3.pdf')
+        if show: plt.show()
+        plt.close()
+        if globals()['dbg']:
+            logger.info('dbg mode break')
+            break
+
+
+def append_level(columns, name, value=''):
+    df_tuples = [c + (value,) for c in columns]
+    levels, names, name2level, name2ind = get_columns_alias(columns)
+    fname = copy.deepcopy(names)
+    fname.append(name)
+
+    fcolumns = pd.MultiIndex.from_tuples(df_tuples, names=fname)
+
+    return fcolumns
 
 
 def subplots(visualizer, path_suffix):
-    # plot all performance
     perf_df = visualizer.perf_df.copy()
-    if 'stable' in path_suffix:
-        # columns = perf_df.columns
-        # levels, names, name2level, name2ind = get_columns_alias(columns)
-        perf_df = visualizer.select(perf_df, 'lr', '1.00e-0[2-9].*')
-
-    # visualizer.auto_plot(perf_df, path_suffix + '_all_perf')
     # plot only val acc
-    perf_df = visualizer.select(perf_df, 'name', 'val_acc$')
-    visualizer.auto_plot(perf_df, path_suffix + '_val_acc')
+    perf_df = select(perf_df, {'name': 'val_acc$'})
+    perf_df.columns = merge_level(perf_df.columns, start=0, stop=3)
+    perf_df.columns = append_level(perf_df.columns, 't1')
+    perf_df.columns = append_level(perf_df.columns, 't2')
+    perf_df.columns.set_names(['hyper', 'metric', 't1', 't2'], inplace=True)
+    auto_plot(perf_df, path_suffix + '_all_perf',
+              axes_names=['hyper', 'metric', 't1'],
+              other_names=['t2'])
 
     # plot statistics
     df = visualizer.stat_df.copy()
 
-    if 'stable' in path_suffix:
-        # columns = perf_df.columns
-        # levels, names, name2level, name2ind = get_columns_alias(columns)
-        df = visualizer.select(df, 'lr', '1.00e-0[2-9].*')
-
     df.columns = expand_level(df.columns)
     # # name0 1 2 3 -- obs0 conv2d act iqr
-    df.columns = merge_level(df.columns, 'name0', 'name1')
+    df.columns = merge_level(df.columns, start=7, stop=10)
+    df.columns = merge_level(df.columns, start=5, stop=7)
+    df.columns = merge_level(df.columns, start=3, stop=5)
+    df.columns = merge_level(df.columns, start=0, stop=3)
+    df.columns.set_names(['hyper', 'layer', 'stat', 'stat-hyper'], inplace=True)
+    df.head()
 
-    # visualizer.auto_plot(visualizer.select(df, 'name3', '(?:mean|median|iqr|std)'), path_suffix + '_std_iqr',
-    #                      axes_names=('name0/name1', 'name3', 'lr'))
-
-    visualizer.auto_plot(df, path_suffix + '_all_stat',
-                         axes_names=('name0/name1', 'name3', 'lr'))
+    auto_plot(df, path_suffix + '_all_stat',
+              axes_names=('layer', 'stat', 'stat-hyper'),
+              other_names=['hyper'])
 
 
 def t_sne(visualizer, model_type, dataset_type, start_lr):
@@ -593,7 +464,6 @@ def t_sne(visualizer, model_type, dataset_type, start_lr):
     else:
         dur = 9.
     freq = stats_dim2[0].shape[0] / dur
-    has_legend = False
 
     def make_frame_mpl(t):
         ax.clear()
@@ -628,18 +498,19 @@ def t_sne(visualizer, model_type, dataset_type, start_lr):
     # ax.view_init(elev=20., azim=45.)
     plt.savefig('_'.join((model_type, dataset_type, 'start_lr', str(start_lr))) + '.pdf')
 
+
 def map_name(names):
-    if isinstance(names,basestring):
-        names=[names ]
-    name_dict={'obs':'layer',
-               'conv2d':'conv',
-               'dense':'fc',
-               '_win_size_':'/winsize-',
-               '_thresh_':'/thresh-'}
-    for ind,name in enumerate(names):
-        new_name=name
-        for pattern,replace in name_dict.iteritems():
-            new_name = re.sub(pattern,replace,new_name)
+    if isinstance(names, basestring):
+        names = [names]
+    name_dict = {'obs': 'layer',
+                 'conv2d': 'conv',
+                 'dense': 'fc',
+                 '_win_size_': '/winsize-',
+                 '_thresh_': '/thresh-'}
+    for ind, name in enumerate(names):
+        new_name = name
+        for pattern, replace in name_dict.iteritems():
+            new_name = re.sub(pattern, replace, new_name)
         names[ind] = new_name
 
     return names
@@ -652,15 +523,9 @@ if __name__ == '__main__':
 
     visualizer = Visualizer(join='outer', stat_only=True, paranet_folder='stat')
     subplots(visualizer, path_suffix='_1')
-    # subplots(visualizer, path_suffix='_1_stable_lr')
 
     visualizer = Visualizer(join='outer', stat_only=True, paranet_folder='stat2')
     subplots(visualizer, path_suffix='_2')
-    # subplots(visualizer, path_suffix='_2_stable_lr')
-
-    # visualizer = Visualizer(config_dict, join='inner', stat_only=True, paranet_folder='stat3')
-    # subplots(visualizer, path_suffix='_3')
-    # subplots(visualizer, path_suffix='_3_stable_lr')
 
     print time.time() - tic
 
