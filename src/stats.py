@@ -447,7 +447,7 @@ class Histogram(object):
     pass
 
 
-def _fake_data(max_win_size, epochs, iter_per_epoch):
+def fake_data(max_win_size, epochs, iter_per_epoch):
     series = pd.Series(data=3,
                        index=np.arange(epochs) * iter_per_epoch)
     series1 = pd.Series()
@@ -487,7 +487,7 @@ if __name__ == '__main__':
     epochs = 9
     iter_per_epoch = 196
     max_win_size = 31
-    log_pnts = _fake_data(max_win_size, epochs, iter_per_epoch)
+    log_pnts = fake_data(max_win_size, epochs, iter_per_epoch)
 
     res = []
     # act_stat = ActStat(max_win_size=max_win_size, log_pnt=log_pnts)

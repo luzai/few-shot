@@ -24,12 +24,10 @@ class Config(object):
             self.name = name = model_type + '_' + dataset_type
             if others is not None:
                 for key, val in others.iteritems():
-                    # if isinstance(val, bool): key, val =( key, '') if val else ('', '')
-                    # if isinstance(val, bool): key, val = (key, 'T') if val else (key, 'F')
                     if (isinstance(val, float) or
-                            isinstance(val,int)) \
-                            and key == 'lr':  key, val = key, '{:.2e}'.format(
-                        val)
+                            isinstance(val, int)) \
+                            and key == 'lr':
+                        key, val = key, '{:.2e}'.format(val)
                     name += '_' + str(key) + '_' + str(val)
         self.name = name
 
@@ -46,6 +44,7 @@ class Config(object):
              'dataset_type': self.dataset_type}
         d = d.copy()
         if self.others is not None:  d.update(self.others)
+        if 'lr' in d: d['lr'] = '{:.2e}'.format(d['lr'])
         return d
 
     def clean_model_path(self, clean):
