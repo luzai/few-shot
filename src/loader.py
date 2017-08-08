@@ -278,7 +278,7 @@ class Loader(threading.Thread):
             else:
                 self.params = select(df, "^obs.*?(?:kernel|bias).*")
                 cache(self.params, path)
-        if dbg:
+        if osp.exists('dbg'):
             self.scalars = self.scalars.iloc[:6, :]  # dbg !
             self.params = self.params.iloc[:6, :]  # dbg !
             self.act = self.act.iloc[:6, :]  # dbg !

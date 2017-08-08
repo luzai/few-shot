@@ -403,12 +403,13 @@ def append_level(columns, name, value=''):
 
     return fcolumns
 
+
 def subplots(visualizer, path_suffix):
-    new_index0 = ['acc/','kernel/','bias/']
+    new_index0 = ['acc/', 'kernel/', 'bias/']
     new_index1 = ['diff', 'stdtime', 'iqr', 'std', 'mean', 'median', 'magmean', 'posmean', 'negmean', 'pospropotion',
-                 'max', 'min', 'orthogonality', 'sparsity', 'ptrate-thresh-0.2', 'ptrate-thresh-0.6',
-                 'ptrate-thresh-mean', 'totvar']
-    new_index = [ind0+ind1 for ind0 in new_index0 for ind1 in new_index1]
+                  'max', 'min', 'orthogonality', 'sparsity', 'ptrate-thresh-0.2', 'ptrate-thresh-0.6',
+                  'ptrate-thresh-mean', 'totvar']
+    new_index = [ind0 + ind1 for ind0 in new_index0 for ind1 in new_index1]
 
     perf_df = visualizer.perf_df.copy()
     # plot only val acc
@@ -419,8 +420,8 @@ def subplots(visualizer, path_suffix):
     perf_df.columns.set_names(['hyper', 'metric', '', 't2'], inplace=True)
     if not osp.exists('dbg'):
         auto_plot(perf_df, path_suffix + '_all_perf',
-              axes_names=['hyper', 'metric', ''],
-              other_names=['t2'])
+                  axes_names=['hyper', 'metric', ''],
+                  other_names=['t2'])
 
     # plot statistics
     df = visualizer.stat_df.copy()
@@ -431,15 +432,18 @@ def subplots(visualizer, path_suffix):
     # df.columns = merge_level(df.columns, start=7, stop=10)
     # df2 = df.transpose().reindex(new_index, level=6).transpose().copy()
     df.columns = merge_level(df.columns, start=5, stop=7)
-    df =  df.transpose().reindex(new_index, level=5).transpose().copy()
+    df = df.transpose().reindex(new_index, level=5).transpose().copy()
     df.columns = merge_level(df.columns, start=3, stop=5)
 
     df.columns = merge_level(df.columns, start=0, stop=3)
     df.columns.set_names(['hyper', 'layer', 'stat', 'winsize'], inplace=True)
+    if not osp.exists('dbg'):
+        auto_plot(df, path_suffix + '_all_stat',
+                  axes_names=('layer', 'stat', 'winsize'),
+                  other_names=['hyper'])
 
-    auto_plot(df, path_suffix + '_all_stat',
-              axes_names=('layer', 'stat', 'winsize'),
-              other_names=['hyper'])
+
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 
 def heatmap(paranet_folder):  # 'stat301'
@@ -455,49 +459,45 @@ def heatmap(paranet_folder):  # 'stat301'
     levels, names, name2level, name2ind = get_columns_alias(df.columns)
 
     df_ori = df.copy()
-    limits = 461
-    magnitude = 20 if not osp.exists('dbg') else 1
-    fig, axes = plt.subplots(len(name2level['hyper']), 1, figsize=(6.4 * magnitude, 259.2 / limits * magnitude))
+    limits = None
 
-    fig.subplots_adjust(left=-0.7, right=1.7, top=0.9, bottom=0.1, hspace=1., wspace=.6)
-
-    traces = []
     for ind, name in enumerate(list(name2level['hyper'])):
-        print ind, name
+        fig, ax = plt.subplots(1, figsize=(10, 20))
         df = select(df_ori, {'hyper': name}, regexp=False)
         df = select(df, {'stat': 'act/ptrate-thresh-mean',
                          'winsize': 'winsize-31'})
-        df.head()
         df2, suptitle = drop_level(df, ['hyper', 'winsize', 'stat'])
-        suptitle = re.sub('/', '_', suptitle)
-        suptitle = suptitle.strip('_')
-        print suptitle
+        suptitle = re.sub('/', '_', suptitle).strip('_')
 
         if limits == None:
             limits = df2.values.transpose().shape[1]
-        mat = df2.values.transpose()[:9, :limits]
-        ax = axes[ind]
-        ax.set_title(suptitle, fontsize=35)
-        cax = ax.matshow(mat)
+        mat = df2.values.transpose()[:10, :limits]
+        if np.isnan(mat).any():
+            logger.warning('mat conations nan' + suptitle)
+        ax.set_title(suptitle)
+        im = ax.imshow(mat)
 
-        # plt.xticks([])
-        # plt.yticks([])
         ax.tick_params(axis=u'both', which=u'both', length=0)
-        ax.set_xlim(0, limits - 1)
-        ax.set_ylim(8, 0)
-        # plt.axis('off')
+        ax.set_xlim(0, limits)
+        ax.set_ylim(9, 0)
         ax.grid('off')
-        #     ax.set_xticks(rotation=80)
-        #     plt.xticks(rotation=80)
-        xticks = np.full((limits,), '').astype(basestring)
+        # ax.set_xticks(rotation=80)
+        # plt.xticks(rotation=80)
+        # xticks = np.full((limits,), '').astype(basestring)
         # xticks=np.array(df2.index[:limits]).astype(basestring)
-        xticks[::limits // 33] = np.array(df2.index[:limits][::limits // 33]).astype(basestring)
+        # xticks[::limits // 33] = np.array(df2.index[:limits][::limits // 33]).astype(basestring)
         ax.set_xticklabels([])
-        import matplotlib.ticker as ticker
-        ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
-    # plt.colorbar()
-    fig.savefig(Config.root_path + '/' + suptitle + '.png')
-    fig.savefig(Config.root_path + '/' + parant_folder + suptitle + '.pdf', bbox_inches='tight')  # bbox_inches='tight'
+        # import matplotlib.ticker as ticker
+        # ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes("right", size="1%", pad=0.1)
+
+        cbar = plt.colorbar(im, cax=cax)
+        #         print mat.min(),mat.max()
+        print cbar.ax.get_yaxis()
+        cbar.ax.get_yaxis().set_ticks([mat[~np.isnan(mat)].min(), mat[~np.isnan(mat)].max()])
+
+        fig.savefig(Config.root_path + '/' + suptitle + '.pdf', bbox_inches='tight')  # bbox_inches='tight'
 
 
 def t_sne(visualizer, model_type, dataset_type, start_lr):
@@ -618,7 +618,7 @@ if __name__ == '__main__':
     for parant_folder in ['stat101_10']:  # 'stat101',
         visualizer = Visualizer(join='outer', stat_only=True, paranet_folder=parant_folder)
         subplots(visualizer, path_suffix=parant_folder.strip('stat'))
-        # heatmap(parant_folder)
+        heatmap(parant_folder)
     print time.time() - tic
 
     # dataset, model_type = 'cifar100', 'resnet10'

@@ -65,11 +65,11 @@ import multiprocessing as mp, time
 from logs import logger
 import logs
 import numpy as np
-import utils
+import utils,os
 
-dbg = True
 utils.rm(utils.root_path + '/tfevents  ' + utils.root_path + '/output')
-if dbg:
+if os.path.exists('dbg'):
+    logger.error('!!! your are in dbg')
     # run('vgg6', dataset='cifar10', lr=1e-2)
     run('resnet10', dataset='cifar10', lr=1e-2)
     # run('vgg6',1e-5)
