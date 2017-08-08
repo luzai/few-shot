@@ -114,7 +114,7 @@ timer = Timer()
 @optional_arg_decorator
 def timeit(fn, info=''):
     def wrapped_fn(*arg, **kwargs):
-        timer=Timer()
+        timer = Timer()
         timer.tic()
         res = fn(*arg, **kwargs)
         diff = timer.toc()
@@ -345,6 +345,36 @@ def clean_name(name):
     name = re.findall('([a-zA-Z0-9/]+)(?:_\d+)?', name)[0]
     return name
 
+def check_md5sum():
+    for parant_folder in ['stat301', 'stat101', 'stat101_10', 'stat301_10']:
+        path = '../output' + parant_folder.strip('stat') + '_all_stat'
+        # '_all_stat/resnet10_cifar100_lr_1.00e-02'
+        # print glob.glob(path+'/*')
+        tpath = glob.glob(path + '/*')[0]
+        # print tpath
+
+
+        path = '../' + parant_folder+'/resnet10_cifar100_lr_1.00e-02/mi*/c*'
+        file= glob.glob(path)[0]
+
+        subprocess.call(('md5sum '+ file).split())
+
+def merge_pdf():
+    from pyPdf import PdfFileWriter, PdfFileReader
+
+    # Creating a routine that appends files to the output file
+    def append_pdf(input, output):
+        [output.addPage(input.getPage(page_num)) for page_num in range(input.numPages)]
+
+    # Creating an object where pdf pages are appended to
+    output = PdfFileWriter()
+
+    # Appending two pdf-pages from two different files
+    append_pdf(PdfFileReader(open("../1.pdf", "rb")), output)
+    append_pdf(PdfFileReader(open("../2.pdf", "rb")), output)
+
+    # Writing all the collected pages to a file
+    output.write(open("CombinedPages.pdf", "wb"))
 
 if __name__ == '__main__':
     # to_single_dir()
@@ -352,3 +382,7 @@ if __name__ == '__main__':
     # print np.array( parse_dir_name())
     # print np.array(parse_dir_name('tfevents_loss'))
     print root_path
+    merge_pdf()
+
+
+
