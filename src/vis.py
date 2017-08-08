@@ -326,12 +326,12 @@ def plot(perf_df, axes_names, other_names=None, legend=True):
             axes[_row, _col].yaxis.get_major_formatter().set_powerlimits((-2, 2))
             _ylim = axes[_row, _col].get_ylim()
             if np.diff(_ylim) < 1e-7 and np.mean(_ylim) > 1e-3:
-                logger.info('Attatin: float error' + str(_ylim)+ str((_row,_col)))
-                if _row == legends.shape[0]-1:
+                logger.info('Attatin: float error' + str(_ylim) + str((_row, _col)))
+                if _row == legends.shape[0] - 1:
                     axes[_row, _col].set_ylim([0, 1])
             # if legend:
             # try:
-            if len(legends[_row, _col]) > 1 and _row ==0:
+            if len(legends[_row, _col]) > 1 and _row == 0:
                 axes[_row, _col].legend(legends[_row, _col])
                 # logger.info('legend' + str(legends[_row, _col]))
             else:
@@ -433,6 +433,58 @@ def subplots(visualizer, path_suffix):
               other_names=['hyper'])
 
 
+def heatmap(paranet_folder):  # 'stat301'
+    visualizer = Visualizer(join='outer', stat_only=True, paranet_folder=paranet_folder)
+    df = visualizer.stat_df.copy()
+
+    df.columns = expand_level(df.columns)
+    df.columns = merge_level(df.columns, start=7, stop=10)
+    df.columns = merge_level(df.columns, start=5, stop=7)
+    df.columns = merge_level(df.columns, start=3, stop=5)
+    df.columns = merge_level(df.columns, start=0, stop=3)
+    df.columns.set_names(['hyper', 'layer', 'stat', 'winsize'], inplace=True)
+    levels, names, name2level, name2ind = get_columns_alias(df.columns)
+
+    df_ori = df.copy()
+
+    fig, axes = plt.subplots(len(name2level['hyper']), 1, figsize=(20, 3))
+
+    for ind, name in enumerate(list(name2level['hyper'])):
+        print ind, name
+        df = select(df_ori, {'hyper': name}, regexp=False)
+        df = select(df, {'stat': 'act/ptrate-thresh-mean',
+                         'winsize': 'winsize-31'})
+
+        limits = 100
+
+        df.head()
+        df2, suptitle = drop_level(df, ['hyper', 'winsize', 'stat'])
+        suptitle = re.sub('/', '_', suptitle)
+        suptitle = suptitle.strip('_')
+        print suptitle
+        if limits == None:
+            limits = df2.values.transpose().shape[1]
+        mat = df2.values.transpose()[:9, :limits]
+        ax = axes[ind]
+        cax = ax.matshow(mat)
+        fig.colorbar(cax)
+        # plt.xticks([])
+        # plt.yticks([])
+        ax.tick_params(axis=u'both', which=u'both', length=0)
+        plt.xlim(0, limits - 1)
+        plt.ylim(8, 0)
+        # plt.axis('off')
+        plt.grid('off')
+        plt.xticks(rotation=80)
+        xticks = np.full((limits,), ' ').astype(basestring)
+        # xticks=np.array(df2.index[:limits]).astype(basestring)
+        xticks[::limits // 33] = np.array(df2.index[:limits][::limits // 33]).astype(basestring)
+        ax.set_xticklabels(xticks)
+        import matplotlib.ticker as ticker
+        ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
+        fig.savefig(suptitle + '.png')
+
+
 def t_sne(visualizer, model_type, dataset_type, start_lr):
     logger.info('start ' + '_'.join((model_type, dataset_type, 'start_lr', str(start_lr))))
     stat_df = visualizer.stat_df.copy()
@@ -522,7 +574,7 @@ def t_sne(visualizer, model_type, dataset_type, start_lr):
     make_frame_mpl(dur)
     ax.view_init(elev=90., azim=0.)
     # ax.view_init(elev=20., azim=45.)
-    plt.savefig('_'.join((model_type, dataset_type, 'start_lr', str(start_lr))) + '.pdf')
+    plt.savefig(parant_folder + '_'.join((model_type, dataset_type, 'start_lr', str(start_lr))) + '.pdf')
 
 
 def map_name(names):
@@ -548,13 +600,10 @@ if __name__ == '__main__':
     # utils.rm('../output  ')
 
     tic = time.time()
-
-    visualizer = Visualizer(join='outer', stat_only=True, paranet_folder='stat')
-    subplots(visualizer, path_suffix='_1')
-
-    visualizer = Visualizer(join='outer', stat_only=True, paranet_folder='stat2')
-    subplots(visualizer, path_suffix='_2')
-
+    for parant_folder in ['stat301', 'stat101', 'stat101_10', 'stat301_10']:
+        visualizer = Visualizer(join='outer', stat_only=True, paranet_folder=parant_folder)
+        subplots(visualizer, path_suffix=parant_folder.strip('stat'))
+        heatmap(parant_folder)
     print time.time() - tic
 
     # dataset, model_type = 'cifar100', 'resnet10'
