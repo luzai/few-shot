@@ -359,7 +359,7 @@ def check_md5sum():
 
         subprocess.call(('md5sum '+ file).split())
 
-def merge_pdf():
+def merge_pdf(names):
     from pyPdf import PdfFileWriter, PdfFileReader
 
     # Creating a routine that appends files to the output file
@@ -370,11 +370,11 @@ def merge_pdf():
     output = PdfFileWriter()
 
     # Appending two pdf-pages from two different files
-    append_pdf(PdfFileReader(open("../1.pdf", "rb")), output)
-    append_pdf(PdfFileReader(open("../2.pdf", "rb")), output)
+    for name in names:
+        append_pdf(PdfFileReader(open(name, "rb")), output)
 
     # Writing all the collected pages to a file
-    output.write(open("CombinedPages.pdf", "wb"))
+    output.write(open("merged.pdf", "wb"))
 
 if __name__ == '__main__':
     # to_single_dir()
@@ -382,7 +382,7 @@ if __name__ == '__main__':
     # print np.array( parse_dir_name())
     # print np.array(parse_dir_name('tfevents_loss'))
     print root_path
-    merge_pdf()
+
 
 
 

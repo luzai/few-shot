@@ -13,6 +13,9 @@ from stats import Stat
 import threading
 from utils import clean_name
 
+dbg = False
+
+
 class Loader(object):
     def __init__(self, name, path):
         self.name = name
@@ -45,12 +48,12 @@ class ScalarLoader(Loader):
     def load_scalars(self, reload=False):
         if reload:
             self.reload()
-        scalars_df=pd.DataFrame()
+        scalars_df = pd.DataFrame()
         for scalar_name in self.scalars_names:
             for e in self.em.Scalars(scalar_name):
                 iter = e.step
                 val = e.value
-                scalars_df.loc[iter,scalar_name] = val
+                scalars_df.loc[iter, scalar_name] = val
 
         return scalars_df.sort_index().sort_index(axis=1)
 
@@ -90,8 +93,6 @@ def df_sort_index(tensors):
     tensors.sort_index(axis=0, inplace=True)
     tensors.sort_index(axis=1, inplace=True)
     return tensors
-
-
 
 
 def test_df(df):
@@ -277,6 +278,11 @@ class Loader(threading.Thread):
             else:
                 self.params = select(df, "^obs.*?(?:kernel|bias).*")
                 cache(self.params, path)
+        if dbg:
+            self.scalars = self.scalars.iloc[:6, :]  # dbg !
+            self.params = self.params.iloc[:6, :]  # dbg !
+            self.act = self.act.iloc[:6, :]  # dbg !
+            logger.info('dbg mod load scalars shape {}'.format(self.scalars.shape))
 
 
 if __name__ == '__main__':

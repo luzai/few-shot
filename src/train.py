@@ -15,7 +15,7 @@ def run(model_type='vgg5', lr=1e-2, limit_val=True, dataset='cifar10', queue=Non
     from logs import logger
 
     # try:
-    config = Config(epochs=101, batch_size=256, verbose=2,
+    config = Config(epochs=301, batch_size=256, verbose=2,
                     model_type=model_type,
                     dataset_type=dataset,
                     debug=False, others={'lr': lr}, clean_after=False)
