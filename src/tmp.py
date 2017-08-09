@@ -1,93 +1,50 @@
-def run(model_type='vgg5', lr=1e-2, limit_val=True, dataset='cifar10', queue=None):
-    import utils
-    import warnings
-    warnings.filterwarnings("ignore")
+import numpy ,numpy as np
+from sklearn.model_selection import GridSearchCV
+from keras.wrappers.scikit_learn import KerasClassifier
 
+# Function to create model, required for KerasClassifier
+def create_model():
+    import time
+    import utils
+
+    # create model
+    time.sleep(np.random.rand(1) * 200)
     utils.init_dev(utils.get_dev())
     utils.allow_growth()
-    import tensorflow as tf, keras
-    from callbacks import TensorBoard2
-    from keras.callbacks import TensorBoard
-    from datasets import Dataset
-    from models import VGG, ResNet
-    from configs import Config
-    from loader import Loader
-    from logs import logger
 
-    # try:
-    config = Config(epochs=301, batch_size=256, verbose=2,
-                    model_type=model_type,
-                    dataset_type=dataset,
-                    debug=False, others={'lr': lr}, clean_after=False)
-
-    dataset = Dataset(config.dataset_type, debug=config.debug, limit_val=limit_val)
-    if 'vgg' in model_type:
-        model = VGG(dataset.input_shape, dataset.classes, config, with_bn=False, with_dp=True)
-    else:
-        model = ResNet(dataset.input_shape, dataset.classes, config, with_bn=False, with_dp=True)
-
-    model.model.summary()
-    # todo lr scheme
-    # todo verify!! validation dataset size sensitivity
-    model.model.compile(
-        # keras.optimizers.rmsprop(lr=0.0001, decay=1e-6),
-        # in fact rmsprop is much better at least on small dataset
-        keras.optimizers.sgd(lr, momentum=0.9),
-        loss='categorical_crossentropy',
-        metrics=['accuracy'])
-
-    if queue is not None: queue.put([True])
-    model.model.fit(dataset.x_train, dataset.y_train, batch_size=config.batch_size, epochs=config.epochs,
-                    verbose=config.verbose,
-                    validation_data=(dataset.x_test, dataset.y_test),
-                    callbacks=[
-                        TensorBoard2(tot_epochs=config.epochs,
-                                     log_dir=config.model_tfevents_path,
-                                     batch_size=config.batch_size,
-                                     write_graph=True,
-                                     write_grads=False,
-                                     dataset=dataset,
-                                     max_win_size=11,
-                                     stat_only=True,
-                                     batch_based=True
-                                     ),
-                        # TensorBoard(log_dir=config.model_tfevents_path)
-                    ])
-    if config.clean_after:
-        Loader(path=config.model_tfevents_path).load()
-    model.save()
-    # except Exception as inst:
-    #     print inst
-    #     exit(100)
+    from keras.models import Sequential
+    from keras.layers import Dense
 
 
-# import multiprocessing as mp, time
-# from logs import logger
-# import logs
-# import numpy as np
-# import utils
-#
-# dbg = False
-# utils.rm(utils.root_path + '/tfevents  ' + utils.root_path + '/output')
-# if dbg:
-#     # run('vgg6', dataset='cifar10', lr=1e-2)
-#     run('resnet10', dataset='cifar10', lr=1e-2)
-#     # run('vgg6',1e-5)
-# else:
-#     queue = mp.Queue()
-#     tasks = []
-#     for dataset in ['cifar10', 'cifar100']:  # , 'cifar100'
-#         for model_type in ['vgg10', 'resnet10', ]:  # 'vgg8', 'resnet8','vgg6', 'resnet6',
-#             for lr in np.concatenate((np.logspace(-2, -3, 2), np.logspace(-1.5, -2.5, 0))):  # 10,1e-1, 1e-3, 1e-5
-#                 print dataset, model_type, lr
-#                 p = mp.Process(target=run, args=(model_type, lr, True, dataset, queue))
-#                 p.start()
-#                 tasks.append(p)
-#                 _res = queue.get()
-#                 logger.info('last task return {}'.format(_res))
-#                 time.sleep(15)
-#
-#     for p in tasks:
-#         p.join()
 
-print 'ok'
+    model = Sequential()
+    model.add(Dense(12, input_dim=8, activation='relu'))
+    model.add(Dense(1, activation='sigmoid'))
+    # Compile model
+    model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+    return model
+
+
+# fix random seed for reproducibility
+seed = 7
+numpy.random.seed(seed)
+# load dataset
+dataset = numpy.loadtxt("pima-indians-diabetes.csv", delimiter=",")
+# split into input (X) and output (Y) variables
+X = dataset[:, 0:8]
+Y = dataset[:, 8]
+# create model
+model = KerasClassifier(build_fn=create_model, verbose=0)
+# define the grid search parameters
+batch_size = [10, 20, 40, 60, 80, 100]
+epochs = [10, 50, 100]
+param_grid = dict(batch_size=batch_size, epochs=epochs)
+grid = GridSearchCV(estimator=model, param_grid=param_grid, n_jobs=-1)
+grid_result = grid.fit(X, Y)
+# summarize results
+print("Best: %f using %s" % (grid_result.best_score_, grid_result.best_params_))
+means = grid_result.cv_results_['mean_test_score']
+stds = grid_result.cv_results_['std_test_score']
+params = grid_result.cv_results_['params']
+for mean, stdev, param in zip(means, stds, params):
+    print("%f (%f) with: %r" % (mean, stdev, param))

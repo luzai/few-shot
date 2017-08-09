@@ -345,6 +345,7 @@ def clean_name(name):
     name = re.findall('([a-zA-Z0-9/]+)(?:_\d+)?', name)[0]
     return name
 
+
 def check_md5sum():
     for parant_folder in ['stat301', 'stat101', 'stat101_10', 'stat301_10']:
         path = '../output' + parant_folder.strip('stat') + '_all_stat'
@@ -354,10 +355,11 @@ def check_md5sum():
         # print tpath
 
 
-        path = '../' + parant_folder+'/resnet10_cifar100_lr_1.00e-02/mi*/c*'
-        file= glob.glob(path)[0]
+        path = '../' + parant_folder + '/resnet10_cifar100_lr_1.00e-02/mi*/c*'
+        file = glob.glob(path)[0]
 
-        subprocess.call(('md5sum '+ file).split())
+        subprocess.call(('md5sum ' + file).split())
+
 
 def merge_pdf(names):
     from pyPdf import PdfFileWriter, PdfFileReader
@@ -371,10 +373,15 @@ def merge_pdf(names):
 
     # Appending two pdf-pages from two different files
     for name in names:
+        if not osp.exists(name):
+            logger.warning(name + 'do not exist')
         append_pdf(PdfFileReader(open(name, "rb")), output)
 
     # Writing all the collected pages to a file
-    output.write(open("merged.pdf", "wb"))
+    output.write(open(
+        (osp.dirname(names[0]) + "/merged.pdf").rstrip('/')
+        , "wb"))
+
 
 if __name__ == '__main__':
     # to_single_dir()
@@ -382,7 +389,4 @@ if __name__ == '__main__':
     # print np.array( parse_dir_name())
     # print np.array(parse_dir_name('tfevents_loss'))
     print root_path
-
-
-
-
+    merge_pdf(['heatmap.pdf', 'performance.pdf', 'statistics.pdf'])

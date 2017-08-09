@@ -36,7 +36,7 @@ def get_name2fn(class_name):
 
 def thresh_proportion(arr, thresh):
     lower = float(arr[arr < thresh].shape[0])
-    greater = float(arr[arr >= thresh].shape[0])
+    greater = float(arr[arr > thresh].shape[0])
 
     # thresh = max(thresh, arr.min())
     # thresh = min(thresh, arr.max())
@@ -353,13 +353,15 @@ class PTRate(object):
         self.windows = windows
 
     def pt_rate(self, tensor, iter, name, win_size, thresh, mode):
-        _tensor=np.zeros((11,100))
+
         self.windows.include(tensor, iter, name, win_size)
         if mode == 'load':
             if not self.windows.isfull(name, win_size=win_size):
                 return NAN, NAN
             else:
                 _tensor = self.windows.get_tensor(name, win_size)
+                if 'act' in name and 'ptrate' in name and 'softmax' in name:
+                    print name, (_tensor>=0).all(),(tensor>=0).all()
                 _tensor = _tensor.reshape(_tensor.shape[0], -1)
                 polarity_time_space = (-np.sign(_tensor[1:] * _tensor[:-1]) + 1.) / 2.
                 polarity_space = polarity_time_space.mean(axis=0)

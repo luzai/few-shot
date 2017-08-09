@@ -8,6 +8,7 @@ from configs import Config
 from datasets import Dataset
 from models import VGG
 
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.ticker import NullFormatter
 from matplotlib import colors as mcolors
@@ -21,6 +22,7 @@ from itertools import combinations, chain
 from scipy.misc import comb
 from moviepy.video.io.bindings import mplfig_to_npimage
 import moviepy.editor as mpy
+from matplotlib.ticker import FormatStrFormatter
 
 matplotlib.style.use('ggplot')
 
@@ -243,7 +245,6 @@ class Visualizer(object):
 
 def plot(perf_df, axes_names, other_names=None, legend=True):
     # #  order of axes is (row,col,inside fig)
-
     perf_df, sup_title = drop_level(perf_df, other_names)
     assert len(perf_df.columns.names) == 3, 'plot only accept input 3'
 
@@ -374,23 +375,32 @@ def auto_plot(df, path_suffix, axes_names, other_names):
     columns = df.columns
     levels, names, name2level, name2ind = get_columns_alias(columns)
     show = False
-
+    pathss = []
     for poss in cartesian([name2level[name] for name in other_names]):
         _df = df.copy()
         for _name, _poss in zip(other_names, poss):
             _df = select(_df, {_name: _poss}, regexp=False)
             if _df is None: break
         if _df is None: continue
+
+        if _df.columns.names[2] == 'stat':
+            _df = reindex(_df, level=2)
+
         fig, sup_title = plot(_df, axes_names, other_names)
         utils.mkdir_p(Config.output_path + path_suffix + '/')
-        fig.savefig((Config.output_path + path_suffix + '/' + re.sub('/', '', sup_title) + '.pdf').strip('_'),
+        sav_path = (Config.output_path
+                    + path_suffix + '/'
+                    + re.sub('/', '', sup_title)
+                    + '.pdf').strip('_')
+        fig.savefig(sav_path,
                     bbox_inches='tight')
+        pathss.append(sav_path)
         if show: plt.show()
         plt.close()
         if osp.exists('dbg'):
             logger.info('dbg mode break')
             break
-    return fig
+    return pathss
 
 
 def append_level(columns, name, value=''):
@@ -404,13 +414,22 @@ def append_level(columns, name, value=''):
     return fcolumns
 
 
-def subplots(visualizer, path_suffix):
-    new_index0 = ['acc/', 'kernel/', 'bias/']
-    new_index1 = ['diff', 'stdtime', 'iqr', 'std', 'mean', 'median', 'magmean', 'posmean', 'negmean', 'pospropotion',
+def reindex(df, level):
+    new_index0 = ['act/', 'kernel/', 'bias/']
+    new_index1 = ['diff', 'stdtime', 'iqr', 'std', 'mean', 'median', 'magmean', 'posmean', 'negmean', 'posproportion',
                   'max', 'min', 'orthogonality', 'sparsity', 'ptrate-thresh-0.2', 'ptrate-thresh-0.6',
                   'ptrate-thresh-mean', 'totvar']
     new_index = [ind0 + ind1 for ind0 in new_index0 for ind1 in new_index1]
+    diff1 = ['kernel/', 'bias/']
+    diff2 = ['ptrate-thresh-0.2', 'ptrate-thresh-0.6', 'ptrate-thresh-mean']
+    diff = [_diff1 + _diff2 for _diff1 in diff1 for _diff2 in diff2] + ['bias/orthogonality']
+    new_index = [_new_index for _new_index in new_index if _new_index not in diff ]
 
+    df = df.transpose().reindex(new_index, level=level).transpose().copy()
+    return df
+
+
+def subplots(visualizer, path_suffix):
     perf_df = visualizer.perf_df.copy()
     # plot only val acc
     # perf_df = select(perf_df, {'name': 'val_acc$'})
@@ -418,32 +437,29 @@ def subplots(visualizer, path_suffix):
     perf_df.columns = append_level(perf_df.columns, '')
     perf_df.columns = append_level(perf_df.columns, 't2')
     perf_df.columns.set_names(['hyper', 'metric', '', 't2'], inplace=True)
-    if not osp.exists('dbg'):
-        auto_plot(perf_df, path_suffix + '_all_perf',
-                  axes_names=['hyper', 'metric', ''],
-                  other_names=['t2'])
+    auto_plot(perf_df, path_suffix + '_perf',
+              axes_names=['hyper', 'metric', ''],
+              other_names=['t2'])
 
     # plot statistics
     df = visualizer.stat_df.copy()
 
     df.columns = expand_level(df.columns)
-
     # # name0 1 2 3 -- obs0 conv2d act iqr
-    # df.columns = merge_level(df.columns, start=7, stop=10)
-    # df2 = df.transpose().reindex(new_index, level=6).transpose().copy()
+    # df = select(df, {'dataset_type': 'cifar10'})
     df.columns = merge_level(df.columns, start=5, stop=7)
-    df = df.transpose().reindex(new_index, level=5).transpose().copy()
+    df = reindex(df, 5)
     df.columns = merge_level(df.columns, start=3, stop=5)
 
     df.columns = merge_level(df.columns, start=0, stop=3)
     df.columns.set_names(['hyper', 'layer', 'stat', 'winsize'], inplace=True)
-    if not osp.exists('dbg'):
-        auto_plot(df, path_suffix + '_all_stat',
-                  axes_names=('layer', 'stat', 'winsize'),
-                  other_names=['hyper'])
+    df = select(df,
+                {'hyper': '(?:resnet10/cifar10/1.*3|vgg10/cifar10/1.*2)'})  # (?:resnet10/cifar10/.*3|vgg10/cifar10/.*2)
 
-
-from mpl_toolkits.axes_grid1 import make_axes_locatable
+    paths = auto_plot(df, path_suffix + '_stat',
+                      axes_names=('layer', 'stat', 'winsize'),
+                      other_names=['hyper'])
+    utils.merge_pdf(paths)
 
 
 def heatmap(paranet_folder):  # 'stat301'
@@ -460,9 +476,9 @@ def heatmap(paranet_folder):  # 'stat301'
 
     df_ori = df.copy()
     limits = None
-
+    pathss = []
     for ind, name in enumerate(list(name2level['hyper'])):
-        fig, ax = plt.subplots(1, figsize=(10, 20))
+        fig, ax = plt.subplots(1, figsize=(5, 40))
         df = select(df_ori, {'hyper': name}, regexp=False)
         df = select(df, {'stat': 'act/ptrate-thresh-mean',
                          'winsize': 'winsize-31'})
@@ -471,33 +487,37 @@ def heatmap(paranet_folder):  # 'stat301'
 
         if limits == None:
             limits = df2.values.transpose().shape[1]
+        df2.sort_index(axis=1, inplace=True)
         mat = df2.values.transpose()[:10, :limits]
         if np.isnan(mat).any():
             logger.warning('mat conations nan' + suptitle)
-        ax.set_title(suptitle)
-        im = ax.imshow(mat)
-
-        ax.tick_params(axis=u'both', which=u'both', length=0)
-        ax.set_xlim(0, limits)
-        ax.set_ylim(9, 0)
+        ax.set_title(suptitle, fontsize=5)
+        im = ax.imshow(mat, interpolation='none')
+        # ax.set_aspect(1.5)
+        #
+        # ax.tick_params(axis=u'both', which=u'both', length=0)
+        # ax.set_xlim(-0.5, limits-0.5)
+        # ax.set_ylim(10.5, -0.5)
         ax.grid('off')
-        # ax.set_xticks(rotation=80)
-        # plt.xticks(rotation=80)
-        # xticks = np.full((limits,), '').astype(basestring)
-        # xticks=np.array(df2.index[:limits]).astype(basestring)
-        # xticks[::limits // 33] = np.array(df2.index[:limits][::limits // 33]).astype(basestring)
-        ax.set_xticklabels([])
-        # import matplotlib.ticker as ticker
-        # ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
+        plt.xticks(rotation=20)
+        xticks = np.full((limits,), '').astype(basestring)
+        xticks[::5] = np.array(df2.index[:limits][::5]).astype(basestring)
+        ax.set_xticklabels(xticks)
+        import matplotlib.ticker as ticker
+        ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
+
         divider = make_axes_locatable(ax)
         cax = divider.append_axes("right", size="1%", pad=0.1)
 
         cbar = plt.colorbar(im, cax=cax)
-        #         print mat.min(),mat.max()
-        print cbar.ax.get_yaxis()
-        cbar.ax.get_yaxis().set_ticks([mat[~np.isnan(mat)].min(), mat[~np.isnan(mat)].max()])
-
-        fig.savefig(Config.root_path + '/' + suptitle + '.pdf', bbox_inches='tight')  # bbox_inches='tight'
+        print mat[~np.isnan(mat)].min(), mat[~np.isnan(mat)].max()
+        # cbar.ax.get_yaxis().set_ticks([0,1])
+        cbar.ax.get_yaxis().set_major_formatter(FormatStrFormatter('%.2f'))
+        paths = Config.root_path + '/' + suptitle + '.pdf'
+        fig.savefig(paths, bbox_inches='tight')  # bbox_inches='tight'
+        pathss.append(paths)
+    utils.merge_pdf(pathss)
+    return pathss
 
 
 def t_sne(visualizer, model_type, dataset_type, start_lr):
@@ -612,10 +632,8 @@ def map_name(names):
 
 
 if __name__ == '__main__':
-    # utils.rm('../output  ')
-
     tic = time.time()
-    for parant_folder in ['stat101_10']:  # 'stat101',
+    for parant_folder in ['stat301_10']:
         visualizer = Visualizer(join='outer', stat_only=True, paranet_folder=parant_folder)
         subplots(visualizer, path_suffix=parant_folder.strip('stat'))
         heatmap(parant_folder)

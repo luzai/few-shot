@@ -22,9 +22,9 @@ def run(model_type='vgg5', lr=1e-2, limit_val=True, dataset='cifar10', queue=Non
 
     dataset = Dataset(config.dataset_type, debug=config.debug, limit_val=limit_val)
     if 'vgg' in model_type:
-        model = VGG(dataset.input_shape, dataset.classes, config, with_bn=False, with_dp=True)
+        model = VGG(dataset.input_shape, dataset.classes, config, with_bn=True, with_dp=True)
     else:
-        model = ResNet(dataset.input_shape, dataset.classes, config, with_bn=False, with_dp=True)
+        model = ResNet(dataset.input_shape, dataset.classes, config, with_bn=True, with_dp=True)
 
     model.model.summary()
     # todo lr scheme
@@ -70,8 +70,8 @@ import utils,os
 utils.rm(utils.root_path + '/tfevents  ' + utils.root_path + '/output')
 if os.path.exists('dbg'):
     logger.error('!!! your are in dbg')
-    # run('vgg6', dataset='cifar10', lr=1e-2)
-    run('resnet10', dataset='cifar10', lr=1e-2)
+    run('vgg10', dataset='cifar10', lr=1e-2)
+    # run('resnet10', dataset='cifar10', lr=1e-3)
     # run('vgg6',1e-5)
 else:
     queue = mp.Queue()

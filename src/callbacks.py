@@ -8,6 +8,7 @@ from stats import KernelStat, ActStat, BiasStat
 from utils import clean_name
 import utils, math
 
+SAMPLE_RATE=10
 
 # tensorboard2 is batch beased
 class TensorBoard2(Callback):
@@ -41,7 +42,7 @@ class TensorBoard2(Callback):
         self.stat_only = stat_only
 
         series = pd.Series(data=3,
-                           index=np.arange(start=0,stop=self.epochs,step=10) * self.iter_per_epoch)
+                           index=np.arange(start=0, stop=self.epochs, step=SAMPLE_RATE) * self.iter_per_epoch)
         series1 = pd.Series()
         for (ind0, _), (ind1, _) in zip(series.iloc[:-1].iteritems(), series.iloc[1:].iteritems()):
             if ind0 < 30 * self.iter_per_epoch:
@@ -220,6 +221,7 @@ class TensorBoard2(Callback):
 
             for _act_name, _act in self.sess.run(self.act_l, feed_dict=feed_dict).items():
                 if _act_name in res:
+
                     res[_act_name] = np.concatenate((res[_act_name], _act), axis=0)
                 else:
                     res[_act_name] = _act
@@ -267,6 +269,8 @@ class TensorBoard2(Callback):
     def write_df(self, df):
         for name, series in df.iteritems():
             for _iter, val in series.iteritems():
+                if 'act' in name and 'ptrate' in name and 'softmax' in name:
+                    print name, _iter, val
                 if not math.isnan(val):
                     self.write_single_val(val, _iter, name)
 

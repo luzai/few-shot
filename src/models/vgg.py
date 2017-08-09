@@ -11,7 +11,7 @@ class VGG(BaseModel):
 
     def __init__(self, input_shape, classes, config, with_bn=True, with_dp=True):
         super(VGG, self).__init__(input_shape, classes, config, with_bn, with_dp)
-        type=config.model_type
+        type = config.model_type
         cfg = {
             'vgg11': [[64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'], [512, 512, self.classes]],
             'vgg13': [[64, 64, 'M', 128, 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
@@ -67,5 +67,15 @@ class VGG(BaseModel):
 
 
 if __name__ == '__main__':
-    vgg = VGG((32, 32, 3), 10)
-    vgg.model.summary()
+
+    import sys
+    sys.path.append('/home/wangxinglu/prj/Perf_Pred/src')
+    from configs import Config
+    config = Config(epochs=301, batch_size=256, verbose=2,
+                    model_type='vgg10',
+                    dataset_type='cifar10',
+                    debug=False, others={'lr': 0.01}, clean_after=False)
+
+    model = VGG((32, 32, 3), 10, config)
+
+    model.vis()
