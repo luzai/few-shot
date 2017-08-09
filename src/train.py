@@ -1,4 +1,4 @@
-def run(model_type='vgg5', lr=1e-2, limit_val=True, dataset='cifar10', queue=None):
+def run(model_type='vgg6', lr=1e-2, limit_val=True, dataset='cifar10', queue=None):
     import utils
     import warnings
     warnings.filterwarnings("ignore")

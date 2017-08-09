@@ -8,7 +8,8 @@ from stats import KernelStat, ActStat, BiasStat
 from utils import clean_name
 import utils, math
 
-SAMPLE_RATE=10
+SAMPLE_RATE = 10
+
 
 # tensorboard2 is batch beased
 class TensorBoard2(Callback):
@@ -287,3 +288,30 @@ class TensorBoard2(Callback):
         summary_value.simple_value = value
         summary_value.tag = name
         self.writer.add_summary(summary, epoch_iter)
+
+
+def schedule(epoch, x=(30., 100.), y=(10., 10.), init=0.01):
+    if not isinstance(x,tuple)and not isinstance(x,list):
+        x=[x]
+    if not isinstance(y,tuple)and not isinstance(y,list):
+        y=[y]
+    x = list([float(_x) for _x in x])
+    y = list([float(_y) for _y in y])
+    func_l = [init]
+    for _y in y:
+        func_l.append(func_l[-1] / _y)
+    x = [0] + x + [99999]
+    for ind, _x in enumerate(x):
+        if epoch >= x[ind] and epoch < x[ind + 1]: break
+
+    return func_l[ind]
+
+
+if __name__ == '__main__':
+    for i in range(0, 999, 2):
+        print schedule(i)
+    y = [schedule(i) for i in range(0, 999, 2)]
+    from vis import *
+
+    plt.plot(y)
+    plt.show()
