@@ -84,7 +84,7 @@ else:
                 tasks.append(p)
                 _res = queue.get()
                 logger.info('last task return {}'.format(_res))
-                time.sleep(15)
+                # time.sleep(15)
 
     for p in tasks:
         p.join()

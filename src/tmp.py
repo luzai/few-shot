@@ -26,11 +26,12 @@ def run(model_type='vgg5', lr=1e-2,
                     others={'lr': lr, 'decay_epoch': decay_epoch, 'decay': decay},
                     clean=False,
                     clean_after=False)
-    if glob.glob(config.model_tfevents_path+'*tfevents*'):
+    if len(glob.glob(config.model_tfevents_path+'/*tfevents*'))>=1:
         logger.info('exist ' + config.model_tfevents_path)
+        if queue is not None: queue.put([True])
         exit(200)
     else:
-        logger.info('do not exist '+config.model_tfevents_path)
+        logger.info('do not exist '+ config.model_tfevents_path)
 
     # if queue is not None: queue.put([True])
 
@@ -71,39 +72,61 @@ import logs
 import numpy as np
 import utils, os,os.path as osp, glob
 
-utils.rm(utils.root_path + '/tfevents  ' + utils.root_path + '/output')
+# utils.rm(utils.root_path + '/tfevents  ' + utils.root_path + '/output')
 if os.path.exists('dbg'):
+    queue=None
     logger.error('!!! your are in dbg')
-    run('vgg10', dataset='cifar10', lr=1e-2)
+    # run('vgg10', dataset='cifar10', lr=1e-2)
+    for dataset in ['cifar10','cifar100']:
+        for model_type in ['vgg10', 'resnet10', ]:
+            for lr in np.logspace(-2, -3, 4):
+                for epoch in [35, 75, 105]:
+                    for decay in [2, 5, 10, 20]:
+                        print dataset, model_type, lr
+                        run(**dict(model_type=model_type, lr=lr,
+                                                               dataset=dataset, queue=queue,
+                                                               decay=decay, decay_epoch=epoch))
+
+
+        for model_type in ['vgg10', 'resnet10', ]:
+            for lr in np.logspace(-2, -3, 4):
+                for opt in ['rmsprop', 'adam']:
+                    print dataset, model_type, lr
+                    run(**dict(model_type=model_type, lr=lr,
+                                                           dataset=dataset, queue=queue,
+                                                           optimizer=opt))
+
+
+
 else:
     queue = mp.Queue()
     tasks = []
-    dataset = 'cifar10'
-    for model_type in ['vgg10', 'resnet10', ]:  # 'vgg8', 'resnet8','vgg6', 'resnet6',
-        for lr in np.logspace(-2, -3, 4):
-            for epoch in [35, 75, 105]:
-                for decay in [2, 5, 10, 20]:
+    for dataset in ['cifar10','cifar100']:
+        for model_type in ['vgg10', 'resnet10', ]:  # 'vgg8', 'resnet8','vgg6', 'resnet6',
+            for lr in np.logspace(-2, -3, 4):
+                for epoch in [35, 75, 105]:
+                    for decay in [2, 5, 10, 20]:
+                        print dataset, model_type, lr
+                        p = mp.Process(target=run, kwargs=dict(model_type=model_type, lr=lr,
+                                                               dataset=dataset, queue=queue,
+                                                               decay=decay, decay_epoch=epoch))
+                        p.start()
+                        tasks.append(p)
+                        _res = queue.get()
+                        logger.info('last task return {}'.format(_res))
+                        # time.sleep(15)
+        for model_type in ['vgg10', 'resnet10', ]:  # 'vgg8', 'resnet8','vgg6', 'resnet6',
+            for lr in np.logspace(-2, -3, 4):
+                for opt in ['rmsprop', 'adam']:
                     print dataset, model_type, lr
                     p = mp.Process(target=run, kwargs=dict(model_type=model_type, lr=lr,
                                                            dataset=dataset, queue=queue,
-                                                           decay=decay, decay_epoch=epoch))
+                                                           optimizer=opt))
                     p.start()
                     tasks.append(p)
                     _res = queue.get()
                     logger.info('last task return {}'.format(_res))
-                    time.sleep(15)
-    for model_type in ['vgg10', 'resnet10', ]:  # 'vgg8', 'resnet8','vgg6', 'resnet6',
-        for lr in np.logspace(-2, -3, 4):
-            for opt in ['rmsprop', 'adam']:
-                print dataset, model_type, lr
-                p = mp.Process(target=run, kwargs=dict(model_type=model_type, lr=lr,
-                                                       dataset=dataset, queue=queue,
-                                                       optimizer=opt))
-                p.start()
-                tasks.append(p)
-                _res = queue.get()
-                logger.info('last task return {}'.format(_res))
-                time.sleep(15)
+                    # time.sleep(15)
 
     for p in tasks:
         p.join()
