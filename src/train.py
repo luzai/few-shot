@@ -1,4 +1,4 @@
-def run(model_type='vgg6', lr=1e-2, limit_val=True, dataset='cifar10', queue=None):
+def run(model_type='vgg6', lr=1e-2, limit_val=True, dataset='cifar10', queue=None, runtime=1):
     import utils
     import warnings
     warnings.filterwarnings("ignore")
@@ -15,10 +15,13 @@ def run(model_type='vgg6', lr=1e-2, limit_val=True, dataset='cifar10', queue=Non
     from logs import logger
 
     # try:
-    config = Config(epochs=11, batch_size=256, verbose=2,
+    config = Config(epochs=301 if not osp.exists('dbg') else 5,
+                    batch_size=256, verbose=2,
                     model_type=model_type,
                     dataset_type=dataset,
-                    debug=osp.exists('dbg'), others={'lr': lr}, clean_after=False)
+                    debug=osp.exists('dbg'),
+                    others={'lr': lr},
+                    clean_after=False)
 
     dataset = Dataset(config.dataset_type, debug=config.debug, limit_val=limit_val)
     if 'vgg' in model_type:
@@ -44,7 +47,7 @@ def run(model_type='vgg6', lr=1e-2, limit_val=True, dataset='cifar10', queue=Non
                                      write_graph=True,
                                      write_grads=False,
                                      dataset=dataset,
-                                     max_win_size=33 if osp.exists('dbg')  else 33 ,
+                                     max_win_size=21 if osp.exists('dbg')  else 3,
                                      stat_only=True,
                                      batch_based=True
                                      ),
@@ -60,31 +63,30 @@ def run(model_type='vgg6', lr=1e-2, limit_val=True, dataset='cifar10', queue=Non
 
 import multiprocessing as mp, time
 from logs import logger
-import logs,os.path as osp
+import logs, os.path as osp
 import numpy as np
-import utils,os
+import utils, os, np_utils
 
 utils.rm(utils.root_path + '/tfevents  ' + utils.root_path + '/output')
 if os.path.exists('dbg'):
     logger.error('!!! your are in dbg')
     run('vgg10', dataset='cifar10', lr=1e-2)
-    # run('resnet10', dataset='cifar10', lr=1e-3)
-    # run('vgg6',1e-5)
+    run('resnet10', dataset='cifar10', lr=1e-3)
 else:
     queue = mp.Queue()
     tasks = []
-    for dataset in ['cifar10']:  # , 'cifar100'
-        for model_type in ['vgg10', 'resnet10']:  # 'vgg8', 'resnet8','vgg6', 'resnet6',
-            for lr in np.concatenate((np.logspace(-2, -3, 2), np.logspace(-1.5, -2.5, 0))):
-                print dataset, model_type, lr
-                p = mp.Process(target=run, kwargs=dict(model_type=model_type, lr=lr,
-                                                       dataset=dataset, queue=queue,
-                                                       ))
-                p.start()
-                tasks.append(p)
-                _res = queue.get()
-                logger.info('last task return {}'.format(_res))
-                # time.sleep(15)
-
+    grids = {'dataset': ['cifar10', ],
+             'model_type': ['vgg10', ],
+             'lr': np.logspace(-2, -3, 2),
+             'queue': [queue, ],
+             'runtime':[1,2,3]
+             }
+    for grid in np_utils.grid_iter(grids):
+        print grid
+        p = mp.Process(target=run, kwargs=grid)
+        p.start()
+        tasks.append(p)
+        _res = queue.get()
+        logger.info('last task return {}'.format(_res))
     for p in tasks:
         p.join()

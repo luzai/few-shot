@@ -12,7 +12,7 @@ class Config(object):
     output_path = osp.join(root_path, 'output')
     tfevents_path = osp.join(root_path, 'tfevents')
 
-    def __init__(self, epochs=100, batch_size=256, verbose=1, name=None, model_type='vgg11',
+    def __init__(self, epochs=100, batch_size=256, verbose=1, name=None, model_type='vgg10',
                  dataset_type='cifar10', debug=False, others=None, clean=False, clean_after=False):
         self.debug = debug
         self.model_type = model_type

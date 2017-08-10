@@ -66,11 +66,14 @@ class Stat(object):
     def diff(self, tensor, name=None, iter=None):
         if iter in self.log_pnt and self.log_pnt.loc[iter] == 3:
             return self.diff_inst.diff(tensor, iter, name)
-    '''
-    def stdtime(self, tensor, name=None, iter=None,how='mean'):
-        if iter in self.log_pnt and self.log_pnt.loc[iter] == 3:
-            return self.stdtime_inst.online_std(tensor, iter, name,how=how)
 
+    def stdtime(self, tensor, name=None, iter=None, how='mean'):
+        if iter in self.log_pnt and self.log_pnt.loc[iter] == 3:
+            return self.stdtime_inst.online_std(tensor, iter, name, how=how)
+        elif how=='tensor':
+            return self.stdtime_inst.online_std(tensor, iter, name, how=how)
+
+    '''
     def min(self, tensor, **kwargs):
         return tensor.min()
 
@@ -131,6 +134,7 @@ class Stat(object):
 
         return _iter, _val
     '''
+
     def calc_all(self, tensor, name, iter):
         calc_res = pd.DataFrame()
         level1 = ['totvar', 'ptrate']
@@ -187,6 +191,7 @@ class KernelStat(Stat):
                 del _stat[key]
         self.stat = utils.dict_concat([self.stat, _stat])
         self.totvar_inst = TotVar(self.window)
+
     '''
     def orthogonality(self, tensor, name=None, iter=None, axis=-1):
         tensor = tensor.reshape(-1, tensor.shape[axis])
@@ -197,6 +202,7 @@ class KernelStat(Stat):
             it.iternext()
         return angle.mean()
     '''
+
 
 class BiasStat(Stat):
     def __init__(self, max_win_size, log_pnt):
@@ -218,6 +224,7 @@ class ActStat(Stat):
                 del _stat[key]
         self.stat = utils.dict_concat([self.stat, _stat])
         self.ptrate_inst = PTRate(self.window)
+
     '''
     def orthogonality(self, tensor, name=None, iter=None):
         # if len(tensor.shape) == 2:
@@ -249,6 +256,7 @@ class ActStat(Stat):
                                                    mode=mode)
         return _iter, _val
     '''
+
 
 class Windows(object):
     def __init__(self, max_win_size):

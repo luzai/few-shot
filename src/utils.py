@@ -131,7 +131,9 @@ def read_json(file_path):
 
 
 def write_json(obj, file_path):
-    mkdir_p(osp.dirname(file_path), delete=False)
+    dir_name = osp.dirname(file_path)
+    if dir_name!='':
+        mkdir_p(dir_name, delete=False)
     with open(file_path, 'w') as f:
         json.dump(obj, f, indent=4, separators=(',', ': '))
 
@@ -153,8 +155,7 @@ def write_df(df, path):
 
 
 def read_df(path):
-    pd.read_hdf(path, 'df')
-    return path
+    return pd.read_hdf(path, 'df')
 
 
 def mkdir_p(path, delete=False):

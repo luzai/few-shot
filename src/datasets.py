@@ -43,7 +43,7 @@ def sample_data(data, n=256 + 16):
     return data[sample_data.ind]
 
 
-def limit_data(data, n=256*91):
+def limit_data(data, n=256*4):
     return data[:n]
 
 

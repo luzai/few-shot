@@ -67,7 +67,7 @@ class TensorLoader(Loader):
             self.reload()
         tensors = pd.DataFrame()
         for tensor_name in self.tensors_names:
-            tensors_t = pd.Series(name=clean_name(tensor_name), index=np.array([], dtype='int64'))
+            tensors_t = pd.Series(name=clean_name(tensor_name), index=pd.Int64Index([]))
             for e in self.em.Tensors(tensor_name):
                 now_step = e.step
                 now_tensor = make_ndarray(e.tensor_proto)

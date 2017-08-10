@@ -6,9 +6,10 @@ import os, numpy as np, pandas as pd
 from logs import logger
 from stats import KernelStat, ActStat, BiasStat
 from utils import clean_name
-import utils, math, itertools,os.path as osp
 
-SAMPLE_RATE = 10 if not osp.exists('dbg') else 1
+import utils, math, itertools, os.path as osp, np_utils
+
+SAMPLE_RATE = 100 if not osp.exists('dbg') else 1
 
 
 # tensorboard2 is batch beased
@@ -68,6 +69,9 @@ class TensorBoard2(Callback):
             ])
         log_pnts = series.append(series1).sort_index()
         log_pnts.index = - log_pnts.index.min() + log_pnts.index
+        utils.pickle(log_pnts, './tmp.pkl')
+        log_pnts = log_pnts.groupby(log_pnts.index).max()
+
         self.log_pnts = log_pnts
 
         self.kernel_stat = KernelStat(self.max_win_zise, log_pnts)
@@ -178,14 +182,14 @@ class TensorBoard2(Callback):
                     self.write_df(self.bias_stat.calc_all(val, name, iter))
 
                 if self.iter >= self.iters - 1:
-                    stdtime_tensor = pd.DataFrame()
+                    stdtime_tensor = {}
                     for name, val in act.iteritems():
-                        stdtime_tensor.loc[iter, name] = self.act_stat.stdtime(val, name, iter, how='tensor')
+                        stdtime_tensor[(iter, name)] = self.act_stat.stdtime(val, name, iter, how='tensor')
                     for name, val in kernel.iteritems():
-                        stdtime_tensor.loc[iter, name] = self.kernel_stat.stdtime(val, name, iter, how='tensor')
+                        stdtime_tensor[(iter, name)] = self.kernel_stat.stdtime(val, name, iter, how='tensor')
                     for name, val in bias.iteritems():
-                        stdtime_tensor.loc[iter, name] = self.bias_stat.stdtime(val, name, iter, how='tensor')
-                    utils.write_df(stdtime_tensor, self.log_dir + '/stdtime')
+                        stdtime_tensor[(iter, name)] = self.bias_stat.stdtime(val, name, iter, how='tensor')
+                    utils.write_df(np_utils.dict2df(stdtime_tensor), self.log_dir + '/stdtime.h5')
 
             if self.log_pnts[self.iter] >= 2:
                 val_loss, val_acc = self.model.evaluate(self.dataset.x_test, self.dataset.y_test, verbose=2)

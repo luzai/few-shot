@@ -20,8 +20,13 @@ import numpy as np, os.path as osp, pandas as pd, matplotlib.pylab as plt
 
 from itertools import combinations, chain
 from scipy.misc import comb
-from moviepy.video.io.bindings import mplfig_to_npimage
-import moviepy.editor as mpy
+
+try:
+    from moviepy.video.io.bindings import mplfig_to_npimage
+    import moviepy.editor as mpy
+except:
+    pass
+
 from matplotlib.ticker import FormatStrFormatter
 
 matplotlib.style.use('ggplot')
@@ -423,7 +428,7 @@ def reindex(df, level):
     diff1 = ['kernel/', 'bias/']
     diff2 = ['ptrate-thresh-0.2', 'ptrate-thresh-0.6', 'ptrate-thresh-mean']
     diff = [_diff1 + _diff2 for _diff1 in diff1 for _diff2 in diff2] + ['bias/orthogonality']
-    new_index = [_new_index for _new_index in new_index if _new_index not in diff ]
+    new_index = [_new_index for _new_index in new_index if _new_index not in diff]
 
     df = df.transpose().reindex(new_index, level=level).transpose().copy()
     return df
