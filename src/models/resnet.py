@@ -37,12 +37,12 @@ def _conv_bn_relu(**conv_params):
     padding = conv_params.setdefault("padding", "same")
     kernel_regularizer = conv_params.setdefault("kernel_regularizer", l2(1.e-4))
     # obs=conv_params.get('obs',None)
-    global obs
-    if obs is not None:
-        name = 'obs{}/conv2d'.format(obs)
+    global layer
+    if layer is not None:
+        name = 'layer{}/conv2d'.format(layer)
     else:
         name = None
-    obs += 1
+    layer += 1
 
     def f(input):
         conv = Conv2D(filters=filters, kernel_size=kernel_size,
@@ -65,13 +65,13 @@ def _bn_relu_conv(**conv_params):
     padding = conv_params.setdefault("padding", "same")
     kernel_regularizer = conv_params.setdefault("kernel_regularizer", l2(1.e-4))
     # obs=conv_params.get('obs',None)
-    global obs
+    global layer
 
-    if obs is not None:
-        name = 'obs{}/conv2d'.format(obs)
+    if layer is not None:
+        name = 'layer{}/conv2d'.format(layer)
     else:
         name = None
-    obs += 1
+    layer += 1
 
     def f(input):
         activation = _bn_relu(input)
@@ -133,15 +133,15 @@ def basic_block(filters, init_strides=(1, 1), is_first_block_of_first_layer=Fals
     """
 
     def f(input):
-        global obs
+        global layer
         if is_first_block_of_first_layer:
             # don't repeat bn->relu since we just did bn->relu->maxpool
             conv1 = Conv2D(filters=filters, kernel_size=(3, 3),
                            strides=init_strides,
                            padding="same",
                            kernel_initializer="he_normal",
-                           kernel_regularizer=l2(1e-4), name='obs{}/conv2d'.format(obs))(input)
-            obs += 1
+                           kernel_regularizer=l2(1e-4), name='layer{}/conv2d'.format(layer))(input)
+            layer += 1
         else:
             conv1 = _bn_relu_conv(filters=filters, kernel_size=(3, 3),
                                   strides=init_strides)(input)
@@ -161,7 +161,7 @@ def bottleneck(filters, init_strides=(1, 1), is_first_block_of_first_layer=False
     """
 
     def f(input):
-        global obs
+        global layer
         if is_first_block_of_first_layer:
             # don't repeat bn->relu since we just did bn->relu->maxpool
             conv_1_1 = Conv2D(filters=filters, kernel_size=(1, 1),
@@ -172,7 +172,7 @@ def bottleneck(filters, init_strides=(1, 1), is_first_block_of_first_layer=False
         else:
             conv_1_1 = _bn_relu_conv(filters=filters, kernel_size=(1, 1),
                                      strides=init_strides)(input)
-        obs += 1
+        layer += 1
         conv_3_3 = _bn_relu_conv(filters=filters, kernel_size=(3, 3))(conv_1_1)
         residual = _bn_relu_conv(filters=filters * 4, kernel_size=(1, 1))(conv_3_3)
         return _shortcut(input, residual)
@@ -181,8 +181,8 @@ def bottleneck(filters, init_strides=(1, 1), is_first_block_of_first_layer=False
 
 
 def init_obs():
-    global obs
-    obs = 0
+    global layer
+    layer = 0
 
 
 def _handle_dim_ordering():
@@ -237,14 +237,14 @@ class ResnetBuilder(object):
         block_fn = _get_block(block_fn)
 
         input = Input(shape=input_shape)
-        conv1 = _conv_bn_relu(filters=64, kernel_size=(7, 7), strides=(2, 2), obs=obs)(input)  # obs0
+        conv1 = _conv_bn_relu(filters=64, kernel_size=(7, 7), strides=(2, 2), obs=layer)(input)  # obs0
         pool1 = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), padding="same")(conv1)
         # obs+=1
 
         block = pool1
         filters = 64
         for i, r in enumerate(repetitions):
-            block = _residual_block(block_fn, filters=filters, repetitions=r, is_first_layer=(i == 0), obs=obs)(
+            block = _residual_block(block_fn, filters=filters, repetitions=r, is_first_layer=(i == 0), obs=layer)(
                 block)  # obs
             filters *= 2
             # obs+=1
@@ -257,9 +257,9 @@ class ResnetBuilder(object):
         pool2 = AveragePooling2D(pool_size=(block_shape[ROW_AXIS], block_shape[COL_AXIS]),
                                  strides=(1, 1))(block)
         flatten1 = Flatten()(pool2)
-        dense = Dense(units=num_outputs, kernel_initializer="he_normal", name='obs{}/dense'.format(obs))(
+        dense = Dense(units=num_outputs, kernel_initializer="he_normal", name='layer{}/dense'.format(layer))(
             flatten1)  # obs
-        dense = Activation('softmax', name='obs{}/softmax'.format(obs))(dense)  # obs
+        dense = Activation('softmax', name='layer{}/softmax'.format(layer))(dense)  # obs
 
         model = Model(inputs=input, outputs=dense,name=name)
         return model

@@ -9,7 +9,7 @@ from utils import clean_name
 
 import utils, math, itertools, os.path as osp, np_utils
 
-SAMPLE_RATE = 100 if not osp.exists('dbg') else 1
+SAMPLE_RATE = 10 if not osp.exists('dbg') else 1
 
 
 # tensorboard2 is batch beased
@@ -88,7 +88,7 @@ class TensorBoard2(Callback):
         self.act_l = {}
         if self.merged is None:
             for layer in self.model.layers:
-                if not layer.name.startswith('obs'):  # only log obs
+                if not layer.name.startswith('layer'):  # only log obs
                     continue
                 for weight in layer.weights:
                     # todo more clean way to name

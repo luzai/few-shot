@@ -4,3 +4,10 @@ find . -name '*.pyc' -exec rm {} \;
 find . -name '*.pdf' -exec rm {} \;
 find . -name '*.png' -exec rm {} \;
 find . -name '*.log' -exec rm {} \;
+
+cat ~/.bash_history | head -n 130 > ~/.bash_history
+
+
+#conda install pip setuptools graphviz pydot nomkl numpy scipy scikit-learn numexpr moviepy
+#conda remove remove mkl mkl-service
+#conda install -c  -c conda-forge pathos

@@ -70,47 +70,46 @@ class Stat(object):
     def stdtime(self, tensor, name=None, iter=None, how='mean'):
         if iter in self.log_pnt and self.log_pnt.loc[iter] == 3:
             return self.stdtime_inst.online_std(tensor, iter, name, how=how)
-        elif how=='tensor':
+        elif how == 'tensor':
             return self.stdtime_inst.online_std(tensor, iter, name, how=how)
 
-    '''
     def min(self, tensor, **kwargs):
         return tensor.min()
 
-    def max(self, tensor, **kwargs):
-        return tensor.max()
+    # def max(self, tensor, **kwargs):
+    #     return tensor.max()
 
-    def mean(self, tensor, **kwargs):
-        return tensor.mean()
+    # def mean(self, tensor, **kwargs):
+    #     return tensor.mean()
 
     def median(self, tensor, **kwargs):
         return np.median(tensor)
 
-    def std(self, tensor, **kwargs):
-        return tensor.std()
+    # def std(self, tensor, **kwargs):
+    #     return tensor.std()
 
     def iqr(self, tensor, **kwargs):
         return np.subtract.reduce(np.percentile(tensor, [75, 25]))
 
-    def posmean(self, tensor, **kwargs):
-        return tensor[tensor > 0].mean()
+    # def posmean(self, tensor, **kwargs):
+    #     return tensor[tensor > 0].mean()
 
-    def negmean(self, tensor, **kwargs):
-        # todo do not observe softmax
-        return tensor[tensor < 0].mean()
+    # def negmean(self, tensor, **kwargs):
+    #     # todo do not observe softmax
+    #     return tensor[tensor < 0].mean()
 
-    def posproportion(self, tensor, **kwargs):
-        # in fact we use non-negative proportion
-        pos_len = float(tensor[tensor >= 0].shape[0])
-        neg_len = float(tensor[tensor < 0.].shape[0])
-        res = pos_len / (pos_len + neg_len)
-        _, res2 = thresh_proportion(tensor, 0.)
-        if not np.allclose(np.array([res]), np.array(res2)):
-            logger.error('different method calc pso_proportion should close {} {}'.format(res, res2))
-        return res
+    # def posproportion(self, tensor, **kwargs):
+    #     # in fact we use non-negative proportion
+    #     pos_len = float(tensor[tensor >= 0].shape[0])
+    #     neg_len = float(tensor[tensor < 0.].shape[0])
+    #     res = pos_len / (pos_len + neg_len)
+    #     _, res2 = thresh_proportion(tensor, 0.)
+    #     if not np.allclose(np.array([res]), np.array(res2)):
+    #         logger.error('different method calc pso_proportion should close {} {}'.format(res, res2))
+    #     return res
 
-    def magmean(self, tensor, **kwargs):
-        return np.abs(tensor).mean()
+    # def magmean(self, tensor, **kwargs):
+    #     return np.abs(tensor).mean()
 
     def sparsity(self, tensor, **kwargs):
         tensor = tensor.flatten()
@@ -133,7 +132,6 @@ class Stat(object):
             _iter, _val = self.totvar_inst.tot_var(tensor, iter, name, win_size, mode)
 
         return _iter, _val
-    '''
 
     def calc_all(self, tensor, name, iter):
         calc_res = pd.DataFrame()
@@ -192,7 +190,7 @@ class KernelStat(Stat):
         self.stat = utils.dict_concat([self.stat, _stat])
         self.totvar_inst = TotVar(self.window)
 
-    '''
+    @utils.timeit('kernel ortho consume')
     def orthogonality(self, tensor, name=None, iter=None, axis=-1):
         tensor = tensor.reshape(-1, tensor.shape[axis])
         angle = np.zeros((tensor.shape[axis], tensor.shape[axis]))
@@ -201,7 +199,6 @@ class KernelStat(Stat):
             it[0] = angle_between(tensor[:, it.multi_index[0]], tensor[:, it.multi_index[1]])
             it.iternext()
         return angle.mean()
-    '''
 
 
 class BiasStat(Stat):
@@ -225,7 +222,7 @@ class ActStat(Stat):
         self.stat = utils.dict_concat([self.stat, _stat])
         self.ptrate_inst = PTRate(self.window)
 
-    '''
+    @utils.timeit('act ortho comsume ')
     def orthogonality(self, tensor, name=None, iter=None):
         # if len(tensor.shape) == 2:
         #     pass
@@ -240,6 +237,7 @@ class ActStat(Stat):
 
         return angle.mean()
 
+    @utils.timeit('act ptrate consume')
     def ptrate(self, tensor, name, iter, win_size, thresh):
         if self.log_pnt[iter] == 1 \
                 and iter - win_size // 2 in self.log_pnt \
@@ -255,7 +253,6 @@ class ActStat(Stat):
             _iter, _val = self.ptrate_inst.pt_rate(tensor, name=name, iter=iter, win_size=win_size, thresh=thresh,
                                                    mode=mode)
         return _iter, _val
-    '''
 
 
 class Windows(object):

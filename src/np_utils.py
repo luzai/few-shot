@@ -62,17 +62,11 @@ def arr2df(arr, indexf):
 
 
 if __name__ == '__main__':
-    # from vis import Visualizer
-    # visualizer = Visualizer(join='outer', stat_only=True, paranet_folder='stat401_10')
-    # df = visualizer.perf_df
-    # arr, indexf = df2arr(df)
-    # print df.shape, arr.shape
-    # df2 = arr2df(arr, indexf)
+    from vis import Visualizer
+    visualizer = Visualizer(join='outer', stat_only=True, paranet_folder='stdtime')
+    df = visualizer.perf_df
+    arr, indexf = df2arr(df)
+    print df.shape, arr.shape
+    df2 = arr2df(arr, indexf)
 
-    grids = {'dataset': ['cifar10', ],
-             'model_type': ['vgg10', ],
-             'lr': np.logspace(-2, -3, 2),
-             'queue': [None]
-             }
-    for iter in grid_iter(grids):
-        print iter
+
