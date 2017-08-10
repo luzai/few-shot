@@ -33,34 +33,34 @@ class VGG(BaseModel):
         self.vis()
 
     def build(self, name):
-        x = input = Input(self.input_shape)
-        depth = 0
+        x = input = Input(self.input_shape,name='layer0/input')
+        depth = 1
         for config in self.arch:
             if config[0] == 'conv2d':
                 if not self.with_bn:
-                    x = Conv2D(config[1], (3, 3), padding='same', name='obs{}/conv2d'.format(depth))(x)
+                    x = Conv2D(config[1], (3, 3), padding='same', name='layer{}/conv2d'.format(depth))(x)
                     x = Activation('relu')(x)
                 else:
-                    x = Conv2D(config[1], (3, 3), padding='same', name='obs{}/conv2d'.format(depth))(x)
-                    x = BatchNormalization(axis=-1)(x)
+                    x = Conv2D(config[1], (3, 3), padding='same', name='layer{}/conv2d'.format(depth))(x)
+                    x = BatchNormalization(axis=-1,name='layer{}/batchnormalization'.format(depth))(x)
                     x = Activation('relu')(x)
+                if self.with_dp:
+                    x = Dropout(.35)(x)
                 depth += 1
             elif config[0] == 'maxpooling2d':
                 x = MaxPooling2D((2, 2), strides=(2, 2))(x)
-                if self.with_dp:
-                    x = Dropout(.25)(x)
             elif config[0] == 'flatten':
                 x = Flatten()(x)
             elif config[0] == 'dense' and config[1] != self.classes:
-                x = Dense(config[1], name='obs{}/dense'.format(depth))(x)
+                x = Dense(config[1], name='layer{}/dense'.format(depth))(x)
                 x = Activation('relu')(x)
                 depth += 1
                 if self.with_dp:
                     x = Dropout(.5)(x)
             else:
                 assert config[1] == self.classes, 'should be end'
-                x = Dense(config[1], name='obs{}/dense'.format(depth))(x)
-                x = Activation('softmax', name='obs{}/softmax'.format(depth))(x)
+                x = Dense(config[1], name='layer{}/dense'.format(depth))(x)
+                x = Activation('softmax', name='layer{}/softmax'.format(depth))(x)
 
         model = Model(input, x, name=name)
         return model

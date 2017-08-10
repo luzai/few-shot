@@ -210,7 +210,7 @@ def _get_block(identifier):
 
 class ResnetBuilder(object):
     @staticmethod
-    def build(input_shape, num_outputs, block_fn, repetitions):
+    def build(input_shape, num_outputs, block_fn, repetitions,name='model'):
         """Builds a custom ResNet like architecture.
 
         Args:
@@ -261,7 +261,7 @@ class ResnetBuilder(object):
             flatten1)  # obs
         dense = Activation('softmax', name='obs{}/softmax'.format(obs))(dense)  # obs
 
-        model = Model(inputs=input, outputs=dense)
+        model = Model(inputs=input, outputs=dense,name=name)
         return model
 
     @staticmethod
@@ -302,9 +302,5 @@ class ResNet(BaseModel):
             'resnet12': [1, 2, 1, 1]
         }
 
-        self.model = ResnetBuilder.build(input_shape, classes, basic_block, cfg[type])
+        self.model = ResnetBuilder.build(input_shape, classes, basic_block, cfg[type],name=config.name)
         self.vis()
-
-if __name__ == '__main__':
-    model = ResNet((32, 32, 3), 10)
-    model.model.summary()

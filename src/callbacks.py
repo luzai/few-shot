@@ -149,7 +149,7 @@ class TensorBoard2(Callback):
         assert self.batch == self.iter_per_epoch - 1, 'should equal '
 
         if not self.batch_based and self.validation_data:
-            logger.warning('Descrappted: Epoch {} record tf merged summary'.format(epoch))
+            logger.warning('DEPRECATED: Epoch {} record tf merged summary'.format(epoch))
             act_summ_str_l, weight_summ_str = self.get_act_param_summ_str()
             self.new_writer(act_summ_str_l, weight_summ_str, epoch)
 
@@ -307,6 +307,8 @@ class TensorBoard2(Callback):
 
 
 def schedule(epoch, x=(30., 100.), y=(10., 10.), init=0.01):
+    if x is None:
+        return init
     if not isinstance(x, tuple) and not isinstance(x, list):
         x = [x]
     if not isinstance(y, tuple) and not isinstance(y, list):

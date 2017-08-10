@@ -20,7 +20,7 @@ def run(model_type='vgg6', lr=1e-2, limit_val=True, dataset='cifar10', queue=Non
                     model_type=model_type,
                     dataset_type=dataset,
                     debug=osp.exists('dbg'),
-                    others={'lr': lr},
+                    others={'lr': lr,'runtime':runtime},
                     clean_after=False)
 
     dataset = Dataset(config.dataset_type, debug=config.debug, limit_val=limit_val)
@@ -37,20 +37,21 @@ def run(model_type='vgg6', lr=1e-2, limit_val=True, dataset='cifar10', queue=Non
         metrics=['accuracy'])
 
     if queue is not None: queue.put([True])
+    # todo callback monisotr fisrt epoch 
     model.model.fit(dataset.x_train, dataset.y_train, batch_size=config.batch_size, epochs=config.epochs,
                     verbose=config.verbose,
                     validation_data=(dataset.x_test, dataset.y_test),
                     callbacks=[
-                        TensorBoard2(tot_epochs=config.epochs,
-                                     log_dir=config.model_tfevents_path,
-                                     batch_size=config.batch_size,
-                                     write_graph=True,
-                                     write_grads=False,
-                                     dataset=dataset,
-                                     max_win_size=21 if osp.exists('dbg')  else 3,
-                                     stat_only=True,
-                                     batch_based=True
-                                     ),
+                        # TensorBoard2(tot_epochs=config.epochs,
+                        #              log_dir=config.model_tfevents_path,
+                        #              batch_size=config.batch_size,
+                        #              write_graph=True,
+                        #              write_grads=False,
+                        #              dataset=dataset,
+                        #              max_win_size=21 if osp.exists('dbg')  else 3,
+                        #              stat_only=True,
+                        #              batch_based=True
+                        #              ),
                         # TensorBoard(log_dir=config.model_tfevents_path)
                     ])
     if config.clean_after:
