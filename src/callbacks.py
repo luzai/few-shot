@@ -88,7 +88,7 @@ class TensorBoard2(Callback):
         self.act_l = {}
         if self.merged is None:
             for layer in self.model.layers:
-                if not layer.name.startswith('layer'):  # only log obs
+                if not layer.name.startswith('layer'):  # only log layer
                     continue
                 for weight in layer.weights:
                     # todo more clean way to name
@@ -203,13 +203,25 @@ class TensorBoard2(Callback):
     def get_param(self):
         res_kernel, res_bias = {}, {}
         for layer in self.model.layers:
-            if not layer.name.startswith('obs'): continue
-            # print layer.name
+            if not layer.name.startswith('layer'): continue
+            logger.debug(layer.name)
             weights = layer.get_weights()
+            # for _weight in weights:
+            #     print _weight.shape
             if weights == []: continue
-            kernel, bias = weights
-            res_kernel[clean_name(layer.name) + '/kernel'] = kernel
-            res_bias[clean_name(layer.name) + '/bias'] = bias
+            if len(weights) == 2:
+                kernel, bias = weights
+                res_kernel[clean_name(layer.name) + '/kernel'] = kernel
+                res_bias[clean_name(layer.name) + '/bias'] = bias
+            elif len(weights) == 4:
+                assert 'gamma' in layer.weights[0].name
+                gamma, beta, movingmean, movingvariance = weights
+                res_kernel[clean_name(layer.name) + '/gamma'] = gamma
+                res_bias[clean_name(layer.name) + '/beta'] = beta
+                res_bias[clean_name(layer.name) + '/movingmean'] = movingmean
+                res_bias[clean_name(layer.name) + '/movingvariance'] = movingvariance
+            else:
+                raise ValueError('how many '+len(weights))
         return res_kernel, res_bias
 
     def get_act(self):

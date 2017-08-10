@@ -190,7 +190,7 @@ class KernelStat(Stat):
         self.stat = utils.dict_concat([self.stat, _stat])
         self.totvar_inst = TotVar(self.window)
 
-    @utils.timeit('kernel ortho consume')
+    # @utils.timeit('kernel ortho consume')
     def orthogonality(self, tensor, name=None, iter=None, axis=-1):
         tensor = tensor.reshape(-1, tensor.shape[axis])
         angle = np.zeros((tensor.shape[axis], tensor.shape[axis]))
@@ -222,7 +222,7 @@ class ActStat(Stat):
         self.stat = utils.dict_concat([self.stat, _stat])
         self.ptrate_inst = PTRate(self.window)
 
-    @utils.timeit('act ortho comsume ')
+    # @utils.timeit('act ortho comsume ')
     def orthogonality(self, tensor, name=None, iter=None):
         # if len(tensor.shape) == 2:
         #     pass
@@ -237,7 +237,7 @@ class ActStat(Stat):
 
         return angle.mean()
 
-    @utils.timeit('act ptrate consume')
+    # @utils.timeit('act ptrate consume')
     def ptrate(self, tensor, name, iter, win_size, thresh):
         if self.log_pnt[iter] == 1 \
                 and iter - win_size // 2 in self.log_pnt \
