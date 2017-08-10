@@ -15,10 +15,10 @@ def run(model_type='vgg6', lr=1e-2, limit_val=True, dataset='cifar10', queue=Non
     from logs import logger
 
     # try:
-    config = Config(epochs=301, batch_size=256, verbose=2,
+    config = Config(epochs=11, batch_size=256, verbose=2,
                     model_type=model_type,
                     dataset_type=dataset,
-                    debug=False, others={'lr': lr}, clean_after=False)
+                    debug=osp.exists('dbg'), others={'lr': lr}, clean_after=False)
 
     dataset = Dataset(config.dataset_type, debug=config.debug, limit_val=limit_val)
     if 'vgg' in model_type:
@@ -44,7 +44,7 @@ def run(model_type='vgg6', lr=1e-2, limit_val=True, dataset='cifar10', queue=Non
                                      write_graph=True,
                                      write_grads=False,
                                      dataset=dataset,
-                                     max_win_size=33,
+                                     max_win_size=33 if osp.exists('dbg')  else 33 ,
                                      stat_only=True,
                                      batch_based=True
                                      ),
@@ -60,7 +60,7 @@ def run(model_type='vgg6', lr=1e-2, limit_val=True, dataset='cifar10', queue=Non
 
 import multiprocessing as mp, time
 from logs import logger
-import logs
+import logs,os.path as osp
 import numpy as np
 import utils,os
 

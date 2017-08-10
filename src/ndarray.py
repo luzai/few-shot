@@ -14,6 +14,9 @@ class MultiIndexFacilitate(object):
         self.names2ind = name2ind
         self.index = columns
 
+    def update(self):
+        self.index = pd.MultiIndex.from_product(self.levels,names=self.names)
+
 
 def get_shape(arr):
     return np.array(arr).shape
@@ -39,5 +42,4 @@ if __name__ == '__main__':
     df = visualizer.perf_df
     arr, indexf = df2arr(df)
     print df.shape, arr.shape
-    df2=arr2df(arr,indexf)
-    
+    df2 = arr2df(arr, indexf)

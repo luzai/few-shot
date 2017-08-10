@@ -6,9 +6,9 @@ import os, numpy as np, pandas as pd
 from logs import logger
 from stats import KernelStat, ActStat, BiasStat
 from utils import clean_name
-import utils, math ,itertools
+import utils, math, itertools,os.path as osp
 
-SAMPLE_RATE = 10
+SAMPLE_RATE = 10 if not osp.exists('dbg') else 1
 
 
 # tensorboard2 is batch beased
@@ -167,7 +167,6 @@ class TensorBoard2(Callback):
                 act_summ_str_l, weight_summ_str = self.get_act_param_summ_str()
                 self.new_writer(act_summ_str_l, weight_summ_str, iter)
             else:
-
                 act = self.get_act()
                 for name, val in act.iteritems():
                     self.write_df(self.act_stat.calc_all(val, name, iter))
@@ -178,17 +177,15 @@ class TensorBoard2(Callback):
                 for name, val in bias.iteritems():
                     self.write_df(self.bias_stat.calc_all(val, name, iter))
 
-
                 if self.iter >= self.iters - 1:
-                    stdtime_tensor=pd.DataFrame()
-                    for name,val in act.iteritems():
+                    stdtime_tensor = pd.DataFrame()
+                    for name, val in act.iteritems():
                         stdtime_tensor.loc[iter, name] = self.act_stat.stdtime(val, name, iter, how='tensor')
-                    for name,val in kernel.iteritems():
+                    for name, val in kernel.iteritems():
                         stdtime_tensor.loc[iter, name] = self.kernel_stat.stdtime(val, name, iter, how='tensor')
-                    for name,val in bias.iteritems():
+                    for name, val in bias.iteritems():
                         stdtime_tensor.loc[iter, name] = self.bias_stat.stdtime(val, name, iter, how='tensor')
-                    utils.write_df(stdtime_tensor,self.log_dir +'/stdtime')
-
+                    utils.write_df(stdtime_tensor, self.log_dir + '/stdtime')
 
             if self.log_pnts[self.iter] >= 2:
                 val_loss, val_acc = self.model.evaluate(self.dataset.x_test, self.dataset.y_test, verbose=2)
