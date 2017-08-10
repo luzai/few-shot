@@ -148,6 +148,15 @@ def unpickle(file_path):
     return data
 
 
+def write_df(df, path):
+    df.to_hdf(path, 'df', mode='w')
+
+
+def read_df(path):
+    pd.read_hdf(path, 'df')
+    return path
+
+
 def mkdir_p(path, delete=False):
     if delete:
         rm(path)

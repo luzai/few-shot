@@ -6,7 +6,7 @@ import os, numpy as np, pandas as pd
 from logs import logger
 from stats import KernelStat, ActStat, BiasStat
 from utils import clean_name
-import utils, math
+import utils, math ,itertools
 
 SAMPLE_RATE = 10
 
@@ -38,6 +38,7 @@ class TensorBoard2(Callback):
 
         self.merged = None
         self.iter_per_epoch = int(np.ceil(dataset.x_train.shape[0] / float(batch_size)))
+        self.iters = self.iter_per_epoch * self.epochs
         self.epoch, self.iter = 0, -1
         self.batch_based = batch_based
         self.stat_only = stat_only
@@ -125,7 +126,7 @@ class TensorBoard2(Callback):
         writer_weight.close()
 
     def judge_log(self, logs):
-        # todo sample scheme
+        # todo adapative sample scheme
         if self.iter in self.log_pnts:
             return True
         else:
@@ -162,18 +163,32 @@ class TensorBoard2(Callback):
         if self.validation_data and self.judge_log(logs):
             logger.debug('Epoch {} Batch {} Iter {} end'.format(self.epoch, self.batch, iter))
             if not self.stat_only:
-                logger.warning('Descrapted: log all weights to spltted dir')
+                logger.warning('Descrapted: log all weights to splited dir')
                 act_summ_str_l, weight_summ_str = self.get_act_param_summ_str()
                 self.new_writer(act_summ_str_l, weight_summ_str, iter)
             else:
+
                 act = self.get_act()
                 for name, val in act.iteritems():
                     self.write_df(self.act_stat.calc_all(val, name, iter))
+
                 kernel, bias = self.get_param()
                 for name, val in kernel.iteritems():
                     self.write_df(self.kernel_stat.calc_all(val, name, iter))
                 for name, val in bias.iteritems():
                     self.write_df(self.bias_stat.calc_all(val, name, iter))
+
+
+                if self.iter >= self.iters - 1:
+                    stdtime_tensor=pd.DataFrame()
+                    for name,val in act.iteritems():
+                        stdtime_tensor.loc[iter, name] = self.act_stat.stdtime(val, name, iter, how='tensor')
+                    for name,val in kernel.iteritems():
+                        stdtime_tensor.loc[iter, name] = self.kernel_stat.stdtime(val, name, iter, how='tensor')
+                    for name,val in bias.iteritems():
+                        stdtime_tensor.loc[iter, name] = self.bias_stat.stdtime(val, name, iter, how='tensor')
+                    utils.write_df(stdtime_tensor,self.log_dir +'/stdtime')
+
 
             if self.log_pnts[self.iter] >= 2:
                 val_loss, val_acc = self.model.evaluate(self.dataset.x_test, self.dataset.y_test, verbose=2)
@@ -291,10 +306,10 @@ class TensorBoard2(Callback):
 
 
 def schedule(epoch, x=(30., 100.), y=(10., 10.), init=0.01):
-    if not isinstance(x,tuple)and not isinstance(x,list):
-        x=[x]
-    if not isinstance(y,tuple)and not isinstance(y,list):
-        y=[y]
+    if not isinstance(x, tuple) and not isinstance(x, list):
+        x = [x]
+    if not isinstance(y, tuple) and not isinstance(y, list):
+        y = [y]
     x = list([float(_x) for _x in x])
     y = list([float(_y) for _y in y])
     func_l = [init]

@@ -66,10 +66,10 @@ class Stat(object):
     def diff(self, tensor, name=None, iter=None):
         if iter in self.log_pnt and self.log_pnt.loc[iter] == 3:
             return self.diff_inst.diff(tensor, iter, name)
-
-    def stdtime(self, tensor, name=None, iter=None):
+    '''
+    def stdtime(self, tensor, name=None, iter=None,how='mean'):
         if iter in self.log_pnt and self.log_pnt.loc[iter] == 3:
-            return self.stdtime_inst.online_std(tensor, iter, name)
+            return self.stdtime_inst.online_std(tensor, iter, name,how=how)
 
     def min(self, tensor, **kwargs):
         return tensor.min()
@@ -94,11 +94,6 @@ class Stat(object):
 
     def negmean(self, tensor, **kwargs):
         # todo do not observe softmax
-        name = kwargs.get('name')
-        # if (tensor > 0.).all():
-        #     logger.error(' softmax all positive? name {}'.format(name))
-        # elif (tensor < 0.).all():
-        #     logger.error('softmax all neg? name {}'.format(name))
         return tensor[tensor < 0].mean()
 
     def posproportion(self, tensor, **kwargs):
@@ -135,7 +130,7 @@ class Stat(object):
             _iter, _val = self.totvar_inst.tot_var(tensor, iter, name, win_size, mode)
 
         return _iter, _val
-
+    '''
     def calc_all(self, tensor, name, iter):
         calc_res = pd.DataFrame()
         level1 = ['totvar', 'ptrate']
@@ -192,7 +187,7 @@ class KernelStat(Stat):
                 del _stat[key]
         self.stat = utils.dict_concat([self.stat, _stat])
         self.totvar_inst = TotVar(self.window)
-
+    '''
     def orthogonality(self, tensor, name=None, iter=None, axis=-1):
         tensor = tensor.reshape(-1, tensor.shape[axis])
         angle = np.zeros((tensor.shape[axis], tensor.shape[axis]))
@@ -201,7 +196,7 @@ class KernelStat(Stat):
             it[0] = angle_between(tensor[:, it.multi_index[0]], tensor[:, it.multi_index[1]])
             it.iternext()
         return angle.mean()
-
+    '''
 
 class BiasStat(Stat):
     def __init__(self, max_win_size, log_pnt):
@@ -223,7 +218,7 @@ class ActStat(Stat):
                 del _stat[key]
         self.stat = utils.dict_concat([self.stat, _stat])
         self.ptrate_inst = PTRate(self.window)
-
+    '''
     def orthogonality(self, tensor, name=None, iter=None):
         # if len(tensor.shape) == 2:
         #     pass
@@ -253,7 +248,7 @@ class ActStat(Stat):
             _iter, _val = self.ptrate_inst.pt_rate(tensor, name=name, iter=iter, win_size=win_size, thresh=thresh,
                                                    mode=mode)
         return _iter, _val
-
+    '''
 
 class Windows(object):
     def __init__(self, max_win_size):
@@ -361,7 +356,7 @@ class PTRate(object):
             else:
                 _tensor = self.windows.get_tensor(name, win_size)
                 if 'act' in name and 'ptrate' in name and 'softmax' in name:
-                    print name, (_tensor>=0).all(),(tensor>=0).all()
+                    print name, (_tensor >= 0).all(), (tensor >= 0).all()
                 _tensor = _tensor.reshape(_tensor.shape[0], -1)
                 polarity_time_space = (-np.sign(_tensor[1:] * _tensor[:-1]) + 1.) / 2.
                 polarity_space = polarity_time_space.mean(axis=0)
@@ -417,13 +412,13 @@ class OnlineStd(object):
         self.interval = interval
         self.last_iter = {}
 
-    def online_std(self, tensor, iter, name):
+    def online_std(self, tensor, iter, name, how='mean'):
         if name not in self.last_iter or self.last_iter[name] + self.interval == iter:
             if name not in self.last_std:
                 self.last_std[name] = self._OnlineStd()
             self.last_iter[name] = iter
             self.last_std[name].include(tensor)
-        return np.mean(self.last_std[name].std)
+        return np.mean(self.last_std[name].std) if how == 'mean' else self.last_std[name].std
 
 
 class Diff(object):

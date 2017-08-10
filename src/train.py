@@ -27,11 +27,8 @@ def run(model_type='vgg6', lr=1e-2, limit_val=True, dataset='cifar10', queue=Non
         model = ResNet(dataset.input_shape, dataset.classes, config, with_bn=True, with_dp=True)
 
     model.model.summary()
-    # todo lr scheme
-    # todo verify!! validation dataset size sensitivity
     model.model.compile(
         # keras.optimizers.rmsprop(lr=0.0001, decay=1e-6),
-        # in fact rmsprop is much better at least on small dataset
         keras.optimizers.sgd(lr, momentum=0.9),
         loss='categorical_crossentropy',
         metrics=['accuracy'])
@@ -76,11 +73,13 @@ if os.path.exists('dbg'):
 else:
     queue = mp.Queue()
     tasks = []
-    for dataset in ['cifar10', 'cifar100']:  # , 'cifar100'
-        for model_type in ['vgg10', 'resnet10', ]:  # 'vgg8', 'resnet8','vgg6', 'resnet6',
-            for lr in np.concatenate((np.logspace(-2, -3, 2), np.logspace(-1.5, -2.5, 0))):  # 10,1e-1, 1e-3, 1e-5
+    for dataset in ['cifar10']:  # , 'cifar100'
+        for model_type in ['vgg10', 'resnet10']:  # 'vgg8', 'resnet8','vgg6', 'resnet6',
+            for lr in np.concatenate((np.logspace(-2, -3, 2), np.logspace(-1.5, -2.5, 0))):
                 print dataset, model_type, lr
-                p = mp.Process(target=run, args=(model_type, lr, True, dataset, queue))
+                p = mp.Process(target=run, kwargs=dict(model_type=model_type, lr=lr,
+                                                       dataset=dataset, queue=queue,
+                                                       ))
                 p.start()
                 tasks.append(p)
                 _res = queue.get()

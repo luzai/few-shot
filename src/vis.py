@@ -633,7 +633,7 @@ def map_name(names):
 
 if __name__ == '__main__':
     tic = time.time()
-    for parant_folder in ['stat301_10']:
+    for parant_folder in ['stat401_10']:
         visualizer = Visualizer(join='outer', stat_only=True, paranet_folder=parant_folder)
         subplots(visualizer, path_suffix=parant_folder.strip('stat'))
         heatmap(parant_folder)
