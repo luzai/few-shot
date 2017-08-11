@@ -13,7 +13,10 @@ class BaseModel(object):
     def vis(self):
         from keras.utils import vis_utils
         # vis_utils.plot_model(self.model,show_shapes=True, to_file=self.model_output_path + '/model.png')
-        vis_utils.plot_model(self.model,show_shapes=True, to_file=self.model_output_path + '/model.pdf')
+        try:
+            vis_utils.plot_model(self.model,show_shapes=True, to_file=self.model_output_path + '/model.pdf')
+        except:
+            pass
 
     def save(self):
         self.model.save(self.model_output_path + '/model.h5')

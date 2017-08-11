@@ -1,0 +1,5 @@
+{
+    "epochs": 51,
+    "sample_rate": 10,
+    "logger_level": "info"
+}
