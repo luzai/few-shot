@@ -62,7 +62,7 @@ def arr2df(arr, indexf):
 
 
 if __name__ == '__main__':
-    from vis import Visualizer
+    from vis_utils import Visualizer
     visualizer = Visualizer(join='outer', stat_only=True, paranet_folder='stdtime')
     df = visualizer.perf_df
     arr, indexf = df2arr(df)

@@ -17,12 +17,14 @@ root_path = osp.normpath(
 
 def init_dev(n=0):
     import os
+    from os.path import expanduser
+    home = expanduser("~")
     os.environ["CUDA_VISIBLE_DEVICES"] = str(n)
-    os.environ['PATH'] = '$HOME/cuda-8.0/bin:' + os.environ['PATH']
-    os.environ['PATH'] = '/home/wangxinglu/anaconda2/bin:' + os.environ['PATH']
-    os.environ['PATH'] = '/usr/local/cuda-8.0/bin:' + os.environ['PATH']
+    os.environ['PATH'] = home+'/cuda-8.0/bin:' + os.environ['PATH']
+    os.environ['PATH'] = home+'anaconda2/bin:' + os.environ['PATH']
+    os.environ['PATH'] = home+'/usr/local/cuda-8.0/bin:' + os.environ['PATH']
 
-    os.environ['LD_LIBRARY_PATH'] = '$HOME/cuda-8.0/lib64'
+    os.environ['LD_LIBRARY_PATH'] = home+'/cuda-8.0/lib64'
     os.environ['LD_LIBRARY_PATH'] = '/usr/local/cuda-8.0/lib64'
     # os.environ['PYTHONWARNINGS'] = "ignore"
 

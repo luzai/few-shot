@@ -5,7 +5,7 @@ def run(model_type='vgg6', lr=1e-2, limit_val=True,
     import warnings
     warnings.filterwarnings("ignore")
 
-    utils.init_dev(utils.get_dev())
+    utils.init_dev(utils.get_dev(ok=(0, 1, 2, 3, 4, 5, 6, 7)))
     utils.allow_growth()
     import tensorflow as tf, keras
     from callbacks import TensorBoard2
@@ -17,7 +17,7 @@ def run(model_type='vgg6', lr=1e-2, limit_val=True,
     from logs import logger
 
     # try:
-    config = Config(epochs=301 if not osp.exists('dbg') else 5,
+    config = Config(epochs=201 if not osp.exists('dbg') else 5,
                     batch_size=256, verbose=2,
                     model_type=model_type,
                     dataset_type=dataset,
@@ -73,7 +73,7 @@ import utils, os, np_utils
 utils.rm(utils.root_path + '/tfevents  ' + utils.root_path + '/output')
 tasks = []
 if os.path.exists('dbg'):
-    queue=mp.Queue()
+    queue = mp.Queue()
     logger.error('!!! your are in dbg')
     run('vgg10', dataset='cifar10', lr=1e-2)
     # run('resnet10', dataset='cifar10', lr=1e-3)
@@ -89,11 +89,11 @@ else:
     #          }
 
     grids = {'dataset': ['cifar10', ],
-             'model_type': ['vgg10', 'vgg16', 'vgg19'],
-             'lr': np.logspace(-2, -3, 2),
+             'model_type': ['vgg10'],  # 'vgg16', , 'vgg19'
+             'lr': np.logspace(-2, -3, 1),
              'queue': [queue, ],
              'runtime': [1, ],
-             'with_bn': [True]
+             'with_bn': [True, False]
              }
 
     for grid in np_utils.grid_iter(grids):

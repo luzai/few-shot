@@ -9,7 +9,7 @@ from utils import clean_name
 
 import utils, math, itertools, os.path as osp, np_utils
 
-SAMPLE_RATE = 10 if not osp.exists('dbg') else 1
+SAMPLE_RATE = 100 if not osp.exists('dbg') else 1  # todo all in one place
 
 
 # tensorboard2 is batch beased
@@ -69,7 +69,8 @@ class TensorBoard2(Callback):
             ])
         log_pnts = series.append(series1).sort_index()
         log_pnts.index = - log_pnts.index.min() + log_pnts.index
-        utils.pickle(log_pnts, './tmp.pkl')
+        # utils.pickle(log_pnts, './tmp.pkl')
+        if not np.array_equal(log_pnts.index, np.unique(log_pnts.index)): logger.error('!! alias in sample!!')
         log_pnts = log_pnts.groupby(log_pnts.index).max()
 
         self.log_pnts = log_pnts
@@ -221,7 +222,7 @@ class TensorBoard2(Callback):
                 res_bias[clean_name(layer.name) + '/movingmean'] = movingmean
                 res_bias[clean_name(layer.name) + '/movingvariance'] = movingvariance
             else:
-                raise ValueError('how many '+len(weights))
+                raise ValueError('how many ' + len(weights))
         return res_kernel, res_bias
 
     def get_act(self):
@@ -341,7 +342,7 @@ if __name__ == '__main__':
     for i in range(0, 999, 2):
         print schedule(i)
     y = [schedule(i) for i in range(0, 999, 2)]
-    from vis import *
+    from vis_utils import *
 
     plt.plot(y)
     plt.show()

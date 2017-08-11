@@ -19,6 +19,10 @@ class Dataset(object):
             (x_train, y_train), (x_test, y_test) = cifar100.load_data()
         elif name == 'imagenet':
             raise ValueError('Not Implement')
+        elif name =='svhn':
+            self.input_shape = (32, 32, 3)
+            self.classes = 10
+            (x_train, y_train), (x_test, y_test) = load_data_svhn()
         y_train = keras.utils.to_categorical(y_train, self.classes)
         y_test = keras.utils.to_categorical(y_test, self.classes)
         x_train = x_train.astype('float32')
@@ -98,8 +102,8 @@ def load_data_svhn():
 
 if __name__ == '__main__':
     config = Config(epochs=301, batch_size=256, verbose=2,
-                    model_type='vgg5',
-                    dataset_type='cifar10',
+                    model_type='vgg6',
+                    dataset_type='svhn',
                     debug=False)
 
     dataset = Dataset(config.dataset_type, debug=config.debug)
