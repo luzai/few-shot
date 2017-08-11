@@ -11,6 +11,7 @@ import utils, math, itertools, os.path as osp, np_utils
 
 SAMPLE_RATE = utils.get_config()['sample_rate']
 
+
 # tensorboard2 is batch beased
 class TensorBoard2(Callback):
   def __init__(self,
@@ -44,13 +45,18 @@ class TensorBoard2(Callback):
     self.stat_only = stat_only
     
     series = pd.Series(data=3,
-                       index=np.arange(start=0, stop=self.epochs, step=SAMPLE_RATE) * self.iter_per_epoch)
+                       index=(np.arange(start=0,
+                                        stop=utils.get_config()['epochs'],
+                                        step=1. / SAMPLE_RATE) *
+                              self.iter_per_epoch).astype(np.int64)
+                       )
+    print series
     series1 = pd.Series()
     for (ind0, _), (ind1, _) in zip(series.iloc[:-1].iteritems(), series.iloc[1:].iteritems()):
-      if ind0 < 30 * self.iter_per_epoch:
-        sample_rate = 4
-      elif ind0 < 100 * self.iter_per_epoch:
-        sample_rate = 2
+      if ind0 < 10 * self.iter_per_epoch:
+        sample_rate = 5
+      elif ind0 < 20 * self.iter_per_epoch:
+        sample_rate = 3
       else:
         sample_rate = 1
       
@@ -69,7 +75,9 @@ class TensorBoard2(Callback):
     log_pnts = series.append(series1).sort_index()
     log_pnts.index = - log_pnts.index.min() + log_pnts.index
     # utils.pickle(log_pnts, './tmp.pkl')
-    if not np.array_equal(log_pnts.index, np.unique(log_pnts.index)): logger.error('!! alias in sample!!')
+    if not np.array_equal(np.array(log_pnts.index), np.unique(log_pnts.index)):
+      logger.error('!! alias in sample!!')
+      exit(200)
     log_pnts = log_pnts.groupby(log_pnts.index).max()
     
     self.log_pnts = log_pnts
@@ -225,7 +233,10 @@ class TensorBoard2(Callback):
     return res_kernel, res_bias
   
   def get_act(self):
-    val_data = self.validation_data
+    val_data = [self.dataset.x_test_ref, self.dataset.y_test_ref, np.ones_like(self.validation_data[2]),
+                np.zeros_like(self.validation_data[3])]
+    # val_data = self.validation_data
+    
     tensors = (self.model.inputs +
                self.model.targets +
                self.model.sample_weights)

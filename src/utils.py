@@ -199,7 +199,7 @@ def vis_model(model, name='model', show_shapes=True):
 
 
 def vis_graph(graph, name='net2net', show=False):
-  import logger
+  from logs import logger
   import networkx as nx
   path = osp.dirname(name)
   name = osp.basename(name)
@@ -381,7 +381,7 @@ def check_md5sum():
 
 def merge_pdf(names):
   from pyPdf import PdfFileWriter, PdfFileReader
-  import logger
+  from logs import  logger
   
   # Creating a routine that appends files to the output file
   def append_pdf(input, output):

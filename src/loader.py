@@ -278,11 +278,11 @@ class Loader(threading.Thread):
             else:
                 self.params = select(df, "^obs.*?(?:kernel|bias).*")
                 cache(self.params, path)
-        if osp.exists('dbg'):
+        if utils.get_config()['dbg']:
             self.scalars = self.scalars.iloc[:6, :]  # dbg !
             self.params = self.params.iloc[:6, :]  # dbg !
             self.act = self.act.iloc[:6, :]  # dbg !
-            logger.info('dbg mod load scalars shape {}'.format(self.scalars.shape))
+            logger.info('!!!dbg mod load scalars shape {}'.format(self.scalars.shape))
 
 
 if __name__ == '__main__':

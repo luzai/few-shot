@@ -33,7 +33,6 @@ matplotlib.style.use('ggplot')
 
 Axes3D
 
-
 def drop_level(perf_df, other_name=None, keep_num_levels=3):
   perf_df = perf_df.copy()
   columns = perf_df.columns
@@ -269,7 +268,7 @@ def plot(perf_df, axes_names, other_names=None, legend=True):
   from cycler import cycler
   
   # # arrange xlabel ylabel
-  if not osp.exists('dbg'):
+  if not utils.get_config()['dbg']:
     figsize = (4.2 * cols, 2.25 * rows)
   else:
     logger.info('dbg small fig mode')
@@ -645,7 +644,7 @@ if __name__ == '__main__':
   print time.time() - tic
   
   # dataset, model_type = 'cifar100', 'resnet10'
-
+  
   # for lr in [0, 2, 4]:
   #     t_sne(visualizer, model_type, dataset, lr)
   # for dataset in ['cifar10', 'cifar100']:  # , 'cifar100'

@@ -31,7 +31,7 @@ class Dataset(object):
       x_test = x_test[...,np.newaxis]
     
     print x_train.shape
-    
+    # todo fix dataset bug
     y_train = keras.utils.to_categorical(y_train, self.classes)
     y_test = keras.utils.to_categorical(y_test, self.classes)
     x_train = x_train.astype('float32')
@@ -40,11 +40,14 @@ class Dataset(object):
     x_test /= 255
     self.x_train, self.y_train, self.x_test, self.y_test = x_train, y_train, x_test, y_test
     if limit_val:
-      self.x_test, self.y_test = map(sample_data, [self.x_test, self.y_test])
-    if debug:
-      self.x_train, self.y_train, self.x_test, self.y_test = map(limit_data,
-                                                                 [self.x_train, self.y_train,
-                                                                  self.x_test, self.y_test])
+      self.x_test_ref, self.y_test_ref = map(sample_data, [self.x_test, self.y_test])
+    # if debug:
+    #   self.x_train, self.y_train, self.x_test, self.y_test = map(limit_data,
+    #                                                              [self.x_train, self.y_train,
+    #                                                               self.x_test, self.y_test])
+    
+    
+    
 
 
 @utils.static_vars(ind=None)

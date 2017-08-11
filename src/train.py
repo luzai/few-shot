@@ -17,12 +17,14 @@ def run(model_type='vgg6', lr=1e-2, limit_val=True,
   from logs import logger
   import utils, configs
   # try:
-  config = Config(epochs=utils.get_config()['epochs'] if not osp.exists('dbg') else 5,
+  config = Config(epochs=utils.get_config()['epochs'] if not utils.get_config()['dbg'] else 5,
                   batch_size=256, verbose=2,
                   model_type=model_type,
                   dataset_type=dataset,
-                  debug=osp.exists('dbg'),
-                  others={'lr': lr, 'runtime': runtime},
+                  debug=False,
+                  others={'lr'     : lr,
+                          'runtime': runtime,
+                          'with_bn': with_bn, },
                   clean_after=False)
   
   dataset = Dataset(config.dataset_type, debug=config.debug, limit_val=limit_val)
@@ -72,7 +74,7 @@ import utils, os, np_utils
 
 utils.rm(utils.root_path + '/tfevents  ' + utils.root_path + '/output')
 tasks = []
-if os.path.exists('dbg'):
+if utils.get_config()['dbg']:
   queue = mp.Queue()
   logger.error('!!! your are in dbg')
   run('vgg10', dataset='mnist', lr=1e-2)

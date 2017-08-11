@@ -197,12 +197,21 @@ class KernelStat(Stat):
     tensor = tensor - tensor.mean(axis=-1).reshape(-1, 1)
     cov = np.dot(tensor.T, tensor) / tensor.shape[-1]
     # cov =np.abs(cov)
-    cov **=2
+    cov **= 2
     # if (cov>=0).all():
     #   logger.info('all pos')
     # U, S, V = np.linalg.svd(cov)
     if np.isclose(cov.sum(), [0.])[0]:
-      logger.error('dive by zero!!')
+      logger.info('cov sum small but may not be zero' + str(cov.sum()))
+      
+    # tensor = tensor.reshape(-1, tensor.shape[axis])
+    # angle = np.zeros((tensor.shape[axis], tensor.shape[axis]))
+    # it = np.nditer(angle, flags=['multi_index'], op_flags=['writeonly'])
+    # while not it.finished:
+    #   it[0] = angle_between(tensor[:, it.multi_index[0]], tensor[:, it.multi_index[1]])
+    #   it.iternext()
+    # method2= angle.mean()
+    
     return np.diag(cov).sum() / cov.sum()
 
 
@@ -239,7 +248,7 @@ class ActStat(Stat):
     cov **= 2
     # U, S, V = np.linalg.svd(cov)
     if np.isclose(cov.sum(), [0.])[0]:
-      logger.error('dive by zero!!')
+      logger.info('cov sum small but may not be zero' + str(cov.sum()))
     return np.diag(cov).sum() / cov.sum()
   
   @utils.timeit('act ptrate consume')
@@ -298,42 +307,6 @@ class Windows(object):
     _queue = self.l_iter
     return _queue[- (win_size // 2) - 1]
 
-
-## Still not solve mem move problem
-# class Windows(object):
-#     def __init__(self, max_win_size):
-#         self.l_tensor = {}
-#         self.l_iter = Queue.deque(maxlen=max_win_size)
-#         self.max_win_size = max_win_size
-#
-#     def isfull(self, name, win_size):
-#         if name in self.l_tensor and self.l_tensor[name].shape[0] >= win_size:
-#             return True
-#         else:
-#             return False
-#
-#     def include(self, tensor, iter, name, win_size):
-#         # tensor = tensor.reshape((1,) + tensor.shape)
-#         if not self.l_iter or self.l_iter[-1] != iter:
-#             self.l_iter.append(iter)
-#
-#         if not self.isfull(name, win_size):
-#             if name not in self.l_tensor:
-#                 pre_alloc = np.empty((self.max_win_size,) + tensor.shape)
-#                 pre_alloc[0] = tensor
-#                 self.l_tensor[name] = pre_alloc
-#             else:
-#                 self.l_tensor[name][len(self.l_iter)] = tensor
-#         else:
-#             self.l_tensor[name][:-1] = self.l_tensor[name][1:]
-#             self.l_tensor[name][-1] = tensor
-#
-#     def get_tensor(self, name, win_size):
-#         return self.l_tensor[name][-win_size:]
-#
-#     def get_iter(self, win_size):
-#         _queue = self.l_iter
-#         return _queue[- (win_size // 2) - 1]
 
 
 class TotVar(object):
@@ -502,9 +475,11 @@ if __name__ == '__main__':
   kernel_stat = KernelStat(max_win_size=max_win_size, log_pnt=log_pnts)
   
   for _ind in range(epochs * iter_per_epoch):
-    v = np.random.randn(3, 4, 5, 32) * (_ind + 1) / 100.
+    v = np.random.randn(10000, 10) * (_ind + 1) / 100.
     _res = kernel_stat.calc_all(v, 'ok/kernel', _ind)
-    _res = act_stat.calc_all(v, 'ok/kernel', _ind)
+    res.append(_res)
+    v = np.random.randn(10, 10000) * (_ind + 1) / 100.
+    _res = act_stat.calc_all(v, 'ok/act', _ind)
     res.append(_res)
   
   df = pd.concat(res)
@@ -512,5 +487,6 @@ if __name__ == '__main__':
   df = df.groupby(df.index).sum()
   df.head()
   
-  
   print df['ok/kernel/orthogonality']
+  print df['ok/act/orthogonality']
+
