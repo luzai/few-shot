@@ -82,6 +82,7 @@ for grid in np_utils.grid_iter(grids):
   if utils.get_config('dbg'):
     logger.error('!!! your are in dbg')
     run(**grid)
+    break
   else:
     p = mp.Process(target=run, kwargs=utils.dict_concat([grid, {'queue': queue}]))
     p.start()

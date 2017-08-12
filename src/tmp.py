@@ -62,7 +62,7 @@ def run(model_type='vgg5', lr=1e-3,
   # except Exception as inst:
   #     print inst
   #     exit(100)
-
+# todo merge into train
 
 import multiprocessing as mp, time
 from logs import logger

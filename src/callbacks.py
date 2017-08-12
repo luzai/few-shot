@@ -72,7 +72,7 @@ class TensorBoard2(Callback):
       ])
     log_pnts = series.append(series1).sort_index()
     log_pnts.index = - log_pnts.index.min() + log_pnts.index
-    # utils.pickle(log_pnts, './tmp.pkl')
+    # utils.pickle(log_pnts, './log.pkl')
     if not np.array_equal(np.array(log_pnts.index), np.unique(log_pnts.index)):
       logger.info(' ok !! alias in sample')
     log_pnts = log_pnts.groupby(log_pnts.index).max()
@@ -187,14 +187,22 @@ class TensorBoard2(Callback):
           self.write_df(self.bias_stat.calc_all(val, name, iter))
         
         if self.iter >= self.log_pnts.index[-1]:
-          stdtime_tensor = {}
-          for name, val in act.iteritems():
-            stdtime_tensor[(iter, name)] = self.act_stat.stdtime(val, name, iter, how='tensor')
-          for name, val in kernel.iteritems():
-            stdtime_tensor[(iter, name)] = self.kernel_stat.stdtime(val, name, iter, how='tensor')
-          for name, val in bias.iteritems():
-            stdtime_tensor[(iter, name)] = self.bias_stat.stdtime(val, name, iter, how='tensor')
-          utils.write_df(np_utils.dict2df(stdtime_tensor), self.log_dir + '/stdtime.h5')
+          # stdtime_tensor = {}
+          # for name, val in act.iteritems():
+          #   stdtime_tensor[(iter, name)] = self.act_stat.stdtime_inst.last_std[name]
+          # for name, val in kernel.iteritems():
+          #   stdtime_tensor[(iter, name)] = self.kernel_stat.stdtime_inst.last_std[name]
+          # for name, val in bias.iteritems():
+          #   stdtime_tensor[(iter, name)] = self.bias_stat.stdtime_inst.last_std[name]
+          # utils.write_df(np_utils.dict2df(stdtime_tensor), self.log_dir + '/stdtime.h5')
+          utils.pickle(self.act_stat.stdtime_inst.record,'act_cache.pkl')
+          utils.pickle(self.kernel_stat.stdtime_inst.record,'kernel_cache.pkl')
+          utils.pickle(self.bias_stat.stdtime_inst.record,'bias_cache.pkl')
+          
+          example_df = self.act_stat.stdtime_inst.df.join(
+              [self.kernel_stat.stdtime_inst.df, self.bias_stat.stdtime_inst.df],
+              how='outer')
+          self.write_df(example_df)
       
       if self.log_pnts[self.iter] >= 2:
         val_loss, val_acc = self.model.evaluate(self.dataset.x_test, self.dataset.y_test, verbose=2)

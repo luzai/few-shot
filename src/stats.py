@@ -66,9 +66,7 @@ class Stat(object):
       return self.diff_inst.diff(tensor, iter, name)
   
   def stdtime(self, tensor, name=None, iter=None, how='mean'):
-    if iter in self.log_pnt and self.log_pnt.loc[iter] == 3:
-      return self.stdtime_inst.online_std(tensor, iter, name, how=how)
-    elif how == 'tensor':
+    if iter in self.log_pnt and self.log_pnt.loc[iter] == 3 or how == 'tensor':
       return self.stdtime_inst.online_std(tensor, iter, name, how=how)
   
   def min(self, tensor, **kwargs):
@@ -387,14 +385,51 @@ class OnlineStd(object):
     self.last_std = {}
     self.interval = interval
     self.last_iter = {}
+    self.record = {}
+    self.record_min = {}
+    self.df = pd.DataFrame()
   
-  def online_std(self, tensor, iter, name, how='mean'):
+  def online_std(self, tensor, iter, name, how='mean'):  # todo no how any more
     if name not in self.last_iter or iter - self.last_iter[name] >= self.interval:
       if name not in self.last_std:
         self.last_std[name] = self._OnlineStd()
       self.last_iter[name] = iter
       self.last_std[name].include(tensor)
-    return np.mean(self.last_std[name].std) if how == 'mean' else self.last_std[name].std
+      
+      if not np.isnan(self.last_std[name].std).any():
+        # # method 1
+        # record_ = np.argmax(self.last_std[name].std).astype(int)
+        # if len(self.record.get(name, set())) < 100:
+        #   self.record[name] = self.record.get(name, set())
+        #   self.record[name].add(record_)
+        # else:
+        #   logger.info('stdtime max capacity is 100')
+        #
+        # record_ = np.argmin(self.last_std[name].std).astype(int)
+        # if len(self.record_min.get(name, set())) < 100:
+        #   self.record_min[name] = self.record_min.get(name, set())
+        #   self.record[name].add(record_)
+        # else:
+        #   logger.info('stdtime min capacity is 100')
+        # # method 2
+        cap = 100
+        self.record[name] = self.last_std[name].std.ravel().argsort()[-cap:][::-1]
+        self.record_min[name] = self.last_std[name].std.ravel().argsort()[-cap:][::-1]
+        # # method 3
+        
+        
+        for record_ in self.record[name]:
+          self.df.loc[iter, name + '/example-max/' + str(record_)] = tensor.ravel()[record_]
+        
+        for record_ in self.record_min[name]:
+          self.df.loc[iter, name + '/example-min/' + str(record_)] = tensor.ravel()[record_]
+    
+    if how == 'mean':
+      stdtime_ = np.mean(self.last_std[name].std)
+    else:
+      stdtime_ = self.last_std[name].std
+    
+    return stdtime_
 
 
 class Diff(object):
@@ -458,9 +493,9 @@ def fake_data(max_win_size, epochs, iter_per_epoch):
 
 
 if __name__ == '__main__':
-  epochs = 13
+  epochs = 11
   iter_per_epoch = 196
-  max_win_size = 11
+  max_win_size = 2
   log_pnts = fake_data(max_win_size, epochs, iter_per_epoch)
   
   res = []

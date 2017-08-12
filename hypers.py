@@ -1,19 +1,19 @@
 import numpy as np
 
 hyper = {
-  "use"         : "lr_search",
+  "use"         : "cifar10",
   "logger_level": "info",
-  "dbg"         : 1,
+  "dbg"         : False,
   # bn ?
   "cifar10"     : {
-    "epochs"         : 201,
+    "epochs"         : 101,
     "sample_rate"    : 1,  # epoch^-1
     "sub_sample"     : [10, 30],  # epoch
-    "sub_sample_rate": [4, 2, 1],
+    "sub_sample_rate": [3, 2, 1],
     "grids"          : {
       'dataset'   : ['cifar10', ],
       'model_type': ['vgg6'],  # 'vgg16', , 'vgg19'
-      'lr'        : np.logspace(-2, -3, 2),
+      'lr'        : np.logspace(-2, -3, 1),
       'with_bn'   : [True, False]
     }
   },

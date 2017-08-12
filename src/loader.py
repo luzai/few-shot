@@ -211,7 +211,7 @@ class ActLoader(MultiLoader):
     return tensor
 
 
-def select(df, pattern):
+def _select(df, pattern):
   poss_name = df.columns
   selected_name = set()
   pattern = re.compile(pattern)
@@ -243,7 +243,7 @@ class Loader(threading.Thread):
       self.scalars = res
     else:
       self.scalars = ScalarLoader(path=path).load_scalars()
-      cache(select(self.scalars, "(?:val_loss|loss|val_acc|acc)"), path)
+      cache(_select(self.scalars, "(?:val_loss|loss|val_acc|acc)"), path)
     logger.info('load scalars consume {}'.format(timer.toc()))
     
     if not stat_only:
@@ -261,14 +261,14 @@ class Loader(threading.Thread):
       logger.info('load param consume {}'.format(timer.toc()))
     else:
       df = self.scalars
-      self.scalars = select(df, "(?:val_loss|loss|val_acc|acc)")  # .columns
+      self.scalars = _select(df, "(?:val_loss|loss|val_acc|acc)")  # .columns
       
       path = self.path + '/act'
       res = check_cache(path)
       if res is not None:
         self.act = res
       else:
-        self.act = select(df, "^layer.*?act.*")  # .columns
+        self.act = _select(df, "^layer.*?act.*")  # .columns
         cache(self.act, path)
       
       path = self.path + '/params'
@@ -276,18 +276,18 @@ class Loader(threading.Thread):
       if res is not None:
         self.params = res
       else:
-        self.params = select(df, "^layer.*?(?:kernel|bias).*")
+        self.params = _select(df, "^layer.*?(?:kernel|bias).*")
         cache(self.params, path)
-    if utils.get_config('dbg'):
-      self.scalars = self.scalars.iloc[:6, :]  # dbg !
-      self.params = self.params.iloc[:6, :]  # dbg !
-      self.act = self.act.iloc[:6, :]  # dbg !
-      logger.info('!!!dbg mod load scalars shape {}'.format(self.scalars.shape))
+    # if utils.get_config('dbg'):
+    #   self.scalars = self.scalars.iloc[:6, :]  # dbg !
+    #   self.params = self.params.iloc[:6, :]  # dbg !
+    #   self.act = self.act.iloc[:6, :]  # dbg !
+    #   logger.info('!!!dbg mod load scalars shape {}'.format(self.scalars.shape))
 
 
 if __name__ == '__main__':
   
-  for path in glob.glob(Config.root_path + '/stdtime/*'):
+  for path in glob.glob(Config.root_path + '/stdtime3/*'):
     print path
     # try:
     loader = Loader(path=path, stat_only=True)

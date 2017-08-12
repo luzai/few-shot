@@ -637,10 +637,10 @@ def map_name(names):
 
 if __name__ == '__main__':
   tic = time.time()
-  for parant_folder in ['stdtime']:
+  for parant_folder in ['stdtime2']:
     visualizer = Visualizer(join='outer', stat_only=True, paranet_folder=parant_folder)
-    subplots(visualizer, path_suffix=parant_folder.strip('stat'))
-    heatmap(parant_folder)
+    # subplots(visualizer, path_suffix=parant_folder.strip('stat'))
+    # heatmap(parant_folder)
   print time.time() - tic
   
   # dataset, model_type = 'cifar100', 'resnet10'
