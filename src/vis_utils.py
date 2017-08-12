@@ -190,7 +190,7 @@ class Visualizer(object):
   
   def split(self):
     self.perf_df = select(self.df, {'name': "(?:val_loss|loss|val_acc|acc)"})
-    self.stat_df = select(self.df, {'name': "(?:^obs.*|^layer.*)"})
+    self.stat_df = select(self.df, {'name': "(?:^layer.*|^layer.*)"})
   
   def aggregate(self, join, parant_folder, stat_only):
     conf_name_dict = {}

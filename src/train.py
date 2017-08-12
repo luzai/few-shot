@@ -17,8 +17,6 @@ def run(model_type='vgg6', lr=1e-2, limit_val=True,
   from logs import logger
   import utils, configs
   # try:
-
-
   config = Config(epochs=utils.get_config('epochs'),
                   batch_size=256, verbose=2,
                   model_type=model_type,
@@ -54,7 +52,7 @@ def run(model_type='vgg6', lr=1e-2, limit_val=True,
                                  write_graph=True,
                                  write_grads=False,
                                  dataset=dataset,
-                                 max_win_size=31 if utils.get_config()['dbg'] else 3,
+                                 max_win_size=9,
                                  stat_only=True,
                                  batch_based=True
                                  ),
@@ -74,39 +72,22 @@ import logs, os.path as osp
 import numpy as np
 import utils, os, np_utils
 
-
 utils.rm(utils.root_path + '/tfevents  ' + utils.root_path + '/output')
 tasks = []
-if utils.get_config()['dbg']:
-  queue = mp.Queue()
-  logger.error('!!! your are in dbg')
-  run('vgg10', dataset='mnist', lr=1e-2)
-  # run('resnet10', dataset='cifar10', lr=1e-3)
-else:
-  queue = mp.Queue()
-  
-  # grids = {'dataset': ['cifar10', ],
-  #          'model_type': ['vgg10', ],
-  #          'lr': np.logspace(-2, -3, 2),
-  #          'queue': [queue, ],
-  #          'runtime': [1, ]
-  #          }
-  
-  grids = {'dataset'   : ['cifar10', ],
-           'model_type': ['vgg6'],  # 'vgg16', , 'vgg19'
-           'lr'        : np.logspace(-2, -3, 2),
-           'queue'     : [queue, ],
-           'runtime'   : [1, ],
-           'with_bn'   : [True, False]
-           }
-  
-  for grid in np_utils.grid_iter(grids):
-    print grid
-    p = mp.Process(target=run, kwargs=grid)
+
+queue = mp.Queue()
+grids = utils.get_config('grids')
+for grid in np_utils.grid_iter(grids):
+  print grid
+  if utils.get_config('dbg'):
+    logger.error('!!! your are in dbg')
+    run(**grid)
+  else:
+    p = mp.Process(target=run, kwargs=utils.dict_concat([grid, {'queue': queue}]))
     p.start()
     tasks.append(p)
     _res = queue.get()
     logger.info('last task return {}'.format(_res))
     time.sleep(15)
-  for p in tasks:
-    p.join()
+for p in tasks:
+  p.join()

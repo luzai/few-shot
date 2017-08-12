@@ -9,7 +9,6 @@ from utils import clean_name
 
 import utils, math, itertools, os.path as osp, np_utils
 
-SAMPLE_RATE = utils.get_config('sample_rate')
 
 # tensorboard2 is batch based
 class TensorBoard2(Callback):
@@ -45,19 +44,19 @@ class TensorBoard2(Callback):
     
     series = pd.Series(data=3,
                        index=(np.arange(start=0,
-                                        stop=utils.get_config()['epochs'],
-                                        step=1. / SAMPLE_RATE) *
+                                        stop=utils.get_config('epochs'),
+                                        step=1. / utils.get_config('sample_rate')) *
                               self.iter_per_epoch).astype(np.int64)
                        )
-    print series
+    # print series
     series1 = pd.Series()
     for (ind0, _), (ind1, _) in zip(series.iloc[:-1].iteritems(), series.iloc[1:].iteritems()):
-      if ind0 < utils.get_config()['sub_sample'][0] * self.iter_per_epoch:
-        sample_rate = utils.get_config()['sub_sample_rate'][0]
-      elif ind0 < utils.get_config()['sub_sample'][1] * self.iter_per_epoch:
-        sample_rate = utils.get_config()['sub_sample_rate'][1]
+      if ind0 < utils.get_config('sub_sample')[0] * self.iter_per_epoch:
+        sample_rate = utils.get_config('sub_sample_rate')[0]
+      elif ind0 < utils.get_config('sub_sample')[1] * self.iter_per_epoch:
+        sample_rate = utils.get_config('sub_sample_rate')[1]
       else:
-        sample_rate = utils.get_config()['sub_sample_rate'][2]
+        sample_rate = utils.get_config('sub_sample_rate')[2]
       
       series1 = series1.append(
           pd.Series(data=2,
@@ -75,8 +74,7 @@ class TensorBoard2(Callback):
     log_pnts.index = - log_pnts.index.min() + log_pnts.index
     # utils.pickle(log_pnts, './tmp.pkl')
     if not np.array_equal(np.array(log_pnts.index), np.unique(log_pnts.index)):
-      logger.error('!! alias in sample!!')
-      exit(200)
+      logger.info(' ok !! alias in sample')
     log_pnts = log_pnts.groupby(log_pnts.index).max()
     
     self.log_pnts = log_pnts

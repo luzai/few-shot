@@ -1,4 +1,4 @@
-def run(model_type='vgg5', lr=1e-2,
+def run(model_type='vgg5', lr=1e-3,
         dataset='cifar10', queue=None,
         limit_val=True, optimizer='sgd', decay_epoch=None, decay=None
         ):
@@ -41,9 +41,9 @@ def run(model_type='vgg5', lr=1e-2,
   if optimizer == 'sgd':
     opt = keras.optimizers.sgd(lr, momentum=0.9)
   elif optimizer == 'rmsprop':
-    opt = keras.optimizers.rmsprop()
+    opt = keras.optimizers.rmsprop(lr)
   else:
-    opt = keras.optimizers.adam()
+    opt = keras.optimizers.adam(lr)
   model.model.summary()
   model.model.compile(
       opt,

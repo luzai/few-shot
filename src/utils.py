@@ -304,7 +304,10 @@ def get_config(key):
   sys.path.append(root_path)
   from hypers import hyper
   sys.path.pop()
-  return hyper[hyper['use']][key]
+  if key in hyper:
+    return hyper[key]
+  else:
+    return hyper[hyper['use']][key]
 
 
 @chdir_to_root
