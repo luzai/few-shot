@@ -14,10 +14,6 @@ root_path = osp.normpath(
 )
 
 
-def get_config():
-  return read_json(root_path + '/src/config.json')
-
-
 def init_dev(n=0):
   import os
   from os.path import expanduser
@@ -132,9 +128,10 @@ def timeit(fn, info=''):
 
 
 def read_json(file_path):
-  with open(file_path, 'r') as f:
-    obj = json.load(f)
-  return obj
+  with open(file_path, 'r') as handle:
+    fixed_json = ''.join(line for line in handle if not '//' in line)
+    employee_data = json.loads(fixed_json)
+  return employee_data
 
 
 def write_json(obj, file_path):
@@ -196,30 +193,6 @@ def vis_model(model, name='model', show_shapes=True):
     vis_utils.plot_model(model, to_file=osp.join(sav_path, name + '.png'), show_shapes=show_shapes)
   except Exception as inst:
     logger.error("cannot keras.plot_model {}".format(inst))
-
-
-def vis_graph(graph, name='net2net', show=False):
-  from logs import logger
-  import networkx as nx
-  path = osp.dirname(name)
-  name = osp.basename(name)
-  if path == '':
-    path = name
-  mkdir_p(osp.join(root_path, "output", path), delete=False)
-  restore_path = os.getcwd()
-  os.chdir(osp.join(root_path, "output", path))
-  with open(name + "_graph.json", "w") as f:
-    f.write(graph.to_json())
-  try:
-    plt.close('all')
-    nx.draw(graph, with_labels=True)
-    if show:
-      plt.show()
-    plt.savefig('graph.png')
-    # plt.close('all')
-  except Exception as inst:
-    logger.warning(inst)
-  os.chdir(restore_path)
 
 
 def count_weight(model):
@@ -304,6 +277,37 @@ def chdir_to_root(fn):
 
 
 @chdir_to_root
+def vis_graph(graph, name='net2net', show=False):
+  from logs import logger
+  import networkx as nx
+  path = osp.dirname(name)
+  name = osp.basename(name)
+  if path == '':
+    path = name
+  mkdir_p(osp.join(root_path, "output", path), delete=False)
+  with open(name + "_graph.json", "w") as f:
+    f.write(graph.to_json())
+  try:
+    plt.close('all')
+    nx.draw(graph, with_labels=True)
+    if show:
+      plt.show()
+    plt.savefig('graph.png')
+    # plt.close('all')
+  except Exception as inst:
+    logger.warning(inst)
+
+
+@chdir_to_root
+def get_config(key):
+  import sys
+  sys.path.append(root_path)
+  from hypers import hyper
+  sys.path.pop()
+  return hyper[hyper['use']][key]
+
+
+@chdir_to_root
 def to_single_dir(dir='tfevents'):
   for parent, dirnames, filenames in os.walk(dir):
     filenames = sorted(filenames)
@@ -381,7 +385,7 @@ def check_md5sum():
 
 def merge_pdf(names):
   from pyPdf import PdfFileWriter, PdfFileReader
-  from logs import  logger
+  from logs import logger
   
   # Creating a routine that appends files to the output file
   def append_pdf(input, output):
@@ -396,7 +400,7 @@ def merge_pdf(names):
       logger.warning(name + 'do not exist')
     append_pdf(PdfFileReader(open(name, "rb")), output)
   
-  # Writing all the collected pages to a file
+  # Writing all the collected pages to a f  ile
   output.write(open(
       (osp.dirname(names[0]) + "/merged.pdf").rstrip('/')
       , "wb"))
@@ -407,5 +411,5 @@ if __name__ == '__main__':
   # merge_dir(['loss', 'tfevents'])
   # print np.array( parse_dir_name())
   # print np.array(parse_dir_name('tfevents_loss'))
-  print root_path
-  merge_pdf(['heatmap.pdf', 'performance.pdf', 'statistics.pdf'])
+  
+  pass

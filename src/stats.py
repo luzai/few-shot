@@ -51,10 +51,7 @@ def thresh_proportion(arr, thresh):
 
 class Stat(object):
   def __init__(self, max_win_size, log_pnt):
-    self.common_interval = common_interval = np.diff(log_pnt.where(log_pnt == 3).dropna().index)[0]
-    assert np.diff(log_pnt.where(log_pnt == 3).dropna().index)[0] \
-           == np.diff(log_pnt.where(log_pnt == 3).dropna().index)[1] \
-      , 'level 3 is euqal interval'
+    self.common_interval = common_interval = np.diff(log_pnt.where(log_pnt == 3).dropna().index).min()
     self.log_pnt = log_pnt
     self.stdtime_inst = OnlineStd(common_interval)
     self.diff_inst = Diff(common_interval)
@@ -120,17 +117,14 @@ class Stat(object):
     # for bias we usually set lr mult=0.1? --> bias is not sparse
   
   def totvar(self, tensor, name, iter, win_size):
-    if self.log_pnt[iter] == 1 \
-        and iter - win_size // 2 in self.log_pnt \
-        and self.log_pnt[iter - win_size // 2] >= 2:
-      mode = 'load'
-      _iter, _val = self.totvar_inst.tot_var(tensor, iter, name, win_size, mode)
+    _iter, _val = self.totvar_inst.tot_var(tensor, iter, name, win_size, 'save')
+    
+    if self.log_pnt[iter] >= 1 \
+        and np.arange(iter - win_size + 1, iter + 1, step=1).tolist() in np.array(self.log_pnt.index).tolist():
+      _iter, _val = self.totvar_inst.tot_var(tensor, iter, name, win_size, 'load')
       if _iter != iter - win_size // 2:
-        _iter = iter - win_size // 2
+        # _iter = iter - win_size // 2
         logger.error('should log to right iter!')
-    else:
-      mode = 'save'
-      _iter, _val = self.totvar_inst.tot_var(tensor, iter, name, win_size, mode)
     
     return _iter, _val
   
@@ -202,8 +196,8 @@ class KernelStat(Stat):
     #   logger.info('all pos')
     # U, S, V = np.linalg.svd(cov)
     if np.isclose(cov.sum(), [0.])[0]:
-      logger.info('cov sum small but may not be zero' + str(cov.sum()))
-      
+      logger.debug('cov sum small but may not be zero' + str(cov.sum()))
+    
     # tensor = tensor.reshape(-1, tensor.shape[axis])
     # angle = np.zeros((tensor.shape[axis], tensor.shape[axis]))
     # it = np.nditer(angle, flags=['multi_index'], op_flags=['writeonly'])
@@ -248,24 +242,24 @@ class ActStat(Stat):
     cov **= 2
     # U, S, V = np.linalg.svd(cov)
     if np.isclose(cov.sum(), [0.])[0]:
-      logger.info('cov sum small but may not be zero' + str(cov.sum()))
+      logger.debug('cov sum small but may not be zero' + str(cov.sum()))
     return np.diag(cov).sum() / cov.sum()
   
   @utils.timeit('act ptrate consume')
   def ptrate(self, tensor, name, iter, win_size, thresh):
-    if self.log_pnt[iter] == 1 \
-        and iter - win_size // 2 in self.log_pnt \
-        and self.log_pnt[iter - win_size // 2] >= 2:
+    mode = 'save'
+    _iter, _val = self.ptrate_inst.pt_rate(tensor, name=name, iter=iter, win_size=win_size, thresh=thresh,
+                                           mode=mode)
+    
+    if self.log_pnt[iter] >= 1 \
+        and np.arange(iter - win_size + 1, iter + 1, step=1).tolist() in np.array(self.log_pnt.index).tolist():
       mode = 'load'
       _iter, _val = self.ptrate_inst.pt_rate(tensor, name=name, iter=iter, win_size=win_size, thresh=thresh,
                                              mode=mode)
       if _iter != iter - win_size // 2:
-        _iter = iter - win_size // 2
+        # _iter = iter - win_size // 2
         logger.error('should log to right iter!')
-    else:
-      mode = 'save'
-      _iter, _val = self.ptrate_inst.pt_rate(tensor, name=name, iter=iter, win_size=win_size, thresh=thresh,
-                                             mode=mode)
+    
     return _iter, _val
 
 
@@ -306,7 +300,6 @@ class Windows(object):
   def get_iter(self, win_size):
     _queue = self.l_iter
     return _queue[- (win_size // 2) - 1]
-
 
 
 class TotVar(object):
@@ -396,7 +389,7 @@ class OnlineStd(object):
     self.last_iter = {}
   
   def online_std(self, tensor, iter, name, how='mean'):
-    if name not in self.last_iter or self.last_iter[name] + self.interval == iter:
+    if name not in self.last_iter or iter - self.last_iter[name] >= self.interval:
       if name not in self.last_std:
         self.last_std[name] = self._OnlineStd()
       self.last_iter[name] = iter
@@ -412,7 +405,7 @@ class Diff(object):
   
   def diff(self, tensor, iter, name):
     res = NAN
-    if name not in self.last_iter or self.last_iter[name] + self.interval == iter:
+    if name not in self.last_iter or iter - self.last_iter[name] >= self.interval:
       if name in self.last_tensor:
         res = np.abs(tensor - self.last_tensor[name]).mean()
       self.last_iter[name] = iter
@@ -489,4 +482,3 @@ if __name__ == '__main__':
   
   print df['ok/kernel/orthogonality']
   print df['ok/act/orthogonality']
-

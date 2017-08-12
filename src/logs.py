@@ -26,7 +26,7 @@ logger.addHandler(info_handler)
 
 # stream_handler show all logs into stdout screen, thus maybe easy for debug
 stream_handler = logging.StreamHandler()
-if utils.get_config()['logger_level'] == 'info':
+if utils.get_config('logger_level') == 'info':
   stream_handler.setLevel(logging.INFO)
 else:
   stream_handler.setLevel(logging.DEBUG)

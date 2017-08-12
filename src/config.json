@@ -1,6 +1,0 @@
-{
-  "epochs": 4,
-  "sample_rate": 11,
-  "logger_level": "info",
-  "dbg": 1
-}

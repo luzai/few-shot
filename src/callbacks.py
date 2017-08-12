@@ -9,10 +9,9 @@ from utils import clean_name
 
 import utils, math, itertools, os.path as osp, np_utils
 
-SAMPLE_RATE = utils.get_config()['sample_rate']
+SAMPLE_RATE = utils.get_config('sample_rate')
 
-
-# tensorboard2 is batch beased
+# tensorboard2 is batch based
 class TensorBoard2(Callback):
   def __init__(self,
                tot_epochs,
@@ -53,12 +52,12 @@ class TensorBoard2(Callback):
     print series
     series1 = pd.Series()
     for (ind0, _), (ind1, _) in zip(series.iloc[:-1].iteritems(), series.iloc[1:].iteritems()):
-      if ind0 < 10 * self.iter_per_epoch:
-        sample_rate = 5
-      elif ind0 < 20 * self.iter_per_epoch:
-        sample_rate = 3
+      if ind0 < utils.get_config()['sub_sample'][0] * self.iter_per_epoch:
+        sample_rate = utils.get_config()['sub_sample_rate'][0]
+      elif ind0 < utils.get_config()['sub_sample'][1] * self.iter_per_epoch:
+        sample_rate = utils.get_config()['sub_sample_rate'][1]
       else:
-        sample_rate = 1
+        sample_rate = utils.get_config()['sub_sample_rate'][2]
       
       series1 = series1.append(
           pd.Series(data=2,
@@ -189,7 +188,7 @@ class TensorBoard2(Callback):
         for name, val in bias.iteritems():
           self.write_df(self.bias_stat.calc_all(val, name, iter))
         
-        if self.iter >= self.iters - 1:
+        if self.iter >= self.log_pnts.index[-1]:
           stdtime_tensor = {}
           for name, val in act.iteritems():
             stdtime_tensor[(iter, name)] = self.act_stat.stdtime(val, name, iter, how='tensor')
