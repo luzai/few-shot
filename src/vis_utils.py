@@ -67,27 +67,14 @@ def merge_level(columns, start, stop):
   return pd.MultiIndex.from_tuples(columns_tuples)
 
 
-def expand_level(columns, mid=2):
+def split_level(columns, mid=2):
   df_tuples = [c.split('/') for c in columns]
   df_tuples = [['/'.join(c[:mid]), '/'.join(c[mid:])] for c in df_tuples]
   fcolumns = pd.MultiIndex.from_tuples(df_tuples, names=['layer', 'stat'])
   return fcolumns
-  # df_tuples_len = np.array([len(_tmp) for _tmp in df_tuples]).max()
-  # levels, names, name2level, name2ind = get_columns_alias(columns)
-  # fname = copy.deepcopy(names[:-1])
-  #
-  # for _ind in range(df_tuples_len - len(fname)):
-  #   fname.append('name' + str(_ind))
-  # fcolumns = pd.MultiIndex.from_tuples([('/'.join(c).split('/')) for c in columns], names=fname)
-  #
-  # tmp = np.array([list(_tmp) for _tmp in fcolumns])
-  # tmp[tmp == float('nan') or tmp == 'nan'] = ''
-  # tmp = tmp.astype(basestring)
-  # fcolumns = pd.MultiIndex.from_arrays(tmp.transpose(), names=fname)
-  # return fcolumns
 
 
-def append_level(columns, name, value=''):
+def append_level(columns, name, value='_'):
   df_tuples = [c + (value,) for c in columns]
   levels, names, name2level, name2ind = get_columns_alias(columns)
   fname = copy.deepcopy(names)
@@ -98,7 +85,7 @@ def append_level(columns, name, value=''):
   return fcolumns
 
 
-def expand_level_df(df):
+def split_layer_stat(df):
   df, hyper_str = drop_level(df)
   
   df_name = df
@@ -107,7 +94,7 @@ def expand_level_df(df):
   df_name = df_name.unstack().reset_index().pivot_table(values=0, index=level_name,
                                                         columns=set(indexf.names) - {level_name})
   
-  df_name.index = expand_level(df_name.index)
+  df_name.index = split_level(df_name.index)
   level_name = 'iter'
   indexf = MultiIndexFacilitate(df_name.unstack([-2, -1]).index)
   df_name = df_name.unstack([-2, -1]).reset_index().pivot_table(values=0, index=level_name,
@@ -115,27 +102,44 @@ def expand_level_df(df):
   return df_name
 
 
-def reindex(columns, how='layer'):
-  new_index0 = ['act/', 'kernel/', 'bias/']
+def custom_sort(columns, how='layer'):
+  new_index0 = ['act', 'kernel', 'bias']
   new_index1 = ['diff', 'stdtime', 'iqr', 'std', 'mean', 'median', 'magmean', 'posmean', 'negmean', 'posproportion',
                 'max', 'min', 'orthogonality', 'sparsity', 'ptrate-thresh-0.2', 'ptrate-thresh-0.6',
                 'ptrate-thresh-mean', 'totvar']
   new_index = cartesian([new_index0, new_index1])
+  new_index = ['/'.join(index_) for index_ in new_index]
   
   sort_order = {index: ind for ind, index in enumerate(new_index)}
   
   new_index0 = ['layer' + str(ind) for ind in range(100)]  # todo increase it when needed
   new_index1 = ['input', 'conv', 'bn', 'fc', 'softmax']  # although it is not necessaryli right
-  new_index = cartesian([new_index0, new_index1])
+  new_index = cartesian([new_index0, new_index1]).tolist()
+  new_index = ['/'.join(index_) for index_ in new_index]
   
   sort_order2 = {index: ind for ind, index in enumerate(new_index)}
+  
+  # print sort_order2
   columns = list(columns)
   if how == 'layer':
-    columns.sort(key=lambda val: sort_order2[val[1]])
+    columns.sort(key=lambda val: sort_order2[val])
   else:
-    columns.sort(key=lambda val: sort_order[val[1]])
+    columns.sort(key=lambda val: sort_order[val])
   
   return columns
+
+
+def reindex(t):
+  indexf = MultiIndexFacilitate(t.unstack().index)
+  dest = indexf.names2levels['layer']
+  dest = custom_sort(dest)
+  t = t.transpose().reindex(dest, level='layer').transpose()
+  
+  dest = indexf.names2levels['stat']
+  dest = custom_sort(dest,how='stat')
+  t = t.transpose().reindex(dest, level='stat').transpose()
+  
+  return t
 
 
 @utils.static_vars(ind=0, label2color={})
@@ -194,8 +198,8 @@ def cartesian(arrays, out=None):
   """
   
   arrays = [np.asarray(x) for x in arrays]
-  dtype = arrays[0].dtype
-  
+  # dtype = arrays[0].dtype
+  dtype=object
   n = np.prod([x.size for x in arrays])
   if out is None:
     out = np.zeros([n, len(arrays)], dtype=dtype)
@@ -483,7 +487,7 @@ def auto_plot(df, axes_names, other_names, path_suffix='default', ):
     if _df is None: continue
     
     if _df.columns.names[2] == 'stat':
-      _df = reindex(_df, level=2)
+      _df = custom_sort(_df, level=2)
     
     fig, sup_title = plot(_df, axes_names, other_names)
     utils.mkdir_p(Config.output_path + path_suffix + '/')
@@ -502,44 +506,11 @@ def auto_plot(df, axes_names, other_names, path_suffix='default', ):
   return pathss
 
 
-def subplots(visualizer, path_suffix):
-  perf_df = visualizer.perf_df.copy()
-  # plot only val acc
-  # perf_df = select(perf_df, {'name': 'val_acc$'})
-  perf_df.columns = merge_level(perf_df.columns, start=0, stop=3)
-  perf_df.columns = append_level(perf_df.columns, '')
-  perf_df.columns = append_level(perf_df.columns, 't2')
-  perf_df.columns.set_names(['hyper', 'metric', '', 't2'], inplace=True)
-  auto_plot(perf_df, path_suffix=path_suffix + '_perf',
-            axes_names=['hyper', 'metric', ''],
-            other_names=['t2'])
-  
-  # plot statistics
-  df = visualizer.stat_df.copy()
-  
-  df.columns = expand_level(df.columns)
-  # # name0 1 2 3 -- obs0 conv2d act iqr
-  # df = select(df, {'dataset_type': 'cifar10'})
-  df.columns = merge_level(df.columns, start=5, stop=7)
-  df = reindex(df, 5)
-  df.columns = merge_level(df.columns, start=3, stop=5)
-  
-  df.columns = merge_level(df.columns, start=0, stop=3)
-  df.columns.set_names(['hyper', 'layer', 'stat', 'winsize'], inplace=True)
-  df = select(df,
-              {'hyper': '(?:resnet10/cifar10/1.*3|vgg10/cifar10/1.*2)'})  # (?:resnet10/cifar10/.*3|vgg10/cifar10/.*2)
-  
-  paths = auto_plot(df, path_suffix=path_suffix + '_stat',
-                    axes_names=('layer', 'stat', 'winsize'),
-                    other_names=['hyper'])
-  utils.merge_pdf(paths)
-
-
 def heatmap(paranet_folder):  # 'stat301'
   visualizer = Visualizer(join='outer', stat_only=True, paranet_folder=paranet_folder)
   df = visualizer.stat_df.copy()
   
-  df.columns = expand_level(df.columns)
+  df.columns = split_level(df.columns)
   df.columns = merge_level(df.columns, start=7, stop=10)
   df.columns = merge_level(df.columns, start=5, stop=7)
   df.columns = merge_level(df.columns, start=3, stop=5)
@@ -567,7 +538,7 @@ def heatmap(paranet_folder):  # 'stat301'
     ax.set_title(suptitle, fontsize=5)
     im = ax.imshow(mat, interpolation='none')
     # ax.set_aspect(1.5)
-    #
+    
     # ax.tick_params(axis=u'both', which=u'both', length=0)
     # ax.set_xlim(-0.5, limits-0.5)
     # ax.set_ylim(10.5, -0.5)
@@ -593,98 +564,6 @@ def heatmap(paranet_folder):  # 'stat301'
   return pathss
 
 
-def t_sne(visualizer, model_type, dataset_type, start_lr):
-  logger.info('start ' + '_'.join((model_type, dataset_type, 'start_lr', str(start_lr))))
-  stat_df = visualizer.stat_df.copy()
-  stat_df = visualizer.select(stat_df, 'lr', '1.00e[+-]0[{}-9].*'.format(start_lr))
-  stat_df = visualizer.select(stat_df, 'name', '(?:.*/dense/.*|.*/conv2d/.*)')
-  stat_df = visualizer.select(stat_df, 'dataset_type', dataset_type, regexp=False)
-  stat_df = visualizer.select(stat_df, 'model_type', model_type, regexp=False)
-  
-  stat_df, suptitle = drop_level(stat_df, keep_num_levels=2)
-  
-  perf_df = visualizer.perf_df.copy()
-  perf_df = visualizer.select(perf_df, 'lr', '1.00e[+-]0[{}-9].*'.format(start_lr))
-  perf_df = visualizer.select(perf_df, 'dataset_type', dataset_type, regexp=False)
-  perf_df = visualizer.select(perf_df, 'model_type', model_type, regexp=False)
-  perf_df = visualizer.select(perf_df, 'name', 'val_acc', regexp=False)
-  
-  perf_df, suptitle = drop_level(perf_df, keep_num_levels=2)
-  
-  stats = []
-  colors = []
-  val_accs = []
-  
-  levels, names, name2level, name2ind = get_columns_alias(stat_df.columns)
-  for ind, lr in enumerate(name2level['lr']):
-    _perf_df = visualizer.select(perf_df, 'lr', lr, regexp=False)
-    _perf_df, _suptitle = drop_level(_perf_df, other_name=['lr'],
-                                     keep_num_levels=1)
-    logger.debug('{}'.format(_perf_df.columns))
-    val_accs.append(_perf_df.as_matrix())
-    
-    _stat_df = visualizer.select(stat_df, 'lr', lr, regexp=False)
-    _stat_df, _suptitle = drop_level(_stat_df, other_name=['lr'],
-                                     keep_num_levels=1)
-    colors.append(ind)
-    stats.append(_stat_df.as_matrix())
-  
-  stats_all = np.concatenate(stats, axis=0)
-  # colors = np.concatenate(colors, axis=0)
-  # val_accs = np.concatenate(val_accs, axis=0)
-  
-  stats_all = preprocessing.scale(stats_all, axis=0)
-  # for multitime in range(1):
-  stats_dim2_all = manifold.TSNE(n_components=2).fit_transform(stats_all)
-  
-  stats_dim2 = []
-  ind = 0
-  for stat in stats:
-    stats_dim2.append(stats_dim2_all[ind:ind + stat.shape[0]])
-    ind += stat.shape[0]
-  
-  fig = plt.figure()
-  ax = fig.add_subplot(111, projection='3d')
-  if globals()['dbg']:
-    dur = 0.1
-  else:
-    dur = 9.
-  freq = stats_dim2[0].shape[0] / dur
-  
-  def make_frame_mpl(t):
-    ax.clear()
-    time_i = int(t * freq)
-    for ind, (stat_dim2, color, val_acc) in enumerate(zip(stats_dim2, colors, val_accs)):
-      val_acc[:time_i].reshape((time_i,))
-      lr = name2level['lr'][ind]
-      ax.scatter(stat_dim2[:time_i, 0],
-                 stat_dim2[:time_i, 1],
-                 val_acc[:time_i].reshape((time_i,)),
-                 c=get_colors(lr),
-                 label=lr
-                 # cmap=plt.cm.Spectral,
-                 )
-    
-    ax.legend(loc='upper right')
-    # ax.get_xaxis().set_ticklabels([])
-    # ax.get_yaxis().set_ticklabels([])
-    ax.set_xlim3d([stats_dim2_all[:, 0].min(), stats_dim2_all[:, 0].max()])
-    ax.set_ylim3d([stats_dim2_all[:, 1].min(), stats_dim2_all[:, 1].max()])
-    ax.set_zlim3d([0, 1])
-    ax.view_init(elev=20., azim=t / dur * 130.)
-    fig.suptitle('_'.join((model_type, dataset_type, 'start_lr', str(start_lr))))
-    return mplfig_to_npimage(fig)
-    
-    ## animation
-    # animation = mpy.VideoClip(make_frame_mpl, duration=dur)
-    # animation.write_gif('_'.join((model_type, dataset_type, 'start_lr', str(start_lr))) + '.gif', fps=20)
-    ## plot fig
-    # make_frame_mpl(dur)
-    # ax.view_init(elev=90., azim=0.)
-    # # ax.view_init(elev=20., azim=45.)
-    # plt.savefig(parant_folder + '_'.join((model_type, dataset_type, 'start_lr', str(start_lr))) + '.pdf')
-
-
 def map_name(names):
   if isinstance(names, basestring):
     names = [names]
@@ -706,21 +585,10 @@ def map_name(names):
 
 
 if __name__ == '__main__':
-  tic = time.time()
-  # for parant_folder in ['stdtime2']:
-  #   visualizer = Visualizer(join='outer', stat_only=True, paranet_folder=parant_folder)
-  # subplots(visualizer, path_suffix=parant_folder.strip('stat'))
-  # heatmap(parant_folder)
-  print time.time() - tic
-  
   visualizer = Visualizer(paranet_folder='mnist_std_exa')
-  
   df = visualizer.stat_df.copy()
+  t = exclude(df, {'name': '.*example.*'})
+  t =split_layer_stat(t)
   
-  exclude(df, {'name': '.*example.*'})
+  t =reindex(t)
   
-  # for lr in [0, 2, 4]:
-  #     t_sne(visualizer, model_type, dataset, lr)
-  # for dataset in ['cifar10', 'cifar100']:  # , 'cifar100'
-  #     for model_type in ['vgg6', 'resnet6', 'vgg10', 'resnet10', ]:  # 'vgg8', 'resnet8',
-  #         t_sne(visualizer, model_type, dataset, 2)

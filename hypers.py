@@ -6,7 +6,7 @@ hyper = {
   "dbg"         : False,
   # bn ?
   "cifar10"     : {
-    "epochs"         : 151,
+    "epochs"         : 0,
     "sample_rate"    : 0.1,  # epoch^-1
     "sub_sample"     : [10, 30],  # epoch
     "sub_sample_rate": [3, 2, 1],
@@ -25,7 +25,7 @@ hyper = {
     "sub_sample_rate": [4, 2, 1],
     "grids"          : {
       'dataset'   : ['cifar10', ],
-      'model_type': ['vgg16', 'vgg19'],  # 'vgg16', , 'vgg19'
+      'model_type': ['vgg16', 'vgg19'],  # 'vgg16' , 'vgg19'
       'lr'        : np.logspace(-2, -3, 2),
       'with_bn'   : [True]
     }
