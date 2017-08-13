@@ -28,7 +28,7 @@ class Dataset(object):
       self.classes = 10
       (x_train, y_train), (x_test, y_test) = mnist.load_data()
       x_train = x_train[..., np.newaxis]
-      x_test = x_test[...,np.newaxis]
+      x_test = x_test[..., np.newaxis]
     
     print x_train.shape
     # todo fix dataset bug
@@ -41,13 +41,10 @@ class Dataset(object):
     self.x_train, self.y_train, self.x_test, self.y_test = x_train, y_train, x_test, y_test
     if limit_val:
       self.x_test_ref, self.y_test_ref = map(sample_data, [self.x_test, self.y_test])
-    # if debug:
-    #   self.x_train, self.y_train, self.x_test, self.y_test = map(limit_data,
-    #                                                              [self.x_train, self.y_train,
-    #                                                               self.x_test, self.y_test])
-    
-    
-    
+      # if debug:
+      #   self.x_train, self.y_train, self.x_test, self.y_test = map(limit_data,
+      #                                                              [self.x_train, self.y_train,
+      #                                                               self.x_test, self.y_test])
 
 
 @utils.static_vars(ind=None)
@@ -119,3 +116,4 @@ if __name__ == '__main__':
                   debug=False)
   
   dataset = Dataset(config.dataset_type, debug=config.debug)
+  

@@ -60,8 +60,8 @@ def arr2df(arr, indexf):
   df2.reset_index().pivot_table(values=0, index=indexf.names[-1:], columns=indexf.names[:-1])
   return df2
 
-def select(arr,indexf,name,levels):
-  inds = indexf.level2inds(levels)
+# def select(arr,indexf,name,levels):
+#   inds = indexf.level2inds(levels)
   
 
 if __name__ == '__main__':

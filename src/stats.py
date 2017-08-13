@@ -398,23 +398,23 @@ class OnlineStd(object):
       
       if not np.isnan(self.last_std[name].std).any():
         # # method 1
-        # record_ = np.argmax(self.last_std[name].std).astype(int)
-        # if len(self.record.get(name, set())) < 100:
-        #   self.record[name] = self.record.get(name, set())
-        #   self.record[name].add(record_)
-        # else:
-        #   logger.info('stdtime max capacity is 100')
-        #
-        # record_ = np.argmin(self.last_std[name].std).astype(int)
-        # if len(self.record_min.get(name, set())) < 100:
-        #   self.record_min[name] = self.record_min.get(name, set())
-        #   self.record[name].add(record_)
-        # else:
-        #   logger.info('stdtime min capacity is 100')
+        record_ = np.argmax(self.last_std[name].std).astype(int)
+        if len(self.record.get(name, set())) < 100:
+          self.record[name] = self.record.get(name, set())
+          self.record[name].add(record_)
+        else:
+          logger.info('stdtime max capacity is 100')
+
+        record_ = np.argmin(self.last_std[name].std).astype(int)
+        if len(self.record_min.get(name, set())) < 100:
+          self.record_min[name] = self.record_min.get(name, set())
+          self.record_min[name].add(record_)
+        else:
+          logger.info('stdtime min capacity is 100')
         # # method 2
-        cap = 100
-        self.record[name] = self.last_std[name].std.ravel().argsort()[-cap:][::-1]
-        self.record_min[name] = self.last_std[name].std.ravel().argsort()[-cap:][::-1]
+        # cap = 100
+        # self.record[name] = self.last_std[name].std.ravel().argsort()[-cap:][::-1]
+        # self.record_min[name] = self.last_std[name].std.ravel().argsort()[-cap:][::-1]
         # # method 3
         
         

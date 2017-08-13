@@ -182,7 +182,7 @@ def get_columns_alias(columns):
 
 
 class Visualizer(object):
-  def __init__(self, paranet_folder, join='inner', stat_only=True, ):
+  def __init__(self, paranet_folder, join='outer', stat_only=True ):
     self.aggregate(join, stat_only=stat_only, parant_folder=paranet_folder)
     self.split()
     levels, names, name2level, name2ind = get_columns_alias(self.df.columns)
