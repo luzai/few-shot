@@ -43,7 +43,6 @@ hyper = {
       'with_bn'   : [True, False]
     }
   },
-  
   # adam sgd
   "adam"        : {
     "epochs": 201,

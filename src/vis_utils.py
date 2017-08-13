@@ -70,7 +70,7 @@ def merge_level(columns, start, stop):
 def expand_level(columns):
   df_tuples = [c.split('/') for c in columns]
   df_tuples = [['/'.join(c[:3]), '/'.join(c[3:])] for c in df_tuples]
-  fcolumns = pd.MultiIndex.from_tuples(df_tuples,names=['layer','stat'])
+  fcolumns = pd.MultiIndex.from_tuples(df_tuples, names=['layer', 'stat'])
   return fcolumns
   # df_tuples_len = np.array([len(_tmp) for _tmp in df_tuples]).max()
   # levels, names, name2level, name2ind = get_columns_alias(columns)
@@ -407,8 +407,7 @@ def select(df, level2pattern, regexp=True):
     indexf = MultiIndexFacilitate(df.unstack().index)
     
     df_name = df_name.unstack().reset_index().pivot_table(values=0, index=level_name,
-                                                          columns=set(indexf.names) - {level_name}
-                                                          )
+                                                          columns=set(indexf.names) - {level_name})
     
     if regexp:
       df_name = df_name.filter(regex=pattern_name, axis=0)
@@ -416,8 +415,31 @@ def select(df, level2pattern, regexp=True):
       df_name = df_name.loc[(pattern_name,), :]
     level_name = 'iter'
     df_name = df_name.unstack().reset_index().pivot_table(values=0, index=level_name,
-                                                          columns=set(indexf.names) - {level_name}
-                                                          )
+                                                          columns=set(indexf.names) - {level_name})
+  return df_name
+
+
+def exclude(df, level2pattern, regexp=True):
+  df_name = df
+ 
+  for level_name, pattern_name in level2pattern.iteritems():
+    indexf = MultiIndexFacilitate(df.unstack().index)
+    df_name = df_name.unstack().reset_index().pivot_table(values=0, index=level_name,
+                                                          columns=set(indexf.names) - {level_name})
+    
+    names = df_name.index
+    
+    all_ind = np.arange(len(names))
+    if regexp:
+      match_ind = [ind for ind, name in enumerate(names) if re.match(pattern_name, name)]
+    else:
+      match_ind = [ind for ind, name in enumerate(names) if pattern_name == name]
+    
+    left_ind = np.setdiff1d(all_ind, match_ind)
+    df_name = df_name.iloc[left_ind, :]
+    level_name = 'iter'
+    df_name = df_name.unstack().reset_index().pivot_table(values=0, index=level_name,
+                                                          columns=set(indexf.names) - {level_name})
   return df_name
 
 
@@ -666,16 +688,8 @@ if __name__ == '__main__':
   visualizer = Visualizer(paranet_folder='mnist_std_exa')
   
   df = visualizer.stat_df.copy()
-  df, hyper_str = drop_level(df)
   
-  indexf = MultiIndexFacilitate(df.unstack().index)
-  level_name = 'name'
-  df_name = df
-  df_name = df_name.unstack().reset_index().pivot_table(values=0, index=level_name,
-                                                        columns=set(indexf.names) - {level_name})
-  
-  df_name
-  expand_level(df_name.index)
+  exclude(df, {'name': '.*example.*'})
   
   # for lr in [0, 2, 4]:
   #     t_sne(visualizer, model_type, dataset, lr)
