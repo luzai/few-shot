@@ -1,20 +1,20 @@
 import numpy as np
 
 hyper = {
-  "use"         : "mnist",
+  "use"         : "cifar10",
   "logger_level": "info",
   "dbg"         : False,
   # bn ?
   "cifar10"     : {
-    "epochs"         : 0,
-    "sample_rate"    : 0.1,  # epoch^-1
+    "epochs"         : 201,
+    "sample_rate"    : 1,  # epoch^-1
     "sub_sample"     : [10, 30],  # epoch
     "sub_sample_rate": [3, 2, 1],
     "grids"          : {
-      'dataset'   : ['cifar10', 'cifar100'],
-      'model_type': ['vgg6', 'vgg16', 'vgg19', 'resnet10'],
+      'dataset'   : ['cifar10'],
+      'model_type': ['vgg10', 'resnet10'],
       'lr'        : np.logspace(-2, -3, 2),
-      'with_bn'   : [True, False]
+      'with_bn'   : [True]
     }
   },
   # vgg depth: vgg19

@@ -34,7 +34,7 @@ matplotlib.style.use('ggplot')
 Axes3D
 
 
-def drop_level(perf_df, other_name=None, keep_num_levels=3):
+def drop_level(perf_df, other_name=None):
   perf_df = perf_df.copy()
   columns = perf_df.columns
   names = columns.names
@@ -47,7 +47,7 @@ def drop_level(perf_df, other_name=None, keep_num_levels=3):
     while True:
       levels_len = [len(level) for level in perf_df.columns.levels]
       levels_len = np.array(levels_len)
-      if (levels_len != np.ones_like(levels_len)).all() or len(perf_df.columns.levels) == keep_num_levels: break
+      if (levels_len != np.ones_like(levels_len)).all(): break
       
       for ind, level in enumerate(perf_df.columns.levels):
         if len(level) == 1:
@@ -136,7 +136,7 @@ def reindex(t):
   t = t.transpose().reindex(dest, level='layer').transpose()
   
   dest = indexf.names2levels['stat']
-  dest = custom_sort(dest,how='stat')
+  dest = custom_sort(dest, how='stat')
   t = t.transpose().reindex(dest, level='stat').transpose()
   
   return t
@@ -196,10 +196,11 @@ def cartesian(arrays, out=None):
          [3, 5, 7]])
 
   """
-  
+  if len(arrays) == 0:
+    return []
   arrays = [np.asarray(x) for x in arrays]
   # dtype = arrays[0].dtype
-  dtype=object
+  dtype = object
   n = np.prod([x.size for x in arrays])
   if out is None:
     out = np.zeros([n, len(arrays)], dtype=dtype)
@@ -312,13 +313,13 @@ class MultiIndexFacilitate(object):
   def __init__(self, columns):
     levels = list(columns.levels)
     names = list(columns.names)
-    name2level = {name: level for name, level in zip(names, levels)}
-    name2ind = {name: ind for ind, name in enumerate(names)}
+    
     self.levels = levels
     self.names = names
     self.labels = columns.labels
-    self.names2levels = name2level
-    self.names2ind = name2ind
+    self.names2levels = {name: level for name, level in zip(names, levels)}
+    self.names2ind = {name: ind for ind, name in enumerate(names)}
+    self.names2len = {name: len(level) for name, level in zip(names, levels)}
     self.index = columns
   
   def update(self):
@@ -328,7 +329,9 @@ class MultiIndexFacilitate(object):
 def plot(perf_df, axes_names, other_names=None, legend=True):
   # #  order of axes is (row,col,inside fig)
   perf_df, sup_title = drop_level(perf_df, other_names)
-  assert len(perf_df.columns.names) == 3, 'plot only accept input 3'
+  
+  for i_ in range(3 - len(perf_df.columns.names)):
+    perf_df.columns = append_level(perf_df.columns, '_')
   
   row_name, col_name, inside = axes_names
   names2levels = {name: level for level, name in zip(perf_df.columns.levels, perf_df.columns.names)}
@@ -474,20 +477,16 @@ def exclude(df, level2pattern, regexp=True):
   return df_name
 
 
-def auto_plot(df, axes_names, other_names, path_suffix='default', ):
+def auto_plot(df, axes_names, other_names=None, path_suffix='default', ipython=True, show=False):
+  indexf = MultiIndexFacilitate(df)
+  other_names = np.setdiff1d(indexf.names, axes_names)
   columns = df.columns
   levels, names, name2level, name2ind = get_columns_alias(columns)
-  show = False
-  pathss = []
-  for poss in cartesian([name2level[name] for name in other_names]):
+  paths = []
+  if len(other_names) == 0:
     _df = df.copy()
-    for _name, _poss in zip(other_names, poss):
-      _df = select(_df, {_name: _poss}, regexp=False)
-      if _df is None: break
-    if _df is None: continue
-    
-    if _df.columns.names[2] == 'stat':
-      _df = custom_sort(_df, level=2)
+    if 'layer' in _df.columns.names:
+      _df = reindex(_df)
     
     fig, sup_title = plot(_df, axes_names, other_names)
     utils.mkdir_p(Config.output_path + path_suffix + '/')
@@ -497,13 +496,38 @@ def auto_plot(df, axes_names, other_names, path_suffix='default', ):
                 + '.pdf').strip('_')
     fig.savefig(sav_path,
                 bbox_inches='tight')
-    pathss.append(sav_path)
+    paths.append(sav_path)
+    if show: plt.show()
+    plt.close()
+    
+    return paths
+  
+  for poss in cartesian([name2level[name] for name in other_names]):
+    _df = df.copy()
+    for _name, _poss in zip(other_names, poss):
+      _df = select(_df, {_name: _poss}, regexp=False)
+    # if _df is None: break
+    # if _df is None: continue
+    
+    if 'layer' in _df.columns.names:
+      _df = reindex(_df)
+    
+    fig, sup_title = plot(_df, axes_names, other_names)
+    utils.mkdir_p(Config.output_path + path_suffix + '/')
+    sav_path = (Config.output_path
+                + path_suffix + '/'
+                + re.sub('/', '', sup_title)
+                + '.pdf').strip('_')
+    fig.savefig(sav_path,
+                bbox_inches='tight')
+    paths.append(sav_path)
     if show: plt.show()
     plt.close()
     if osp.exists('dbg'):
       logger.info('dbg mode break')
       break
-  return pathss
+  
+  return paths
 
 
 def heatmap(paranet_folder):  # 'stat301'
@@ -587,8 +611,47 @@ def map_name(names):
 if __name__ == '__main__':
   visualizer = Visualizer(paranet_folder='mnist_std_exa')
   df = visualizer.stat_df.copy()
-  t = exclude(df, {'name': '.*example.*'})
-  t =split_layer_stat(t)
-  
-  t =reindex(t)
-  
+  df.head().columns.levels[-3]
+
+  df = select(df, {'model_type': 'vgg16'})
+  df, hyper_str = drop_level(df)
+  df = exclude(df, {'name': '.*example.*'})
+  df = split_layer_stat(df)
+
+  df.head()
+
+  df = reindex(df)
+  df.columns.levels[1]
+
+  df.head()
+
+  t = select(df, {'dataset_type': 'cifar10', 'lr': '1.00e-03'}, regexp=False)
+  t = exclude(t, {'layer': '.*bn.*'})
+  t = exclude(t, {'layer': '.*input.*'})
+  t.head()
+
+  auto_plot(t, axes_names=('layer', 'stat', 'with_bn'))
+
+  t = select(df, {'dataset_type': 'cifar10', 'lr': '1.00e-02'}, regexp=False)
+  t = exclude(t, {'layer': '.*bn.*'})
+  t = exclude(t, {'layer': '.*input.*'})
+  t.head()
+
+  auto_plot(t, axes_names=('layer', 'stat', 'with_bn'), path_suffix='default/lr1e-2')
+
+  t = select(df, {'dataset_type': 'cifar10', 'lr': '1.00e-03'}, regexp=False)
+  # t=exclude(t,{'layer':'.*bn.*'})
+  t = exclude(t, {'layer': '.*input.*'})
+  t.head()
+
+  auto_plot(t, axes_names=('layer', 'stat', 'with_bn'), path_suffix='default/seebn')
+
+  t = select(df, {'dataset_type': 'cifar10', 'lr': '1.00e-03', 'with_bn': 'False'}, regexp=False)
+  # t=exclude(t,{'layer':'.*bn.*'})
+  t = exclude(t, {'layer': '.*input.*'})
+  t.head()
+  t, hyper = drop_level(t, keep_num_levels=2)
+  t.columns = append_level(df.columns, '_')
+  # t.columns=append_level(df.columns,'_','_')
+  t.head()
+  # auto_plot(t, axes_names=('layer','stat','_'),other_names=('__',),path_suffix='default/nobn')
