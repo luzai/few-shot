@@ -68,20 +68,49 @@ def merge_level(columns, start, stop):
 
 
 def expand_level(columns):
-  df_tuples = [('/'.join(c).split('/')) for c in columns]
-  df_tuples_len = np.array([len(_tmp) for _tmp in df_tuples]).max()
-  levels, names, name2level, name2ind = get_columns_alias(columns)
-  fname = copy.deepcopy(names[:-1])
-  
-  for _ind in range(df_tuples_len - len(fname)):
-    fname.append('name' + str(_ind))
-  fcolumns = pd.MultiIndex.from_tuples([('/'.join(c).split('/')) for c in columns], names=fname)
-  
-  tmp = np.array([list(_tmp) for _tmp in fcolumns])
-  tmp[tmp == float('nan') or tmp == 'nan'] = ''
-  tmp = tmp.astype(basestring)
-  fcolumns = pd.MultiIndex.from_arrays(tmp.transpose(), names=fname)
+  df_tuples = [c.split('/') for c in columns]
+  df_tuples = [['/'.join(c[:3]), '/'.join(c[3:])] for c in df_tuples]
+  fcolumns = pd.MultiIndex.from_tuples(df_tuples,names=['layer','stat'])
   return fcolumns
+  # df_tuples_len = np.array([len(_tmp) for _tmp in df_tuples]).max()
+  # levels, names, name2level, name2ind = get_columns_alias(columns)
+  # fname = copy.deepcopy(names[:-1])
+  #
+  # for _ind in range(df_tuples_len - len(fname)):
+  #   fname.append('name' + str(_ind))
+  # fcolumns = pd.MultiIndex.from_tuples([('/'.join(c).split('/')) for c in columns], names=fname)
+  #
+  # tmp = np.array([list(_tmp) for _tmp in fcolumns])
+  # tmp[tmp == float('nan') or tmp == 'nan'] = ''
+  # tmp = tmp.astype(basestring)
+  # fcolumns = pd.MultiIndex.from_arrays(tmp.transpose(), names=fname)
+  # return fcolumns
+
+
+def append_level(columns, name, value=''):
+  df_tuples = [c + (value,) for c in columns]
+  levels, names, name2level, name2ind = get_columns_alias(columns)
+  fname = copy.deepcopy(names)
+  fname.append(name)
+  
+  fcolumns = pd.MultiIndex.from_tuples(df_tuples, names=fname)
+  
+  return fcolumns
+
+
+def reindex(df, level):
+  new_index0 = ['act/', 'kernel/', 'bias/']
+  new_index1 = ['diff', 'stdtime', 'iqr', 'std', 'mean', 'median', 'magmean', 'posmean', 'negmean', 'posproportion',
+                'max', 'min', 'orthogonality', 'sparsity', 'ptrate-thresh-0.2', 'ptrate-thresh-0.6',
+                'ptrate-thresh-mean', 'totvar']
+  new_index = [ind0 + ind1 for ind0 in new_index0 for ind1 in new_index1]
+  diff1 = ['kernel/', 'bias/']
+  diff2 = ['ptrate-thresh-0.2', 'ptrate-thresh-0.6', 'ptrate-thresh-mean']
+  diff = [_diff1 + _diff2 for _diff1 in diff1 for _diff2 in diff2] + ['bias/orthogonality']
+  new_index = [_new_index for _new_index in new_index if _new_index not in diff]
+  
+  df = df.transpose().reindex(new_index, level=level).transpose().copy()
+  return df
 
 
 @utils.static_vars(ind=0, label2color={})
@@ -286,7 +315,7 @@ def plot(perf_df, axes_names, other_names=None, legend=True):
   from cycler import cycler
   
   # # arrange xlabel ylabel
-  if not utils.get_config()['dbg']:
+  if not utils.get_config('dbg'):
     figsize = (4.2 * cols, 2.25 * rows)
   else:
     logger.info('dbg small fig mode')
@@ -373,7 +402,7 @@ def plot(perf_df, axes_names, other_names=None, legend=True):
 
 
 def select(df, level2pattern, regexp=True):
-  df_name = df.copy()
+  df_name = df
   for level_name, pattern_name in level2pattern.iteritems():
     indexf = MultiIndexFacilitate(df.unstack().index)
     
@@ -382,13 +411,13 @@ def select(df, level2pattern, regexp=True):
                                                           )
     
     if regexp:
-      df_name=df_name.filter(regex=pattern_name, axis=0)
+      df_name = df_name.filter(regex=pattern_name, axis=0)
     else:
-      df_name = df_name.loc[pattern_name, :]
+      df_name = df_name.loc[(pattern_name,), :]
     level_name = 'iter'
     df_name = df_name.unstack().reset_index().pivot_table(values=0, index=level_name,
-                                                     columns=set(indexf.names) - {level_name}
-                                                     )
+                                                          columns=set(indexf.names) - {level_name}
+                                                          )
   return df_name
 
 
@@ -422,32 +451,6 @@ def auto_plot(df, path_suffix, axes_names, other_names):
       logger.info('dbg mode break')
       break
   return pathss
-
-
-def append_level(columns, name, value=''):
-  df_tuples = [c + (value,) for c in columns]
-  levels, names, name2level, name2ind = get_columns_alias(columns)
-  fname = copy.deepcopy(names)
-  fname.append(name)
-  
-  fcolumns = pd.MultiIndex.from_tuples(df_tuples, names=fname)
-  
-  return fcolumns
-
-
-def reindex(df, level):
-  new_index0 = ['act/', 'kernel/', 'bias/']
-  new_index1 = ['diff', 'stdtime', 'iqr', 'std', 'mean', 'median', 'magmean', 'posmean', 'negmean', 'posproportion',
-                'max', 'min', 'orthogonality', 'sparsity', 'ptrate-thresh-0.2', 'ptrate-thresh-0.6',
-                'ptrate-thresh-mean', 'totvar']
-  new_index = [ind0 + ind1 for ind0 in new_index0 for ind1 in new_index1]
-  diff1 = ['kernel/', 'bias/']
-  diff2 = ['ptrate-thresh-0.2', 'ptrate-thresh-0.6', 'ptrate-thresh-mean']
-  diff = [_diff1 + _diff2 for _diff1 in diff1 for _diff2 in diff2] + ['bias/orthogonality']
-  new_index = [_new_index for _new_index in new_index if _new_index not in diff]
-  
-  df = df.transpose().reindex(new_index, level=level).transpose().copy()
-  return df
 
 
 def subplots(visualizer, path_suffix):
@@ -622,15 +625,15 @@ def t_sne(visualizer, model_type, dataset_type, start_lr):
     ax.view_init(elev=20., azim=t / dur * 130.)
     fig.suptitle('_'.join((model_type, dataset_type, 'start_lr', str(start_lr))))
     return mplfig_to_npimage(fig)
-  
-  ## animation
-  # animation = mpy.VideoClip(make_frame_mpl, duration=dur)
-  # animation.write_gif('_'.join((model_type, dataset_type, 'start_lr', str(start_lr))) + '.gif', fps=20)
-  # plot fig
-  make_frame_mpl(dur)
-  ax.view_init(elev=90., azim=0.)
-  # ax.view_init(elev=20., azim=45.)
-  plt.savefig(parant_folder + '_'.join((model_type, dataset_type, 'start_lr', str(start_lr))) + '.pdf')
+    
+    ## animation
+    # animation = mpy.VideoClip(make_frame_mpl, duration=dur)
+    # animation.write_gif('_'.join((model_type, dataset_type, 'start_lr', str(start_lr))) + '.gif', fps=20)
+    ## plot fig
+    # make_frame_mpl(dur)
+    # ax.view_init(elev=90., azim=0.)
+    # # ax.view_init(elev=20., azim=45.)
+    # plt.savefig(parant_folder + '_'.join((model_type, dataset_type, 'start_lr', str(start_lr))) + '.pdf')
 
 
 def map_name(names):
@@ -654,13 +657,25 @@ def map_name(names):
 
 if __name__ == '__main__':
   tic = time.time()
-  for parant_folder in ['stdtime2']:
-    visualizer = Visualizer(join='outer', stat_only=True, paranet_folder=parant_folder)
-    # subplots(visualizer, path_suffix=parant_folder.strip('stat'))
-    # heatmap(parant_folder)
+  # for parant_folder in ['stdtime2']:
+  #   visualizer = Visualizer(join='outer', stat_only=True, paranet_folder=parant_folder)
+  # subplots(visualizer, path_suffix=parant_folder.strip('stat'))
+  # heatmap(parant_folder)
   print time.time() - tic
   
-  # dataset, model_type = 'cifar100', 'resnet10'
+  visualizer = Visualizer(paranet_folder='mnist_std_exa')
+  
+  df = visualizer.stat_df.copy()
+  df, hyper_str = drop_level(df)
+  
+  indexf = MultiIndexFacilitate(df.unstack().index)
+  level_name = 'name'
+  df_name = df
+  df_name = df_name.unstack().reset_index().pivot_table(values=0, index=level_name,
+                                                        columns=set(indexf.names) - {level_name})
+  
+  df_name
+  expand_level(df_name.index)
   
   # for lr in [0, 2, 4]:
   #     t_sne(visualizer, model_type, dataset, lr)

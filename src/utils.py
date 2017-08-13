@@ -163,6 +163,9 @@ def read_df(path):
 
 
 def mkdir_p(path, delete=False):
+  assert path != ''
+  from logs import logger
+  logger.info('mkdir -p  '+ path)
   if delete:
     rm(path)
   if not osp.exists(path):
@@ -172,6 +175,16 @@ def mkdir_p(path, delete=False):
 def rm(path):
   subprocess.call(('rm -rf ' + path).split())
 
+def show_img(path):
+  from IPython.display import Image
+  
+  fig = Image(filename=(path))
+  return fig
+
+def show_pdf(path):
+  from IPython.display import IFrame
+  path=osp.relpath(path)
+  return IFrame(path, width=600, height=300)
 
 def i_vis_model(model):
   from keras.utils import vis_utils
@@ -179,7 +192,8 @@ def i_vis_model(model):
 
 
 def vis_model(model, name='model', show_shapes=True):
-  import keras, logger
+  import keras
+  from logs import logger
   from keras.utils import vis_utils
   path = osp.dirname(name)
   name = osp.basename(name)

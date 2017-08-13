@@ -195,9 +195,9 @@ class TensorBoard2(Callback):
           # for name, val in bias.iteritems():
           #   stdtime_tensor[(iter, name)] = self.bias_stat.stdtime_inst.last_std[name]
           # utils.write_df(np_utils.dict2df(stdtime_tensor), self.log_dir + '/stdtime.h5')
-          utils.pickle(self.act_stat.stdtime_inst.record,'act_cache.pkl')
-          utils.pickle(self.kernel_stat.stdtime_inst.record,'kernel_cache.pkl')
-          utils.pickle(self.bias_stat.stdtime_inst.record,'bias_cache.pkl')
+          utils.pickle(self.act_stat.stdtime_inst.record, '../act_cache.pkl')
+          utils.pickle(self.kernel_stat.stdtime_inst.record, '../kernel_cache.pkl')
+          utils.pickle(self.bias_stat.stdtime_inst.record, '../bias_cache.pkl')
           
           example_df = self.act_stat.stdtime_inst.df.join(
               [self.kernel_stat.stdtime_inst.df, self.bias_stat.stdtime_inst.df],

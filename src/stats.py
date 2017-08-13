@@ -398,31 +398,33 @@ class OnlineStd(object):
       
       if not np.isnan(self.last_std[name].std).any():
         # # method 1
-        record_ = np.argmax(self.last_std[name].std).astype(int)
-        if len(self.record.get(name, set())) < 100:
-          self.record[name] = self.record.get(name, set())
-          self.record[name].add(record_)
-        else:
-          logger.info('stdtime max capacity is 100')
-
-        record_ = np.argmin(self.last_std[name].std).astype(int)
-        if len(self.record_min.get(name, set())) < 100:
-          self.record_min[name] = self.record_min.get(name, set())
-          self.record_min[name].add(record_)
-        else:
-          logger.info('stdtime min capacity is 100')
+        # record_ = np.argmax(self.last_std[name].std).astype(int)
+        # if len(self.record.get(name, set())) < 100:
+        #   self.record[name] = self.record.get(name, set())
+        #   self.record[name].add(record_)
+        # else:
+        #   logger.info('stdtime max capacity is 100')
+        #
+        # record_ = np.argmin(self.last_std[name].std).astype(int)
+        # if len(self.record_min.get(name, set())) < 100:
+        #   self.record_min[name] = self.record_min.get(name, set())
+        #   self.record_min[name].add(record_)
+        # else:
+        #   logger.info('stdtime min capacity is 100')
         # # method 2
         # cap = 100
         # self.record[name] = self.last_std[name].std.ravel().argsort()[-cap:][::-1]
         # self.record_min[name] = self.last_std[name].std.ravel().argsort()[-cap:][::-1]
         # # method 3
+        if name not in self.record:
+          self.record[name] = np.random.randint(0, tensor.ravel().shape[0], (100,))
+        if name not in self.record_min:
+          self.record_min[name] = np.random.randint(0, tensor.ravel().shape[0], (100,))
+        for ind,record_ in enumerate(self.record[name]):
+          self.df.loc[iter, name + '/example-max/' + str(ind)] = tensor.ravel()[record_]
         
-        
-        for record_ in self.record[name]:
-          self.df.loc[iter, name + '/example-max/' + str(record_)] = tensor.ravel()[record_]
-        
-        for record_ in self.record_min[name]:
-          self.df.loc[iter, name + '/example-min/' + str(record_)] = tensor.ravel()[record_]
+        for ind,record_ in enumerate(self.record_min[name]):
+          self.df.loc[iter, name + '/example-min/' + str(ind)] = tensor.ravel()[record_]
     
     if how == 'mean':
       stdtime_ = np.mean(self.last_std[name].std)

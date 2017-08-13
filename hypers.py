@@ -12,7 +12,7 @@ hyper = {
     "sub_sample_rate": [3, 2, 1],
     "grids"          : {
       'dataset'   : ['cifar10', 'cifar100'],
-      'model_type': ['vgg6', 'vgg16', 'vgg19','resnet10'],
+      'model_type': ['vgg6', 'vgg16', 'vgg19', 'resnet10'],
       'lr'        : np.logspace(-2, -3, 2),
       'with_bn'   : [True, False]
     }
@@ -35,7 +35,7 @@ hyper = {
     "epochs"         : 5,
     "sample_rate"    : 10,
     "sub_sample"     : [1, 2],
-    "sub_sample_rate": [1, 1, 1],
+    "sub_sample_rate": [5, 3, 1],
     "grids"          : {
       'dataset'   : ['mnist', ],
       'model_type': ['vgg6'],  # 'vgg16', , 'vgg19'
