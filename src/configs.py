@@ -43,7 +43,10 @@ class Config(object):
     d = {'model_type'  : self.model_type,
          'dataset_type': self.dataset_type}
     d = d.copy()
-    if self.others is not None:  d.update(self.others)
+    for key, val in self.others.iteritems():
+      if val is not None:
+        d[key] = val
+    
     if 'lr' in d: d['lr'] = '{:.2e}'.format(d['lr'])
     return d
   

@@ -304,3 +304,17 @@ class ResNet(BaseModel):
 
         self.model = ResnetBuilder.build(input_shape, classes, basic_block, cfg[type],name=config.name)
         self.vis()
+if __name__ == '__main__':
+    import sys
+    
+    sys.path.append('/home/wangxinglu/prj/Perf_Pred/src')
+    from configs import Config
+    
+    config = Config(epochs=301, batch_size=256, verbose=2,
+                    model_type='vgg10',
+                    dataset_type='cifar10',
+                    debug=False, others={'lr': 0.01}, clean_after=False)
+    
+    model = VGG((32, 32, 3), 10, config)
+    
+    model.vis()

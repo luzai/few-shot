@@ -36,8 +36,8 @@ class Dataset(object):
     y_test = keras.utils.to_categorical(y_test, self.classes)
     x_train = x_train.astype('float32')
     x_test = x_test.astype('float32')
-    x_train /= 255
-    x_test /= 255
+    x_train /= 255.
+    x_test /= 255.
     self.x_train, self.y_train, self.x_test, self.y_test = x_train, y_train, x_test, y_test
     if limit_val:
       self.x_test_ref, self.y_test_ref = map(sample_data, [self.x_test, self.y_test])

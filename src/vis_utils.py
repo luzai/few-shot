@@ -134,9 +134,9 @@ def reindex(columns, how='layer'):
     columns.sort(key=lambda val: sort_order2[val[1]])
   else:
     columns.sort(key=lambda val: sort_order[val[1]])
-    
-  return columns
   
+  return columns
+
 
 @utils.static_vars(ind=0, label2color={})
 def get_colors(label):
@@ -253,6 +253,7 @@ class Visualizer(object):
     parant_path = Config.root_path + '/' + parant_folder + '/'
     for path in glob.glob(parant_path + '/*'):
       _conf = utils.unpickle(path + '/config.pkl')
+      
       loader = Loader(path=path, stat_only=stat_only)
       # loader.start()
       loader.load(stat_only=stat_only)
@@ -297,6 +298,7 @@ class Visualizer(object):
     df.columns = index
     df = df.sort_index(axis=1, level=index_name)
     self.names = index_name
+    self.columns = index
     self.columns = index
     df.index.name = 'epoch' if not stat_only else 'iter'
     self.df = df
