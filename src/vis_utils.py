@@ -33,6 +33,7 @@ matplotlib.style.use('ggplot')
 
 Axes3D
 
+
 def drop_level(perf_df, other_name=None, keep_num_levels=3):
   perf_df = perf_df.copy()
   columns = perf_df.columns
@@ -182,7 +183,7 @@ def get_columns_alias(columns):
 
 
 class Visualizer(object):
-  def __init__(self, paranet_folder, join='outer', stat_only=True ):
+  def __init__(self, paranet_folder, join='outer', stat_only=True):
     self.aggregate(join, stat_only=stat_only, parant_folder=paranet_folder)
     self.split()
     levels, names, name2level, name2ind = get_columns_alias(self.df.columns)
@@ -245,6 +246,23 @@ class Visualizer(object):
     self.columns = index
     df.index.name = 'epoch' if not stat_only else 'iter'
     self.df = df
+
+
+class MultiIndexFacilitate(object):
+  def __init__(self, columns):
+    levels = list(columns.levels)
+    names = list(columns.names)
+    name2level = {name: level for name, level in zip(names, levels)}
+    name2ind = {name: ind for ind, name in enumerate(names)}
+    self.levels = levels
+    self.names = names
+    self.labels = columns.labels
+    self.names2levels = name2level
+    self.names2ind = name2ind
+    self.index = columns
+  
+  def update(self):
+    self.index = pd.MultiIndex.from_product(self.levels, names=self.names)
 
 
 def plot(perf_df, axes_names, other_names=None, legend=True):
@@ -354,25 +372,24 @@ def plot(perf_df, axes_names, other_names=None, legend=True):
   return fig, sup_title
 
 
-def select(df, level2pattern, sort_names=None, regexp=True):
-  df = df.copy()
+def select(df, level2pattern, regexp=True):
+  df_name = df.copy()
   for level_name, pattern_name in level2pattern.iteritems():
-    sel_name = df.columns.get_level_values(level_name)
-    f_sel_name = set()
-    pat = re.compile(pattern_name)
-    for sel_name_ in sel_name:
-      judge = bool(pat.match(sel_name_)) if regexp else pattern_name == sel_name_
-      if judge: f_sel_name.add(sel_name_)
-    df_l = []
-    for sel_name_ in f_sel_name:
-      df_l.append(df.xs(sel_name_, level=level_name, axis=1, drop_level=False))
-    if df_l != []:
-      df = pd.concat(df_l, axis=1)
+    indexf = MultiIndexFacilitate(df.unstack().index)
+    
+    df_name = df_name.unstack().reset_index().pivot_table(values=0, index=level_name,
+                                                          columns=set(indexf.names) - {level_name}
+                                                          )
+    
+    if regexp:
+      df_name=df_name.filter(regex=pattern_name, axis=0)
     else:
-      return None
-    if sort_names is None: sort_names = df.columns.names
-    # df.sort_index(level=sort_names, axis=1, inplace=True)
-  return df
+      df_name = df_name.loc[pattern_name, :]
+    level_name = 'iter'
+    df_name = df_name.unstack().reset_index().pivot_table(values=0, index=level_name,
+                                                     columns=set(indexf.names) - {level_name}
+                                                     )
+  return df_name
 
 
 def auto_plot(df, path_suffix, axes_names, other_names):
