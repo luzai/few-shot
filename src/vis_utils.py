@@ -51,7 +51,7 @@ def drop_level(perf_df, other_name=None):
       
       for ind, level in enumerate(perf_df.columns.levels):
         if len(level) == 1:
-          res_str += level[0] + '_'
+          res_str += str(level[0]) + '_'
           perf_df.columns = perf_df.columns.droplevel(ind)
           break
   else:
@@ -326,13 +326,7 @@ class MultiIndexFacilitate(object):
     self.index = pd.MultiIndex.from_product(self.levels, names=self.names)
 
 
-def plot(perf_df, axes_names, other_names=None, legend=True):
-  # #  order of axes is (row,col,inside fig)
-  perf_df, sup_title = drop_level(perf_df, other_names)
-  
-  for i_ in range(3 - len(perf_df.columns.names)):
-    perf_df.columns = append_level(perf_df.columns, '_')
-  
+def plot(perf_df, axes_names, legend=True, sup_title=''):
   row_name, col_name, inside = axes_names
   names2levels = {name: level for level, name in zip(perf_df.columns.levels, perf_df.columns.names)}
   row_level = names2levels[row_name]
@@ -477,18 +471,19 @@ def exclude(df, level2pattern, regexp=True):
   return df_name
 
 
-def auto_plot(df, axes_names, other_names=None, path_suffix='default', ipython=True, show=False):
-  indexf = MultiIndexFacilitate(df)
+def auto_plot(df, axes_names, path_suffix='default', ipython=True, show=False):
+  df, sup_title = drop_level(df)
+  if axes_names[-1] == '_':
+    df.columns = append_level(df.columns,'_')
+  indexf = MultiIndexFacilitate(df.columns)
+  
   other_names = np.setdiff1d(indexf.names, axes_names)
-  columns = df.columns
-  levels, names, name2level, name2ind = get_columns_alias(columns)
+  
   paths = []
+  
   if len(other_names) == 0:
     _df = df.copy()
-    if 'layer' in _df.columns.names:
-      _df = reindex(_df)
-    
-    fig, sup_title = plot(_df, axes_names, other_names)
+    fig, sup_title = plot(_df, axes_names, sup_title)
     utils.mkdir_p(Config.output_path + path_suffix + '/')
     sav_path = (Config.output_path
                 + path_suffix + '/'
@@ -497,12 +492,9 @@ def auto_plot(df, axes_names, other_names=None, path_suffix='default', ipython=T
     fig.savefig(sav_path,
                 bbox_inches='tight')
     paths.append(sav_path)
-    if show: plt.show()
     plt.close()
     
-    return paths
-  
-  for poss in cartesian([name2level[name] for name in other_names]):
+  for poss in cartesian([indexf.names2levels[name] for name in other_names]):
     _df = df.copy()
     for _name, _poss in zip(other_names, poss):
       _df = select(_df, {_name: _poss}, regexp=False)
@@ -512,7 +504,7 @@ def auto_plot(df, axes_names, other_names=None, path_suffix='default', ipython=T
     if 'layer' in _df.columns.names:
       _df = reindex(_df)
     
-    fig, sup_title = plot(_df, axes_names, other_names)
+    fig, sup_title = plot(_df, axes_names, sup_title)
     utils.mkdir_p(Config.output_path + path_suffix + '/')
     sav_path = (Config.output_path
                 + path_suffix + '/'
@@ -609,49 +601,33 @@ def map_name(names):
 
 
 if __name__ == '__main__':
-  visualizer = Visualizer(paranet_folder='mnist_std_exa')
+  visualizer = Visualizer(paranet_folder='all')
   df = visualizer.stat_df.copy()
-  df.head().columns.levels[-3]
-
+  
   df = select(df, {'model_type': 'vgg16'})
-  df, hyper_str = drop_level(df)
   df = exclude(df, {'name': '.*example.*'})
   df = split_layer_stat(df)
-
-  df.head()
-
-  df = reindex(df)
-  df.columns.levels[1]
-
-  df.head()
-
+  
   t = select(df, {'dataset_type': 'cifar10', 'lr': '1.00e-03'}, regexp=False)
   t = exclude(t, {'layer': '.*bn.*'})
   t = exclude(t, {'layer': '.*input.*'})
-  t.head()
-
+  
   auto_plot(t, axes_names=('layer', 'stat', 'with_bn'))
-
+  
   t = select(df, {'dataset_type': 'cifar10', 'lr': '1.00e-02'}, regexp=False)
   t = exclude(t, {'layer': '.*bn.*'})
   t = exclude(t, {'layer': '.*input.*'})
   t.head()
-
+  
   auto_plot(t, axes_names=('layer', 'stat', 'with_bn'), path_suffix='default/lr1e-2')
-
+  
   t = select(df, {'dataset_type': 'cifar10', 'lr': '1.00e-03'}, regexp=False)
   # t=exclude(t,{'layer':'.*bn.*'})
   t = exclude(t, {'layer': '.*input.*'})
   t.head()
-
+  
   auto_plot(t, axes_names=('layer', 'stat', 'with_bn'), path_suffix='default/seebn')
-
+  
   t = select(df, {'dataset_type': 'cifar10', 'lr': '1.00e-03', 'with_bn': 'False'}, regexp=False)
-  # t=exclude(t,{'layer':'.*bn.*'})
   t = exclude(t, {'layer': '.*input.*'})
-  t.head()
-  t, hyper = drop_level(t, keep_num_levels=2)
-  t.columns = append_level(df.columns, '_')
-  # t.columns=append_level(df.columns,'_','_')
-  t.head()
-  # auto_plot(t, axes_names=('layer','stat','_'),other_names=('__',),path_suffix='default/nobn')
+  auto_plot(t, axes_names=('layer', 'stat', '_'), path_suffix='default/nobn')
