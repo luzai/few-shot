@@ -32,7 +32,7 @@ hyper = {
   },
   # mnist ok ?
   "mnist"       : {
-    "epochs"         : 5,
+    "epochs"         : 10,
     "sample_rate"    : 10,
     "sub_sample"     : [1, 2],
     "sub_sample_rate": [5, 3, 1],

@@ -67,9 +67,9 @@ def merge_level(columns, start, stop):
   return pd.MultiIndex.from_tuples(columns_tuples)
 
 
-def expand_level(columns):
+def expand_level(columns, mid=2):
   df_tuples = [c.split('/') for c in columns]
-  df_tuples = [['/'.join(c[:3]), '/'.join(c[3:])] for c in df_tuples]
+  df_tuples = [['/'.join(c[:mid]), '/'.join(c[mid:])] for c in df_tuples]
   fcolumns = pd.MultiIndex.from_tuples(df_tuples, names=['layer', 'stat'])
   return fcolumns
   # df_tuples_len = np.array([len(_tmp) for _tmp in df_tuples]).max()
@@ -98,20 +98,45 @@ def append_level(columns, name, value=''):
   return fcolumns
 
 
-def reindex(df, level):
+def expand_level_df(df):
+  df, hyper_str = drop_level(df)
+  
+  df_name = df
+  indexf = MultiIndexFacilitate(df_name.unstack().index)
+  level_name = 'name'
+  df_name = df_name.unstack().reset_index().pivot_table(values=0, index=level_name,
+                                                        columns=set(indexf.names) - {level_name})
+  
+  df_name.index = expand_level(df_name.index)
+  level_name = 'iter'
+  indexf = MultiIndexFacilitate(df_name.unstack([-2, -1]).index)
+  df_name = df_name.unstack([-2, -1]).reset_index().pivot_table(values=0, index=level_name,
+                                                                columns=set(indexf.names) - {level_name})
+  return df_name
+
+
+def reindex(columns, how='layer'):
   new_index0 = ['act/', 'kernel/', 'bias/']
   new_index1 = ['diff', 'stdtime', 'iqr', 'std', 'mean', 'median', 'magmean', 'posmean', 'negmean', 'posproportion',
                 'max', 'min', 'orthogonality', 'sparsity', 'ptrate-thresh-0.2', 'ptrate-thresh-0.6',
                 'ptrate-thresh-mean', 'totvar']
-  new_index = [ind0 + ind1 for ind0 in new_index0 for ind1 in new_index1]
-  diff1 = ['kernel/', 'bias/']
-  diff2 = ['ptrate-thresh-0.2', 'ptrate-thresh-0.6', 'ptrate-thresh-mean']
-  diff = [_diff1 + _diff2 for _diff1 in diff1 for _diff2 in diff2] + ['bias/orthogonality']
-  new_index = [_new_index for _new_index in new_index if _new_index not in diff]
+  new_index = cartesian([new_index0, new_index1])
   
-  df = df.transpose().reindex(new_index, level=level).transpose().copy()
-  return df
-
+  sort_order = {index: ind for ind, index in enumerate(new_index)}
+  
+  new_index0 = ['layer' + str(ind) for ind in range(100)]  # todo increase it when needed
+  new_index1 = ['input', 'conv', 'bn', 'fc', 'softmax']  # although it is not necessaryli right
+  new_index = cartesian([new_index0, new_index1])
+  
+  sort_order2 = {index: ind for ind, index in enumerate(new_index)}
+  columns = list(columns)
+  if how == 'layer':
+    columns.sort(key=lambda val: sort_order2[val[1]])
+  else:
+    columns.sort(key=lambda val: sort_order[val[1]])
+    
+  return columns
+  
 
 @utils.static_vars(ind=0, label2color={})
 def get_colors(label):
@@ -421,7 +446,7 @@ def select(df, level2pattern, regexp=True):
 
 def exclude(df, level2pattern, regexp=True):
   df_name = df
- 
+  
   for level_name, pattern_name in level2pattern.iteritems():
     indexf = MultiIndexFacilitate(df.unstack().index)
     df_name = df_name.unstack().reset_index().pivot_table(values=0, index=level_name,
@@ -443,7 +468,7 @@ def exclude(df, level2pattern, regexp=True):
   return df_name
 
 
-def auto_plot(df, path_suffix, axes_names, other_names):
+def auto_plot(df, axes_names, other_names, path_suffix='default', ):
   columns = df.columns
   levels, names, name2level, name2ind = get_columns_alias(columns)
   show = False
@@ -483,7 +508,7 @@ def subplots(visualizer, path_suffix):
   perf_df.columns = append_level(perf_df.columns, '')
   perf_df.columns = append_level(perf_df.columns, 't2')
   perf_df.columns.set_names(['hyper', 'metric', '', 't2'], inplace=True)
-  auto_plot(perf_df, path_suffix + '_perf',
+  auto_plot(perf_df, path_suffix=path_suffix + '_perf',
             axes_names=['hyper', 'metric', ''],
             other_names=['t2'])
   
@@ -502,7 +527,7 @@ def subplots(visualizer, path_suffix):
   df = select(df,
               {'hyper': '(?:resnet10/cifar10/1.*3|vgg10/cifar10/1.*2)'})  # (?:resnet10/cifar10/.*3|vgg10/cifar10/.*2)
   
-  paths = auto_plot(df, path_suffix + '_stat',
+  paths = auto_plot(df, path_suffix=path_suffix + '_stat',
                     axes_names=('layer', 'stat', 'winsize'),
                     other_names=['hyper'])
   utils.merge_pdf(paths)
@@ -661,12 +686,13 @@ def t_sne(visualizer, model_type, dataset_type, start_lr):
 def map_name(names):
   if isinstance(names, basestring):
     names = [names]
-  name_dict = {'obs'                        : 'layer',
-               'conv2d'                     : 'conv',
-               'dense'                      : 'fc',
-               '_win_size_(.*)$'            : '/winsize-\g<1>',
-               '_win_size_(\d+)_thresh_(.*)': '-thresh-\g<2>/winsize-\g<1>',
-               }
+  name_dict = {
+    'conv2d'                     : 'conv',
+    'dense'                      : 'fc',
+    '_win_size_(.*)$'            : '/winsize-\g<1>',
+    '_win_size_(\d+)_thresh_(.*)': '-thresh-\g<2>/winsize-\g<1>',
+    'batchnormalization'         : 'bn'
+  }
   for ind, name in enumerate(names):
     new_name = name
     for pattern, replace in name_dict.iteritems():

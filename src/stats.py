@@ -72,17 +72,17 @@ class Stat(object):
   def min(self, tensor, **kwargs):
     return tensor.min()
   
-  # def max(self, tensor, **kwargs):
-  #     return tensor.max()
+  def max(self, tensor, **kwargs):
+      return tensor.max()
   
-  # def mean(self, tensor, **kwargs):
-  #     return tensor.mean()
+  def mean(self, tensor, **kwargs):
+      return tensor.mean()
   
   def median(self, tensor, **kwargs):
     return np.median(tensor)
   
-  # def std(self, tensor, **kwargs):
-  #     return tensor.std()
+  def std(self, tensor, **kwargs):
+      return tensor.std()
   
   def iqr(self, tensor, **kwargs):
     return np.subtract.reduce(np.percentile(tensor, [75, 25]))
