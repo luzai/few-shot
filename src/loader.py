@@ -287,7 +287,7 @@ class Loader(threading.Thread):
 
 if __name__ == '__main__':
   
-  for path in glob.glob(Config.root_path + '/stdtime3/*'):
+  for path in glob.glob(Config.root_path + '/all/*'):
     print path
     # try:
     loader = Loader(path=path, stat_only=True)

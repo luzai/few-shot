@@ -63,6 +63,4 @@ hyper = {
       'decay'      : [10],
     }
   },
-  # std time
-  
 }

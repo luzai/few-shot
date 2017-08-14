@@ -5,7 +5,7 @@ find . -name '*.pdf' -exec rm {} \;
 find . -name '*.png' -exec rm {} \;
 find . -name '*.log' -exec rm {} \;
 find . -name 'dbg' -exec rm {} \;
-
+rm tmp.pkl tmp.png *.log *.pkl *.pyc -f
 #cat ~/.bash_history | head -n 130 > ~/.bash_history
 
 

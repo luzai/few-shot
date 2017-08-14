@@ -34,31 +34,15 @@ matplotlib.style.use('ggplot')
 Axes3D
 
 
-def drop_level(perf_df, other_name=None):
-  perf_df = perf_df.copy()
-  columns = perf_df.columns
-  names = columns.names
-  names = np.array(names)
-  levels = columns.levels
-  name2level = {name: level for name, level in zip(names, levels)}
+def drop_level(perf_df):
+  indexf = MultiIndexFacilitate(perf_df.columns)
   
   res_str = ''
-  if other_name is None:
-    while True:
-      levels_len = [len(level) for level in perf_df.columns.levels]
-      levels_len = np.array(levels_len)
-      if (levels_len != np.ones_like(levels_len)).all(): break
-      
-      for ind, level in enumerate(perf_df.columns.levels):
-        if len(level) == 1:
-          res_str += str(level[0]) + '_'
-          perf_df.columns = perf_df.columns.droplevel(ind)
-          break
-  else:
-    perf_df.columns = perf_df.columns.droplevel(other_name)
-    for name in other_name:
-      level = name2level[name]
-      res_str += level[0] + '_'
+  other_name = np.array(indexf.names)[np.array(indexf.names2len.values()) == 1].tolist()
+  perf_df.columns = perf_df.columns.droplevel(other_name)
+  for name in other_name:
+    level = indexf.names2levels[name]
+    res_str += level[0] + '_'
   return perf_df, res_str
 
 
@@ -474,7 +458,7 @@ def exclude(df, level2pattern, regexp=True):
 def auto_plot(df, axes_names, path_suffix='default', ipython=True, show=False):
   df, sup_title = drop_level(df)
   if axes_names[-1] == '_':
-    df.columns = append_level(df.columns,'_')
+    df.columns = append_level(df.columns, '_')
   indexf = MultiIndexFacilitate(df.columns)
   
   other_names = np.setdiff1d(indexf.names, axes_names)
@@ -483,6 +467,8 @@ def auto_plot(df, axes_names, path_suffix='default', ipython=True, show=False):
   
   if len(other_names) == 0:
     _df = df.copy()
+    if 'stat' in _df.columns.names:
+      _df = reindex(_df)
     fig, sup_title = plot(_df, axes_names, sup_title)
     utils.mkdir_p(Config.output_path + path_suffix + '/')
     sav_path = (Config.output_path
@@ -493,7 +479,7 @@ def auto_plot(df, axes_names, path_suffix='default', ipython=True, show=False):
                 bbox_inches='tight')
     paths.append(sav_path)
     plt.close()
-    
+  
   for poss in cartesian([indexf.names2levels[name] for name in other_names]):
     _df = df.copy()
     for _name, _poss in zip(other_names, poss):
@@ -608,25 +594,25 @@ if __name__ == '__main__':
   df = exclude(df, {'name': '.*example.*'})
   df = split_layer_stat(df)
   
-  t = select(df, {'dataset_type': 'cifar10', 'lr': '1.00e-03'}, regexp=False)
-  t = exclude(t, {'layer': '.*bn.*'})
-  t = exclude(t, {'layer': '.*input.*'})
-  
-  auto_plot(t, axes_names=('layer', 'stat', 'with_bn'))
-  
-  t = select(df, {'dataset_type': 'cifar10', 'lr': '1.00e-02'}, regexp=False)
-  t = exclude(t, {'layer': '.*bn.*'})
-  t = exclude(t, {'layer': '.*input.*'})
-  t.head()
-  
-  auto_plot(t, axes_names=('layer', 'stat', 'with_bn'), path_suffix='default/lr1e-2')
-  
-  t = select(df, {'dataset_type': 'cifar10', 'lr': '1.00e-03'}, regexp=False)
-  # t=exclude(t,{'layer':'.*bn.*'})
-  t = exclude(t, {'layer': '.*input.*'})
-  t.head()
-  
-  auto_plot(t, axes_names=('layer', 'stat', 'with_bn'), path_suffix='default/seebn')
+  # t = select(df, {'dataset_type': 'cifar10', 'lr': '1.00e-03'}, regexp=False)
+  # t = exclude(t, {'layer': '.*bn.*'})
+  # t = exclude(t, {'layer': '.*input.*'})
+  #
+  # auto_plot(t, axes_names=('layer', 'stat', 'with_bn'))
+  #
+  # t = select(df, {'dataset_type': 'cifar10', 'lr': '1.00e-02'}, regexp=False)
+  # t = exclude(t, {'layer': '.*bn.*'})
+  # t = exclude(t, {'layer': '.*input.*'})
+  # t.head()
+  #
+  # auto_plot(t, axes_names=('layer', 'stat', 'with_bn'), path_suffix='default/lr1e-2')
+  #
+  # t = select(df, {'dataset_type': 'cifar10', 'lr': '1.00e-03'}, regexp=False)
+  # # t=exclude(t,{'layer':'.*bn.*'})
+  # t = exclude(t, {'layer': '.*input.*'})
+  # t.head()
+  #
+  # auto_plot(t, axes_names=('layer', 'stat', 'with_bn'), path_suffix='default/seebn')
   
   t = select(df, {'dataset_type': 'cifar10', 'lr': '1.00e-03', 'with_bn': 'False'}, regexp=False)
   t = exclude(t, {'layer': '.*input.*'})

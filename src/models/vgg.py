@@ -34,7 +34,7 @@ class VGG(BaseModel):
         self.vis()
 
     def build(self, name):
-        x = input = Input(self.input_shape, name='layer0/input')
+        x = input = Input(self.input_shape)
         depth = 1
         for config in self.arch:
             if config[0] == 'conv2d':
