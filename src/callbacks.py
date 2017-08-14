@@ -7,7 +7,7 @@ from logs import logger
 from stats import KernelStat, ActStat, BiasStat
 from utils import clean_name
 
-import utils, math, itertools, os.path as osp, np_utils
+import utils, math, itertools, os.path as osp, legacy
 
 
 # tensorboard2 is batch based
@@ -111,7 +111,7 @@ class TensorBoard2(Callback):
     
     self.act_summ = tf.summary.merge(act_summ_l) if act_summ_l != [] else None
     self.grad_summ = tf.summary.merge(grad_summ_l) if grad_summ_l != [] else None
-    self.weight_summ = tf.summary.merge(weight_summ_l) if weight_summ_l != [] else None
+    # self.weight_summ = tf.summary.merge(weight_summ_l) if weight_summ_l != [] else None
     self.merged = tf.summary.merge(
         act_summ_l + weight_summ_l + grad_summ_l) if act_summ_l + weight_summ_l + grad_summ_l != [] else None
     
@@ -193,7 +193,7 @@ class TensorBoard2(Callback):
           #   stdtime_tensor[(iter, name)] = self.kernel_stat.stdtime_inst.last_std[name]
           # for name, val in bias.iteritems():
           #   stdtime_tensor[(iter, name)] = self.bias_stat.stdtime_inst.last_std[name]
-          # utils.write_df(np_utils.dict2df(stdtime_tensor), self.log_dir + '/stdtime.h5')
+          # utils.write_df(vis_utils.dict2df(stdtime_tensor), self.log_dir + '/stdtime.h5')
           
           # utils.pickle(self.act_stat.stdtime_inst.record, '../act_cache.pkl')
           # utils.pickle(self.kernel_stat.stdtime_inst.record, '../kernel_cache.pkl')
@@ -232,8 +232,8 @@ class TensorBoard2(Callback):
         gamma, beta, movingmean, movingvariance = weights
         res_kernel[clean_name(layer.name) + '/gamma'] = gamma
         res_bias[clean_name(layer.name) + '/beta'] = beta
-        res_bias[clean_name(layer.name) + '/movingmean'] = movingmean
-        res_bias[clean_name(layer.name) + '/movingvariance'] = movingvariance
+        res_bias[clean_name(layer.name) + '/moving-mean'] = movingmean
+        res_bias[clean_name(layer.name) + '/moving-var'] = movingvariance
       else:
         raise ValueError('how many ' + len(weights))
     return res_kernel, res_bias
@@ -267,7 +267,6 @@ class TensorBoard2(Callback):
       
       for _act_name, _act in self.sess.run(self.act_l, feed_dict=feed_dict).items():
         if _act_name in res:
-          
           res[_act_name] = np.concatenate((res[_act_name], _act), axis=0)
         else:
           res[_act_name] = _act

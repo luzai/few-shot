@@ -39,7 +39,7 @@ def _conv_bn_relu(**conv_params):
   # obs=conv_params.get('obs',None)
   global layer
   if layer is not None:
-    name = 'layer{}/conv2d'.format(layer)
+    name = 'layer{}/conv'.format(layer)
   else:
     name = None
   
@@ -67,7 +67,7 @@ def _bn_relu_conv(**conv_params):
   global layer
   
   if layer is not None:
-    name = 'layer{}/conv2d'.format(layer)
+    name = 'layer{}/conv'.format(layer)
   else:
     name = None
   
@@ -102,7 +102,7 @@ def _shortcut(input, residual):
                       strides=(stride_width, stride_height),
                       padding="valid",
                       kernel_initializer="he_normal",
-                      kernel_regularizer=l2(0.0001), name='layer{}/conv2d-s'.format(layer))(input)
+                      kernel_regularizer=l2(0.0001), name='layer{}/conv-s'.format(layer))(input)
   
   return add([shortcut, residual], name='layer{}/add'.format(layer))
 
@@ -139,7 +139,7 @@ def basic_block(filters, init_strides=(1, 1), is_first_block_of_first_layer=Fals
                      strides=init_strides,
                      padding="same",
                      kernel_initializer="he_normal",
-                     kernel_regularizer=l2(1e-4), name='layer{}/conv2d'.format(layer))(input)
+                     kernel_regularizer=l2(1e-4), name='layer{}/conv'.format(layer))(input)
     
     else:
       conv1 = _bn_relu_conv(filters=filters, kernel_size=(3, 3),

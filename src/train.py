@@ -75,7 +75,7 @@ def run(model_type='vgg6', limit_val=True,
                     # TensorBoard(log_dir=config.model_tfevents_path)
                   ])
   
-  Loader(path=config.model_tfevents_path).load()
+  Loader(path=config.model_tfevents_path,stat_only=True).load(stat_only=True)
   model.save()
   # except Exception as inst:
   #     print inst
@@ -86,14 +86,14 @@ import multiprocessing as mp, time
 from logs import logger
 import logs, os.path as osp
 import numpy as np
-import utils, os, np_utils
+import utils, os, legacy
 
 utils.rm(utils.root_path + '/tfevents  ' + utils.root_path + '/output')
 tasks = []
 
 queue = mp.Queue()
 grids = utils.get_config('grids')
-for grid in np_utils.grid_iter(grids):
+for grid in utils.grid_iter(grids):
   print grid
   if utils.get_config('dbg'):
     logger.error('!!! your are in dbg')

@@ -67,7 +67,7 @@ def run(model_type='vgg5', lr=1e-3,
 import multiprocessing as mp, time
 from logs import logger
 import logs
-import numpy as np, itertools, np_utils
+import numpy as np, itertools, legacy
 import utils, os, os.path as osp, glob
 
 utils.rm(utils.root_path + '/tfevents  ' + utils.root_path + '/output')
@@ -80,7 +80,7 @@ else:
   queue = mp.Queue()
   grids = utils.get_config('grids')
   
-  for grid in itertools.chain(np_utils.grid_iter(grids)):
+  for grid in itertools.chain(legacy.grid_iter(grids)):
     print grid
     p = mp.Process(target=run, kwargs=utils.dict_concat([grid, {'queue': queue}]))
     p.start()

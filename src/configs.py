@@ -5,6 +5,8 @@ import numpy as np
 import os.path as osp
 import utils
 
+from utils import dict2str
+
 
 class Config(object):
   # shared across model
@@ -23,15 +25,8 @@ class Config(object):
     if name is None:
       self.name = name = model_type + '_' + dataset_type
       if others is not None:
-        for key, val in others.iteritems():
-          if isinstance(val, dict):
-            for key_, val_ in val.iteritems():
-              name += '_' + str(key_) + '_' + str(val_)
-          elif isinstance(val, list):
-            for val_ in val:
-              name += str(val_)
-          else:
-            name += '_' + str(key) + '_' + str(val)
+        name += dict2str(others)
+    
     self.name = name
     
     self.model_tfevents_path = osp.join(Config.tfevents_path, name)
@@ -47,10 +42,11 @@ class Config(object):
          'dataset_type': self.dataset_type}
     d = d.copy()
     for key, val in self.others.iteritems():
-      if val is not None:
+      if val is not None and not isinstance(val, dict):
         d[key] = val
+      elif isinstance(val, dict):
+        d[key] = dict2str(val)
     
-    if 'lr' in d: d['lr'] = '{:.2e}'.format(d['lr'])
     return d
   
   def clean_model_path(self, clean):

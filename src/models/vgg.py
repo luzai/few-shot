@@ -22,7 +22,7 @@ class VGG(BaseModel):
             'vgg19': [[64, 64, 'M', 128, 128, 'M', 256, 256, 256, 256, 'M', 512, 512, 512, 512, 'M', 512, 512, 512, 512,
                        'M'], [512, 512, self.classes]],
             'vgg6': [[32, 32, 'M', 64, 64, 'M'], [512, self.classes]],
-            'vgg10': [[64, 'M', 128, 128, 'M', 256, 256, 'M', 512, 512, 'M'], [512, 512, self.classes]],
+            'vgg10': [[32, 'M', 64, 64, 'M', 128, 128, 'M', 256, 256, 'M'], [512, 512, self.classes]],
             'vgg9': [[64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M'], [512, 512, self.classes]],
             'vgg8': [[64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M'], [512, self.classes]],
         }
@@ -39,11 +39,11 @@ class VGG(BaseModel):
         for config in self.arch:
             if config[0] == 'conv2d':
                 if not self.with_bn:
-                    x = Conv2D(config[1], (3, 3), padding='same', name='layer{}/conv2d'.format(depth),
+                    x = Conv2D(config[1], (3, 3), padding='same', name='layer{}/conv'.format(depth),
                                kernel_regularizer=l2(1.e-4))(x)
                     x = Activation('relu')(x)
                 else:
-                    x = Conv2D(config[1], (3, 3), padding='same', name='layer{}/conv2d'.format(depth),
+                    x = Conv2D(config[1], (3, 3), padding='same', name='layer{}/conv'.format(depth),
                                kernel_regularizer=l2(1.e-4))(x)
                     x = BatchNormalization(axis=-1, name='layer{}/batchnormalization'.format(depth))(x)
                     x = Activation('relu')(x)
@@ -78,7 +78,7 @@ if __name__ == '__main__':
     config = Config(epochs=301, batch_size=256, verbose=2,
                     model_type='vgg10',
                     dataset_type='cifar10',
-                    debug=False, others={'lr': 0.01}, clean_after=False)
+                    debug=False, )
 
     model = VGG((32, 32, 3), 10, config)
 

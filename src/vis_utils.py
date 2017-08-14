@@ -14,7 +14,7 @@ from matplotlib.ticker import NullFormatter
 from matplotlib import colors as mcolors
 
 from sklearn import preprocessing, manifold, datasets
-
+from utils import cartesian
 import time, utils, glob, os, re, copy
 import numpy as np, os.path as osp, pandas as pd, matplotlib.pylab as plt
 
@@ -34,14 +34,26 @@ matplotlib.style.use('ggplot')
 Axes3D
 
 
+def dict2df(my_dict):
+  tensor_d = {}
+  for k, v in my_dict.iteritems():
+    #     print k,v.shape
+    if k[1] not in tensor_d:
+      tensor_d[k[1]] = pd.Series(name=k[1], index=pd.Int64Index([]))
+    tensor_d[k[1]][k[0]] = v
+  return pd.DataFrame.from_dict(tensor_d)
+
+
 def drop_level(perf_df):
   indexf = MultiIndexFacilitate(perf_df.columns)
   
   res_str = ''
   other_name = np.array(indexf.names)[np.array(indexf.names2len.values()) == 1].tolist()
   perf_df.columns = perf_df.columns.droplevel(other_name)
+  
   for name in other_name:
     level = indexf.names2levels[name]
+    # print name, level
     res_str += level[0] + '_'
   if not isinstance(perf_df.columns, pd.MultiIndex):
     perf_df.columns = append_level(perf_df.columns, '_')
@@ -105,7 +117,7 @@ def custom_sort(columns, how='layer'):
   sort_order = {index: ind for ind, index in enumerate(new_index)}
   
   new_index0 = ['layer' + str(ind) for ind in range(100)]  # todo increase it when needed
-  new_index1 = ['input', 'conv', 'bn', 'fc', 'softmax']  # although it is not necessaryli right
+  new_index1 = ['input', 'conv', 'bn', 'conv-s', 'add', 'fc', 'softmax']  # although it is not necessaryli right
   new_index = cartesian([new_index0, new_index1]).tolist()
   new_index = ['/'.join(index_) for index_ in new_index]
   
@@ -154,58 +166,6 @@ def get_colors(label):
   return color
 
 
-def cartesian(arrays, out=None):
-  """
-  Generate a cartesian product of input arrays.
-
-  Parameters
-  ----------
-  arrays : list of array-like
-      1-D arrays to form the cartesian product of.
-  out : ndarray
-      Array to place the cartesian product in.
-
-  Returns
-  -------
-  out : ndarray
-      2-D array of shape (M, len(arrays)) containing cartesian products
-      formed of input arrays.
-
-  Examples
-  --------
-  >>> cartesian(([1, 2, 3], [4, 5], [6, 7]))
-  array([[1, 4, 6],
-         [1, 4, 7],
-         [1, 5, 6],
-         [1, 5, 7],
-         [2, 4, 6],
-         [2, 4, 7],
-         [2, 5, 6],
-         [2, 5, 7],
-         [3, 4, 6],
-         [3, 4, 7],
-         [3, 5, 6],
-         [3, 5, 7]])
-
-  """
-  if len(arrays) == 0:
-    return []
-  arrays = [np.asarray(x) for x in arrays]
-  # dtype = arrays[0].dtype
-  dtype = object
-  n = np.prod([x.size for x in arrays])
-  if out is None:
-    out = np.zeros([n, len(arrays)], dtype=dtype)
-  
-  m = n / arrays[0].size
-  out[:, 0] = np.repeat(arrays[0], m)
-  if arrays[1:]:
-    cartesian(arrays[1:], out=out[0:m, 1:])
-    for j in xrange(1, arrays[0].size):
-      out[j * m:(j + 1) * m, 1:] = out[0:m, 1:]
-  return out
-
-
 def choose_three(names):
   def comb_index(n, k):
     assert k == 3, 'choose 3 dim'
@@ -219,10 +179,10 @@ def choose_three(names):
   
   names = np.array(names)
   for axes_names in names[comb_index(len(names), 3)]:
-    if axes_names[-1] != 'lr':
-      continue
-    else:
-      yield axes_names
+    # if axes_names[-1] != 'lr':
+    #   continue
+    # else:
+    yield axes_names
 
 
 def get_columns_alias(columns):
@@ -266,25 +226,24 @@ class Visualizer(object):
       
       loader = loaders[conf_name]
       
-      
       scalar = loader.scalars
       
       df_l.append(scalar)
       for name in scalar.columns:
         name = map_name(name)[0]
         index_l.append(conf_dict.values() + [name])
-      
-      # act = loader.act
-      # df_l.append(act)
-      # for name in act.columns:
-      #   name = map_name(name)[0]
-      #   index_l.append(conf_dict.values() + [name])
-      
-      #param = loader.params
-      # df_l.append(param)
-      # for name in param.columns:
-      #   name = map_name(name)[0]
-      #   index_l.append(conf_dict.values() + [name])
+        
+        # act = loader.act
+        # df_l.append(act)
+        # for name in act.columns:
+        #   name = map_name(name)[0]
+        #   index_l.append(conf_dict.values() + [name])
+        
+        # param = loader.params
+        # df_l.append(param)
+        # for name in param.columns:
+        #   name = map_name(name)[0]
+        #   index_l.append(conf_dict.values() + [name])
     
     index_l = np.array(index_l).astype(basestring).transpose()
     index_name = conf_dict.keys() + ['name']
@@ -316,7 +275,7 @@ class MultiIndexFacilitate(object):
     self.index = pd.MultiIndex.from_product(self.levels, names=self.names)
 
 
-def plot(perf_df, axes_names, legend=True, sup_title=''):
+def plot(perf_df, axes_names, sup_title, legend=True, ):
   row_name, col_name, inside = axes_names
   names2levels = {name: level for level, name in zip(perf_df.columns.levels, perf_df.columns.names)}
   row_level = names2levels[row_name]
@@ -412,7 +371,7 @@ def plot(perf_df, axes_names, legend=True, sup_title=''):
         # else:
         #     axes[_row, _col].legend([])
   
-  sup_title += 'legend_' + inside
+  sup_title += '_' + inside
   sup_title = sup_title.strip('_')
   fig.suptitle(sup_title, fontsize=50)
   # plt.show()
@@ -463,7 +422,7 @@ def exclude(df, level2pattern, regexp=True):
 
 def auto_plot(df, axes_names, path_suffix='default', ipython=True, show=False):
   df, sup_title = drop_level(df)
-  if len(df.columns.names) < 3:
+  if len(df.columns.names) < 3 or axes_names[-1] == '_':
     df.columns = append_level(df.columns, '_')
   indexf = MultiIndexFacilitate(df.columns)
   
@@ -488,19 +447,22 @@ def auto_plot(df, axes_names, path_suffix='default', ipython=True, show=False):
   
   for poss in cartesian([indexf.names2levels[name] for name in other_names]):
     _df = df.copy()
+    print poss
     for _name, _poss in zip(other_names, poss):
       _df = select(_df, {_name: _poss}, regexp=False)
+    sup_title_ = '_' + str(_poss) + sup_title
+    
     # if _df is None: break
     # if _df is None: continue
     
     if 'layer' in _df.columns.names:
       _df = reindex(_df)
     
-    fig, sup_title = plot(_df, axes_names, sup_title)
+    fig, sup_title_ = plot(_df, axes_names, sup_title_)
     utils.mkdir_p(Config.output_path + path_suffix + '/')
     sav_path = (Config.output_path
                 + path_suffix + '/'
-                + re.sub('/', '', sup_title)
+                + re.sub('/', '', sup_title_)
                 + '.pdf').strip('_')
     fig.savefig(sav_path,
                 bbox_inches='tight')
@@ -596,12 +558,13 @@ if __name__ == '__main__':
   visualizer = Visualizer(paranet_folder='all')
   
   df = visualizer.stat_df.copy()
-  # df = df.iloc[:10, :]
-  df.head()
-  df = select(df, {'model_type': 'resnet10', 'lr': '1.00e-03'}, regexp=False)
-  df, hyper_str = drop_level(df)
-  df = exclude(df, {'name': '.*example.*'})
+  # df = select(df, {'model_type': 'vgg16'})
+  # df = exclude(df, {'name': '.*example.*'})
   df = split_layer_stat(df)
-  df = reindex(df)
   df.head()
-  auto_plot(df, ('layer', 'stat', '_'))
+  # df = select(df, {'lr': '1.00e-03'}, regexp=False)
+  # # df = select(df,{'model_type':'resnet10'})
+  # df = exclude(df, {'layer': '.*fc.*'})
+  # df = select(df, {'stat': '.*act.*'})
+  # df.head()
+  # auto_plot(df, ('layer', 'stat', '_'))
