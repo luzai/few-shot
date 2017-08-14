@@ -93,8 +93,7 @@ class TensorBoard2(Callback):
     self.act_l = {}
     if self.merged is None:
       for layer in self.model.layers:
-        if not layer.name.startswith('layer'):  # only log layer
-          continue
+        if not layer.name.startswith('layer'): continue
         for weight in layer.weights:
           # todo more clean way to name
           logger.info('summ log {}'.format(clean_name(weight.op.name)))
@@ -195,15 +194,17 @@ class TensorBoard2(Callback):
           # for name, val in bias.iteritems():
           #   stdtime_tensor[(iter, name)] = self.bias_stat.stdtime_inst.last_std[name]
           # utils.write_df(np_utils.dict2df(stdtime_tensor), self.log_dir + '/stdtime.h5')
-          utils.pickle(self.act_stat.stdtime_inst.record, '../act_cache.pkl')
-          utils.pickle(self.kernel_stat.stdtime_inst.record, '../kernel_cache.pkl')
-          utils.pickle(self.bias_stat.stdtime_inst.record, '../bias_cache.pkl')
           
-          example_df = self.act_stat.stdtime_inst.df.join(
-              [self.kernel_stat.stdtime_inst.df, self.bias_stat.stdtime_inst.df],
-              how='outer')
-          self.write_df(example_df)
-      
+          # utils.pickle(self.act_stat.stdtime_inst.record, '../act_cache.pkl')
+          # utils.pickle(self.kernel_stat.stdtime_inst.record, '../kernel_cache.pkl')
+          # utils.pickle(self.bias_stat.stdtime_inst.record, '../bias_cache.pkl')
+          #
+          # example_df = self.act_stat.stdtime_inst.df.join(
+          #     [self.kernel_stat.stdtime_inst.df, self.bias_stat.stdtime_inst.df],
+          #     how='outer')
+          # self.write_df(example_df)
+          pass
+          
       if self.log_pnts[self.iter] >= 2:
         val_loss, val_acc = self.model.evaluate(self.dataset.x_test, self.dataset.y_test, verbose=2)
         logs['val_loss'] = val_loss
@@ -341,9 +342,9 @@ def schedule(epoch, x=(30., 100.), y=(10., 10.), init=0.01):
     x = [x]
   if not isinstance(y, tuple) and not isinstance(y, list):
     y = [y]
-  x = list([float(_x) for _x in x])
-  y = list([float(_y) for _y in y])
-  func_l = [init]
+  x = [float(_x) for _x in x]
+  y = [float(_y) for _y in y]
+  func_l = [float(init)]
   for _y in y:
     func_l.append(func_l[-1] / _y)
   x = [0] + x + [99999]

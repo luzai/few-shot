@@ -1,15 +1,15 @@
-def run(model_type='vgg6', lr=1e-3, limit_val=True,
+def run(model_type='vgg6', limit_val=True,
         dataset='cifar10', queue=None, runtime=1,
-        with_bn=True, optimizer='sgd', decay_epoch=None, decay=None,):
+        with_bn=True, optimizer={'name': 'sgd'}):
   import utils
   import warnings
   warnings.filterwarnings("ignore")
   
-  utils.init_dev(utils.get_dev())
+  utils.init_dev(utils.get_dev(ok=utils.get_config('gpu')))
   # utils.allow_growth()
   import tensorflow as tf, keras
-  from callbacks import TensorBoard2,schedule
-  from keras.callbacks import TensorBoard,LearningRateScheduler
+  from callbacks import TensorBoard2, schedule
+  from keras.callbacks import TensorBoard, LearningRateScheduler
   from datasets import Dataset
   from models import VGG, ResNet
   from configs import Config
@@ -22,10 +22,11 @@ def run(model_type='vgg6', lr=1e-3, limit_val=True,
                   model_type=model_type,
                   dataset_type=dataset,
                   debug=False,
-                  others={'lr'     : lr,
-                          'runtime': runtime,
-                          'with_bn': with_bn,'decay_epoch': decay_epoch, 'decay': decay,  },
-                  clean_after=False)
+                  others={'runtime'  : runtime,
+                          'with_bn'  : with_bn,
+                          'optimizer': optimizer,
+                          },
+                  )
   # if len(glob.glob(config.model_tfevents_path + '/*tfevents*')) >= 1:
   #   logger.info('exist ' + config.model_tfevents_path)
   #   if queue is not None: queue.put([True])
@@ -38,20 +39,19 @@ def run(model_type='vgg6', lr=1e-3, limit_val=True,
     model = VGG(dataset.input_shape, dataset.classes, config, with_bn=with_bn, with_dp=True)
   else:
     model = ResNet(dataset.input_shape, dataset.classes, config, with_bn=with_bn, with_dp=True)
-  if optimizer == 'sgd':
-    opt = keras.optimizers.sgd(lr, momentum=0.9)
-  elif optimizer == 'rmsprop':
-    opt = keras.optimizers.rmsprop(lr)
+  if optimizer['name'] == 'sgd':
+    opt = keras.optimizers.sgd(optimizer['lr'], momentum=0.9)
+  elif optimizer['name'] == 'rmsprop':
+    opt = keras.optimizers.rmsprop(optimizer['lr'])
   else:
-    opt = keras.optimizers.adam(lr)
+    opt = keras.optimizers.adam(optimizer['lr'])
   model.model.summary()
-  model.model.compile(
-      opt,
-      loss='categorical_crossentropy',
-      metrics=['accuracy'])
+  model.model.compile(opt,
+                      loss='categorical_crossentropy',
+                      metrics=['accuracy'])
   
   if queue is not None: queue.put([True])
-  # todo callback monisotr fisrt epoch
+  
   model.model.fit(dataset.x_train, dataset.y_train, batch_size=config.batch_size, epochs=config.epochs,
                   verbose=config.verbose,
                   validation_data=(dataset.x_test, dataset.y_test),
@@ -66,11 +66,16 @@ def run(model_type='vgg6', lr=1e-3, limit_val=True,
                                  stat_only=True,
                                  batch_based=True
                                  ),
-                    LearningRateScheduler(lambda epoch: schedule(epoch, x=decay_epoch, y=decay))
+                    LearningRateScheduler(lambda epoch: schedule(epoch,
+                                                                 x=optimizer.get('decay_epoch', None),
+                                                                 y=optimizer.get('decay', None),
+                                                                 init=optimizer['lr'],
+                                                                 ),
+                                          ),
                     # TensorBoard(log_dir=config.model_tfevents_path)
                   ])
-  # if config.clean_after:
-  #   Loader(path=config.model_tfevents_path).load()
+  
+  Loader(path=config.model_tfevents_path).load()
   model.save()
   # except Exception as inst:
   #     print inst

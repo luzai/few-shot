@@ -416,16 +416,18 @@ class OnlineStd(object):
         # self.record[name] = self.last_std[name].std.ravel().argsort()[-cap:][::-1]
         # self.record_min[name] = self.last_std[name].std.ravel().argsort()[-cap:][::-1]
         # # method 3
-        if name not in self.record:
-          self.record[name] = np.random.randint(0, tensor.ravel().shape[0], (100,))
-        if name not in self.record_min:
-          self.record_min[name] = np.random.randint(0, tensor.ravel().shape[0], (100,))
-        for ind,record_ in enumerate(self.record[name]):
-          self.df.loc[iter, name + '/example-max/' + str(ind)] = tensor.ravel()[record_]
-        
-        for ind,record_ in enumerate(self.record_min[name]):
-          self.df.loc[iter, name + '/example-min/' + str(ind)] = tensor.ravel()[record_]
-    
+        # if name not in self.record:
+        #   self.record[name] = np.random.randint(0, tensor.ravel().shape[0], (100,))
+        # if name not in self.record_min:
+        #   self.record_min[name] = np.random.randint(0, tensor.ravel().shape[0], (100,))
+        # for ind,record_ in enumerate(self.record[name]):
+        #   self.df.loc[iter, name + '/example-max/' + str(ind)] = tensor.ravel()[record_]
+        #
+        # for ind,record_ in enumerate(self.record_min[name]):
+        #   self.df.loc[iter, name + '/example-min/' + str(ind)] = tensor.ravel()[record_]
+        pass
+      
+      
     if how == 'mean':
       stdtime_ = np.mean(self.last_std[name].std)
     else:

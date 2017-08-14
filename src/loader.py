@@ -243,7 +243,8 @@ class Loader(threading.Thread):
       self.scalars = res
     else:
       self.scalars = ScalarLoader(path=path).load_scalars()
-      cache(_select(self.scalars, "(?:val_loss|loss|val_acc|acc)"), path)
+      cache(self.scalars,path)
+      # cache(_select(self.scalars, "(?:val_loss|loss|val_acc|acc)"), path)
     logger.info('load scalars consume {}'.format(timer.toc()))
     
     if not stat_only:
@@ -260,24 +261,30 @@ class Loader(threading.Thread):
         self.params = ParamLoader(path=path).seq_load()
       logger.info('load param consume {}'.format(timer.toc()))
     else:
-      df = self.scalars
-      self.scalars = _select(df, "(?:val_loss|loss|val_acc|acc)")  # .columns
       
-      path = self.path + '/act'
-      res = check_cache(path)
-      if res is not None:
-        self.act = res
-      else:
-        self.act = _select(df, "^layer.*?act.*")  # .columns
-        cache(self.act, path)
+      # df = self.scalars
+      # self.scalars = _select(df, "(?:val_loss|loss|val_acc|acc)")  # .columns
+      #
+      # path = self.path + '/act'
+      # res = check_cache(path)
+      # if res is not None:
+      #   self.act = res
+      # else:
+      #   self.act = _select(df, "^layer.*?act.*")  # .columns
+      #   cache(self.act, path)
+      #
+      # path = self.path + '/params'
+      # res = check_cache(path)
+      # if res is not None:
+      #   self.params = res
+      # else:
+      #   self.params = _select(df, "^layer.*?(?:kernel|bias).*")
+      #   cache(self.params, path)
+
+      pass
       
-      path = self.path + '/params'
-      res = check_cache(path)
-      if res is not None:
-        self.params = res
-      else:
-        self.params = _select(df, "^layer.*?(?:kernel|bias).*")
-        cache(self.params, path)
+      
+        
     # if utils.get_config('dbg'):
     #   self.scalars = self.scalars.iloc[:6, :]  # dbg !
     #   self.params = self.params.iloc[:6, :]  # dbg !

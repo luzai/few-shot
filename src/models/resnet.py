@@ -140,7 +140,7 @@ def basic_block(filters, init_strides=(1, 1), is_first_block_of_first_layer=Fals
                      padding="same",
                      kernel_initializer="he_normal",
                      kernel_regularizer=l2(1e-4), name='layer{}/conv2d'.format(layer))(input)
-      
+    
     else:
       conv1 = _bn_relu_conv(filters=filters, kernel_size=(3, 3),
                             strides=init_strides)(input)
@@ -301,8 +301,9 @@ class ResNet(BaseModel):
       'resnet6' : [1, 1],
       'resnet8' : [1, 1, 1],
       'resnet10': [1, 2, 1],
-      # 'resnet10': [1, 1, 1, 1],
-      'resnet12': [1, 2, 1, 1]
+      'resnet12': [1, 2, 1, 1],
+      'resnet18': [2, 2, 2, 2],
+      'resnet34': [3, 4, 6, 3],
     }
     
     self.model = ResnetBuilder.build(input_shape, classes, basic_block, cfg[type], name=config.name)

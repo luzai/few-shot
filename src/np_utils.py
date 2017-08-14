@@ -36,14 +36,19 @@ def dict2df(my_dict):
   return pd.DataFrame.from_dict(tensor_d)
 
 
-def grid_iter(my_dict):
-  names = my_dict.keys()
-  levels = my_dict.values()
-  import random
-  columns = list(pd.MultiIndex.from_product(levels, names=names))
-  random.shuffle(columns)
-  for column in columns:
-    yield dict(zip(names, column))
+def grid_iter(tmp):
+  from vis_utils import cartesian
+  res = cartesian(tmp.values())
+  np.random.shuffle(res)
+  for res_ in res:
+    yield dict(zip(tmp.keys(), res_))
+  # names = my_dict.keys()
+  # levels = my_dict.values()
+  # import random
+  # columns = list(pd.MultiIndex.from_product(levels, names=names))
+  # random.shuffle(columns)
+  # for column in columns:
+  #   yield dict(zip(names, column))
 
 
 def df2arr(df):

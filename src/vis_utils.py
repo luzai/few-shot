@@ -265,28 +265,26 @@ class Visualizer(object):
       conf_dict = conf_name_dict[conf_name]
       
       loader = loaders[conf_name]
-      # loader.join()
-      scalar = loader.scalars
-      act = loader.act
       
-      param = loader.params
+      
+      scalar = loader.scalars
       
       df_l.append(scalar)
       for name in scalar.columns:
-        # names = conf_dict.values() + [name]
-        # names = map_name(names)
         name = map_name(name)[0]
         index_l.append(conf_dict.values() + [name])
       
-      df_l.append(act)
-      for name in act.columns:
-        name = map_name(name)[0]
-        index_l.append(conf_dict.values() + [name])
+      # act = loader.act
+      # df_l.append(act)
+      # for name in act.columns:
+      #   name = map_name(name)[0]
+      #   index_l.append(conf_dict.values() + [name])
       
-      df_l.append(param)
-      for name in param.columns:
-        name = map_name(name)[0]
-        index_l.append(conf_dict.values() + [name])
+      #param = loader.params
+      # df_l.append(param)
+      # for name in param.columns:
+      #   name = map_name(name)[0]
+      #   index_l.append(conf_dict.values() + [name])
     
     index_l = np.array(index_l).astype(basestring).transpose()
     index_name = conf_dict.keys() + ['name']
@@ -598,7 +596,7 @@ if __name__ == '__main__':
   visualizer = Visualizer(paranet_folder='all')
   
   df = visualizer.stat_df.copy()
-  df = df.iloc[:10, :]
+  # df = df.iloc[:10, :]
   df.head()
   df = select(df, {'model_type': 'resnet10', 'lr': '1.00e-03'}, regexp=False)
   df, hyper_str = drop_level(df)

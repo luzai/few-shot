@@ -13,22 +13,25 @@ class Config(object):
   tfevents_path = osp.join(root_path, 'tfevents')
   
   def __init__(self, epochs=100, batch_size=256, verbose=1, name=None, model_type='vgg10',
-               dataset_type='cifar10', debug=False, others=None, clean=False, clean_after=False):
+               dataset_type='cifar10', debug=False, others=None, clean=False, ):
     self.debug = debug
     self.model_type = model_type
     self.batch_size = batch_size
     self.dataset_type = dataset_type
     self.others = others
-    self.clean_after = clean_after
+    
     if name is None:
       self.name = name = model_type + '_' + dataset_type
       if others is not None:
         for key, val in others.iteritems():
-          if (isinstance(val, float) or
-                isinstance(val, int)) \
-              and key == 'lr':
-            key, val = key, '{:.2e}'.format(val)
-          name += '_' + str(key) + '_' + str(val)
+          if isinstance(val, dict):
+            for key_, val_ in val.iteritems():
+              name += '_' + str(key_) + '_' + str(val_)
+          elif isinstance(val, list):
+            for val_ in val:
+              name += str(val_)
+          else:
+            name += '_' + str(key) + '_' + str(val)
     self.name = name
     
     self.model_tfevents_path = osp.join(Config.tfevents_path, name)
