@@ -464,7 +464,6 @@ def check_md5sum():
     tpath = glob.glob(path + '/*')[0]
     # print tpath
     
-    
     path = '../' + parant_folder + '/resnet10_cifar100_lr_1.00e-02/mi*/c*'
     file = glob.glob(path)[0]
     

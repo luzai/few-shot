@@ -111,7 +111,7 @@ def custom_sort(columns, how='layer'):
   new_index0 = ['act', 'kernel', 'bias','beta','gamma','moving-mean','moving-var']
   new_index1 = ['diff', 'stdtime', 'iqr', 'std', 'mean', 'median', 'magmean', 'posmean', 'negmean', 'posproportion',
                 'max', 'min', 'orthogonality', 'sparsity', 'ptrate-thresh-0.2', 'ptrate-thresh-0.6',
-                'ptrate-thresh-mean', 'totvar','updateratio']
+                'ptrate-thresh-mean', 'totvar','updateratio','orthogonalitychannel','']
   new_index = cartesian([new_index0, new_index1])
   new_index = ['/'.join(index_) for index_ in new_index]
   
@@ -130,7 +130,6 @@ def custom_sort(columns, how='layer'):
     columns.sort(key=lambda val: sort_order2[val])
   else:
     columns.sort(key=lambda val: sort_order[val])
-  
   return columns
 
 
@@ -476,65 +475,44 @@ def auto_plot(df, axes_names=('layer','stat','_'), path_suffix='default', ipytho
   
   return paths
 
-
-def heatmap(paranet_folder):  # 'stat301'
-  visualizer = Visualizer(join='outer', stat_only=True, paranet_folder=paranet_folder)
-  df = visualizer.stat_df.copy()
+def heatmap(df,limits=None,suptitle=''):
+  df,sup_ = drop_level(df)
+  suptitle+=sup_
+  mat = df.values.transpose()[:10, :limits]
   
-  df.columns = split_level(df.columns)
-  df.columns = merge_level(df.columns, start=7, stop=10)
-  df.columns = merge_level(df.columns, start=5, stop=7)
-  df.columns = merge_level(df.columns, start=3, stop=5)
-  df.columns = merge_level(df.columns, start=0, stop=3)
-  df.columns.set_names(['hyper', 'layer', 'stat', 'winsize'], inplace=True)
-  levels, names, name2level, name2ind = get_columns_alias(df.columns)
+  if np.isnan(mat).any():
+    logger.warning('mat conations nan' + suptitle)
+
+  fig, ax = plt.subplots(1, figsize=(5, 40))
+  ax.set_title(suptitle, fontsize=5)
+  im = ax.imshow(mat, interpolation='none')
+
+  im = ax.imshow(mat, interpolation='none')
+  # ax.set_aspect(1.5)
+
+  # ax.tick_params(axis=u'both', which=u'both', length=0)
+  # ax.set_xlim(-0.5, limits-0.5)
+  # ax.set_ylim(10.5, -0.5)
+  ax.grid('off')
+  plt.xticks(rotation=20)
+  xticks = np.full((limits,), '').astype(basestring)
+  xticks[::5] = np.array(df.index[:limits][::5]).astype(basestring)
+  ax.set_xticklabels(xticks)
+  import matplotlib.ticker as ticker
+  ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
+
+  divider = make_axes_locatable(ax)
+  cax = divider.append_axes("right", size="1%", pad=0.1)
+
+  cbar = plt.colorbar(im, cax=cax)
+  print mat[~np.isnan(mat)].min(), mat[~np.isnan(mat)].max()
+  # cbar.ax.get_yaxis().set_ticks([0,1])
+  cbar.ax.get_yaxis().set_major_formatter(FormatStrFormatter('%.2f'))
+  paths = Config.root_path + '/' + suptitle + '.pdf'
+  fig.savefig(paths, bbox_inches='tight')  # bbox_inches='tight'
   
-  df_ori = df.copy()
-  limits = None
-  pathss = []
-  for ind, name in enumerate(list(name2level['hyper'])):
-    fig, ax = plt.subplots(1, figsize=(5, 40))
-    df = select(df_ori, {'hyper': name}, regexp=False)
-    df = select(df, {'stat'   : 'act/ptrate-thresh-mean',
-                     'winsize': 'winsize-31'})
-    df2, suptitle = drop_level(df, ['hyper', 'winsize', 'stat'])
-    suptitle = re.sub('/', '_', suptitle).strip('_')
-    
-    if limits == None:
-      limits = df2.values.transpose().shape[1]
-    df2.sort_index(axis=1, inplace=True)
-    mat = df2.values.transpose()[:10, :limits]
-    if np.isnan(mat).any():
-      logger.warning('mat conations nan' + suptitle)
-    ax.set_title(suptitle, fontsize=5)
-    im = ax.imshow(mat, interpolation='none')
-    # ax.set_aspect(1.5)
-    
-    # ax.tick_params(axis=u'both', which=u'both', length=0)
-    # ax.set_xlim(-0.5, limits-0.5)
-    # ax.set_ylim(10.5, -0.5)
-    ax.grid('off')
-    plt.xticks(rotation=20)
-    xticks = np.full((limits,), '').astype(basestring)
-    xticks[::5] = np.array(df2.index[:limits][::5]).astype(basestring)
-    ax.set_xticklabels(xticks)
-    import matplotlib.ticker as ticker
-    ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
-    
-    divider = make_axes_locatable(ax)
-    cax = divider.append_axes("right", size="1%", pad=0.1)
-    
-    cbar = plt.colorbar(im, cax=cax)
-    print mat[~np.isnan(mat)].min(), mat[~np.isnan(mat)].max()
-    # cbar.ax.get_yaxis().set_ticks([0,1])
-    cbar.ax.get_yaxis().set_major_formatter(FormatStrFormatter('%.2f'))
-    paths = Config.root_path + '/' + suptitle + '.pdf'
-    fig.savefig(paths, bbox_inches='tight')  # bbox_inches='tight'
-    pathss.append(paths)
-  utils.merge_pdf(pathss)
-  return pathss
-
-
+  return paths
+  
 def map_name(names):
   if isinstance(names, basestring):
     names = [names]

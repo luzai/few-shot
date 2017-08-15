@@ -65,9 +65,7 @@ class Stat(object):
   #   if iter in self.log_pnt and self.log_pnt.loc[iter] == 3:
   #     return self.diff_inst.diff(tensor, iter, name)
   
-  def updateratio(self, tensor, name=None, iter=None):
-    if iter in self.log_pnt and self.log_pnt.loc[iter] == 3:
-      return self.diff_inst.diff(tensor, iter, name) / np.mean(np.abs(tensor))
+  
   
   def stdtime(self, tensor, name=None, iter=None, how='mean'):
     if iter in self.log_pnt and self.log_pnt.loc[iter] == 3 or how == 'tensor':
@@ -111,12 +109,7 @@ class Stat(object):
   # def magmean(self, tensor, **kwargs):
   #     return np.abs(tensor).mean()
   
-  def sparsity(self, tensor, **kwargs):
-    tensor = tensor.flatten()
-    mean = tensor.mean()  # todo median or mean
-    thresh = mean / 10.
-    return float((tensor[tensor < thresh]).shape[0]) / float(tensor.shape[0])
-    # for bias we usually set lr mult=0.1? --> bias is not sparse
+  
   
   def totvar(self, tensor, name, iter, win_size):
     _iter, _val = self.totvar_inst.tot_var(tensor, iter, name, win_size, 'save')
@@ -187,29 +180,27 @@ class KernelStat(Stat):
     self.stat = utils.dict_concat([self.stat, _stat])
     self.totvar_inst = TotVar(self.window)
   
+  def updateratio(self, tensor, name=None, iter=None):
+    if iter in self.log_pnt and self.log_pnt.loc[iter] == 3:
+      return self.diff_inst.diff(tensor, iter, name) / np.mean(np.abs(tensor))
+  
+  def sparsity(self, tensor, **kwargs):
+    tensor = tensor.flatten()
+    mean = tensor.mean()  # todo median or mean
+    thresh = mean / 10.
+    return float((tensor[tensor < thresh]).shape[0]) / float(tensor.shape[0])
+    # for bias we usually set lr mult=0.1? --> bias is not sparse
+  
   @utils.timeit('kernel ortho consume')
   def orthogonality(self, tensor, name=None, iter=None, axis=-1):
     tensor = tensor.reshape(-1, tensor.shape[axis])
-    tensor = tensor - tensor.mean(axis=-1).reshape(-1, 1)
-    cov = np.dot(tensor.T, tensor) / tensor.shape[-1]
-    # cov =np.abs(cov)
-    cov **= 2
-    # if (cov>=0).all():
-    #   logger.info('all pos')
-    # U, S, V = np.linalg.svd(cov)
-    if np.isclose(cov.sum(), [0.])[0]:
-      logger.debug('cov sum small but may not be zero' + str(cov.sum()))
     
-    # tensor = tensor.reshape(-1, tensor.shape[axis])
-    # angle = np.zeros((tensor.shape[axis], tensor.shape[axis]))
-    # it = np.nditer(angle, flags=['multi_index'], op_flags=['writeonly'])
-    # while not it.finished:
-    #   it[0] = angle_between(tensor[:, it.multi_index[0]], tensor[:, it.multi_index[1]])
-    #   it.iternext()
-    # method2= angle.mean()
-    
-    return np.diag(cov).sum() / cov.sum()
-
+    shape1, shape2 = tensor.shape
+    tensor = tensor.T
+    tensor = tensor / np.linalg.norm(tensor, axis=1)[:, np.newaxis]
+    angles = np.arccos(np.dot(tensor, tensor.T))
+    np.fill_diagonal(angles, np.nan)
+    return np.nanmean(angles)
 
 class BiasStat(Stat):
   def __init__(self, max_win_size, log_pnt):
@@ -232,20 +223,34 @@ class ActStat(Stat):
     self.stat = utils.dict_concat([self.stat, _stat])
     self.ptrate_inst = PTRate(self.window)
   
+  def sparsity(self, tensor, **kwargs):
+    tensor = tensor.flatten()
+    mean = tensor.mean()  # todo median or mean
+    thresh = mean / 10.
+    return float((tensor[tensor < thresh]).shape[0]) / float(tensor.shape[0])
+    # for bias we usually set lr mult=0.1? --> bias is not sparse
+  
   @utils.timeit('act ortho comsume ')
-  def orthogonality(self, tensor, name=None, iter=None):
-    # if len(tensor.shape) == 2:
-    #     pass
-    # elif len(tensor.shape):
-    #     pass
+  def orthogonalitychannel(self, tensor, name=None, iter=None, axis=-1):
+    tensor = tensor.reshape(-1, tensor.shape[axis])
+    shape1, shape2 = tensor.shape
+    tensor = tensor.T
+    tensor = tensor / np.linalg.norm(tensor, axis=1)[:, np.newaxis]
+    angles = np.arccos(np.dot(tensor, tensor.T))
+    np.fill_diagonal(angles, np.nan)
+    return np.nanmean(angles)
+  
+  def orthogonalitysample(self, tensor, name=None, iter=None, axis=-1):
     tensor = tensor.reshape(tensor.shape[0], -1)
-    tensor = tensor - tensor.mean(axis=0)
-    cov = np.dot(tensor, tensor.T) / tensor.shape[0]
-    cov **= 2
-    # U, S, V = np.linalg.svd(cov)
-    if np.isclose(cov.sum(), [0.])[0]:
-      logger.debug('cov sum small but may not be zero' + str(cov.sum()))
-    return np.diag(cov).sum() / cov.sum()
+    shape1, shape2 = tensor.shape
+    # print tensor.shape
+    tensor = tensor / np.linalg.norm(tensor, axis=1)[:, np.newaxis]
+    angles = np.arccos(np.dot(tensor, tensor.T))
+    # print angles.shape
+    np.fill_diagonal(angles, np.nan)
+    return np.nanmean(angles)
+  
+  # def orthogonalityplace
   
   @utils.timeit('act ptrate consume')
   def ptrate(self, tensor, name, iter, win_size, thresh):

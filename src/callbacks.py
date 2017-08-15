@@ -204,7 +204,7 @@ class TensorBoard2(Callback):
           #     how='outer')
           # self.write_df(example_df)
           pass
-          
+      
       if self.log_pnts[self.iter] >= 2:
         val_loss, val_acc = self.model.evaluate(self.dataset.x_test, self.dataset.y_test, verbose=2)
         logs['val_loss'] = val_loss
@@ -354,9 +354,7 @@ def schedule(epoch, x=(30., 100.), y=(10., 10.), init=0.01):
 
 
 if __name__ == '__main__':
-  for i in range(0, 999, 2):
-    print schedule(i)
-  y = [schedule(i) for i in range(0, 999, 2)]
+  y = [schedule(i,x=(150,),y=(10,),init=0.01) for i in range(0, 999, 2)]
   from vis_utils import *
   
   plt.plot(y)

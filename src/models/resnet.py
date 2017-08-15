@@ -22,9 +22,13 @@ from keras import backend as K
 def _bn_relu(input):
   """Helper to build a BN -> relu block
   """
+  # global with_bn
+  # if with_bn:
   norm = BatchNormalization(axis=CHANNEL_AXIS)(input)
+  # else:
+#   norm = input
   return Activation("relu")(norm)
-  # return input
+  
 
 
 def _conv_bn_relu(**conv_params):

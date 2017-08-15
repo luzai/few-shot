@@ -62,7 +62,7 @@ def run(model_type='vgg6', limit_val=True,
                                  write_graph=True,
                                  write_grads=False,
                                  dataset=dataset,
-                                 max_win_size=11,
+                                 max_win_size=33,
                                  stat_only=True,
                                  batch_based=True
                                  ),
