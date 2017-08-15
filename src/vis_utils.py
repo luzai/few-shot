@@ -107,10 +107,11 @@ def split_layer_stat(df):
 
 
 def custom_sort(columns, how='layer'):
-  new_index0 = ['act', 'kernel', 'bias']
+  # todo please do not add thighs that do not exsits
+  new_index0 = ['act', 'kernel', 'bias','beta','gamma','moving-mean','moving-var']
   new_index1 = ['diff', 'stdtime', 'iqr', 'std', 'mean', 'median', 'magmean', 'posmean', 'negmean', 'posproportion',
                 'max', 'min', 'orthogonality', 'sparsity', 'ptrate-thresh-0.2', 'ptrate-thresh-0.6',
-                'ptrate-thresh-mean', 'totvar']
+                'ptrate-thresh-mean', 'totvar','updateratio']
   new_index = cartesian([new_index0, new_index1])
   new_index = ['/'.join(index_) for index_ in new_index]
   
@@ -420,7 +421,7 @@ def exclude(df, level2pattern, regexp=True):
   return df_name
 
 
-def auto_plot(df, axes_names, path_suffix='default', ipython=True, show=False):
+def auto_plot(df, axes_names=('layer','stat','_'), path_suffix='default', ipython=True, show=False):
   df, sup_title = drop_level(df)
   if len(df.columns.names) < 3 or axes_names[-1] == '_':
     df.columns = append_level(df.columns, '_')

@@ -61,9 +61,13 @@ class Stat(object):
     
     self.stat = get_name2fn(Stat)
   
-  def diff(self, tensor, name=None, iter=None):
+  # def diff(self, tensor, name=None, iter=None):
+  #   if iter in self.log_pnt and self.log_pnt.loc[iter] == 3:
+  #     return self.diff_inst.diff(tensor, iter, name)
+  
+  def updateratio(self, tensor, name=None, iter=None):
     if iter in self.log_pnt and self.log_pnt.loc[iter] == 3:
-      return self.diff_inst.diff(tensor, iter, name)
+      return self.diff_inst.diff(tensor, iter, name) / np.mean(np.abs(tensor))
   
   def stdtime(self, tensor, name=None, iter=None, how='mean'):
     if iter in self.log_pnt and self.log_pnt.loc[iter] == 3 or how == 'tensor':
@@ -73,16 +77,16 @@ class Stat(object):
     return tensor.min()
   
   def max(self, tensor, **kwargs):
-      return tensor.max()
+    return tensor.max()
   
   def mean(self, tensor, **kwargs):
-      return tensor.mean()
+    return tensor.mean()
   
   def median(self, tensor, **kwargs):
     return np.median(tensor)
   
   def std(self, tensor, **kwargs):
-      return tensor.std()
+    return tensor.std()
   
   def iqr(self, tensor, **kwargs):
     return np.subtract.reduce(np.percentile(tensor, [75, 25]))
@@ -426,8 +430,7 @@ class OnlineStd(object):
         # for ind,record_ in enumerate(self.record_min[name]):
         #   self.df.loc[iter, name + '/example-min/' + str(ind)] = tensor.ravel()[record_]
         pass
-      
-      
+    
     if how == 'mean':
       stdtime_ = np.mean(self.last_std[name].std)
     else:
