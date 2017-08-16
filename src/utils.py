@@ -456,6 +456,13 @@ def dict2str(others):
       name += '_' + str(val)
   return name
 
+def list2str(li):
+  name = ''
+  for name_ in li:
+    name+=name_
+    
+  return name
+
 def check_md5sum():
   for parant_folder in ['stat301', 'stat101', 'stat101_10', 'stat301_10']:
     path = '../output' + parant_folder.strip('stat') + '_all_stat'

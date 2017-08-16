@@ -108,10 +108,10 @@ def split_layer_stat(df):
 
 def custom_sort(columns, how='layer'):
   # todo please do not add thighs that do not exsits
-  new_index0 = ['act', 'kernel', 'bias','beta','gamma','moving-mean','moving-var']
+  new_index0 = ['act', 'kernel', 'bias', 'beta', 'gamma', 'moving-mean', 'moving-var']
   new_index1 = ['diff', 'stdtime', 'iqr', 'std', 'mean', 'median', 'magmean', 'posmean', 'negmean', 'posproportion',
                 'max', 'min', 'orthogonality', 'sparsity', 'ptrate-thresh-0.2', 'ptrate-thresh-0.6',
-                'ptrate-thresh-mean', 'totvar','updateratio','orthogonalitychannel','']
+                'ptrate-thresh-mean', 'totvar', 'updateratio', 'orthogonalitychannel', 'orthogonalitysample']
   new_index = cartesian([new_index0, new_index1])
   new_index = ['/'.join(index_) for index_ in new_index]
   
@@ -420,7 +420,7 @@ def exclude(df, level2pattern, regexp=True):
   return df_name
 
 
-def auto_plot(df, axes_names=('layer','stat','_'), path_suffix='default', ipython=True, show=False):
+def auto_plot(df, axes_names=('layer', 'stat', '_'), path_suffix='default', ipython=True, show=False):
   df, sup_title = drop_level(df)
   if len(df.columns.names) < 3 or axes_names[-1] == '_':
     df.columns = append_level(df.columns, '_')
@@ -447,10 +447,11 @@ def auto_plot(df, axes_names=('layer','stat','_'), path_suffix='default', ipytho
   
   for poss in cartesian([indexf.names2levels[name] for name in other_names]):
     _df = df.copy()
-    print poss
+    
     for _name, _poss in zip(other_names, poss):
       _df = select(_df, {_name: _poss}, regexp=False)
-    sup_title_ = '_' + str(_poss) + sup_title
+    
+    sup_title_ = '_' + utils.list2str(poss) + sup_title
     
     # if _df is None: break
     # if _df is None: continue
@@ -475,21 +476,22 @@ def auto_plot(df, axes_names=('layer','stat','_'), path_suffix='default', ipytho
   
   return paths
 
-def heatmap(df,limits=None,suptitle=''):
-  df,sup_ = drop_level(df)
-  suptitle+=sup_
+
+def heatmap(df, limits=None, suptitle=''):
+  df, sup_ = drop_level(df)
+  suptitle += sup_
   mat = df.values.transpose()[:10, :limits]
   
   if np.isnan(mat).any():
     logger.warning('mat conations nan' + suptitle)
-
+  
   fig, ax = plt.subplots(1, figsize=(5, 40))
   ax.set_title(suptitle, fontsize=5)
   im = ax.imshow(mat, interpolation='none')
-
+  
   im = ax.imshow(mat, interpolation='none')
   # ax.set_aspect(1.5)
-
+  
   # ax.tick_params(axis=u'both', which=u'both', length=0)
   # ax.set_xlim(-0.5, limits-0.5)
   # ax.set_ylim(10.5, -0.5)
@@ -500,10 +502,10 @@ def heatmap(df,limits=None,suptitle=''):
   ax.set_xticklabels(xticks)
   import matplotlib.ticker as ticker
   ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
-
+  
   divider = make_axes_locatable(ax)
   cax = divider.append_axes("right", size="1%", pad=0.1)
-
+  
   cbar = plt.colorbar(im, cax=cax)
   print mat[~np.isnan(mat)].min(), mat[~np.isnan(mat)].max()
   # cbar.ax.get_yaxis().set_ticks([0,1])
@@ -512,7 +514,8 @@ def heatmap(df,limits=None,suptitle=''):
   fig.savefig(paths, bbox_inches='tight')  # bbox_inches='tight'
   
   return paths
-  
+
+
 def map_name(names):
   if isinstance(names, basestring):
     names = [names]
@@ -534,16 +537,10 @@ def map_name(names):
 
 
 if __name__ == '__main__':
-  visualizer = Visualizer(paranet_folder='all')
-  
+ 
+  visualizer = Visualizer('ortho')
   df = visualizer.stat_df.copy()
-  # df = select(df, {'model_type': 'vgg16'})
-  # df = exclude(df, {'name': '.*example.*'})
   df = split_layer_stat(df)
+  # df = select(df,{'model_type':'vgg10'})
+  df = select(df, {'stat': '.*ortho.*'})
   df.head()
-  # df = select(df, {'lr': '1.00e-03'}, regexp=False)
-  # # df = select(df,{'model_type':'resnet10'})
-  # df = exclude(df, {'layer': '.*fc.*'})
-  # df = select(df, {'stat': '.*act.*'})
-  # df.head()
-  # auto_plot(df, ('layer', 'stat', '_'))

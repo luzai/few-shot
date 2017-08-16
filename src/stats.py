@@ -115,11 +115,11 @@ class Stat(object):
     _iter, _val = self.totvar_inst.tot_var(tensor, iter, name, win_size, 'save')
     
     if self.log_pnt[iter] >= 1 \
-        and np.arange(iter - win_size + 1, iter + 1, step=1).tolist() in np.array(self.log_pnt.index).tolist():
+        and np.in1d(np.arange(iter - win_size + 1, iter + 1, step=1), self.log_pnt.index).all():
       _iter, _val = self.totvar_inst.tot_var(tensor, iter, name, win_size, 'load')
-      if _iter != iter - win_size // 2:
-        # _iter = iter - win_size // 2
-        logger.error('should log to right iter!')
+      # if _iter != iter - win_size // 2:
+      #   # _iter = iter - win_size // 2
+      #   logger.error('should log to right iter!')
     
     return _iter, _val
   
@@ -144,8 +144,8 @@ class Stat(object):
       
       fn_name = 'ptrate'
       if fn_name not in self.stat: return
-      for thresh in [.2, .6, 'mean']:
-        for win_size in [11, 21, 31]:
+      for thresh in ['mean']:  # .2, .6,
+        for win_size in [11]:  # 31 , 21
           _name = name + '/' + fn_name + '_win_size_' + str(win_size) + '_thresh_' + str(thresh)
           _iter, _val = self.ptrate(name=name, iter=iter, tensor=tensor, win_size=win_size, thresh=thresh)
           if math.isnan(_iter): continue
@@ -201,6 +201,7 @@ class KernelStat(Stat):
     angles = np.arccos(np.dot(tensor, tensor.T))
     np.fill_diagonal(angles, np.nan)
     return np.nanmean(angles)
+
 
 class BiasStat(Stat):
   def __init__(self, max_win_size, log_pnt):
@@ -259,7 +260,7 @@ class ActStat(Stat):
                                            mode=mode)
     
     if self.log_pnt[iter] >= 1 \
-        and np.arange(iter - win_size + 1, iter + 1, step=1).tolist() in np.array(self.log_pnt.index).tolist():
+        and np.in1d(np.arange(iter - win_size + 1, iter + 1, step=1), self.log_pnt.index).all():
       mode = 'load'
       _iter, _val = self.ptrate_inst.pt_rate(tensor, name=name, iter=iter, win_size=win_size, thresh=thresh,
                                              mode=mode)
@@ -338,8 +339,8 @@ class PTRate(object):
         return NAN, NAN
       else:
         _tensor = self.windows.get_tensor(name, win_size)
-        if 'act' in name and 'ptrate' in name and 'softmax' in name:
-          print name, (_tensor >= 0).all(), (tensor >= 0).all()
+        # if 'act' in name and 'ptrate' in name and 'softmax' in name:
+        #   logger.info(name, (_tensor >= 0).all(), (tensor >= 0).all())
         _tensor = _tensor.reshape(_tensor.shape[0], -1)
         polarity_time_space = (-np.sign(_tensor[1:] * _tensor[:-1]) + 1.) / 2.
         polarity_space = polarity_time_space.mean(axis=0)

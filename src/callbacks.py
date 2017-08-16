@@ -229,11 +229,12 @@ class TensorBoard2(Callback):
         res_bias[clean_name(layer.name) + '/bias'] = bias
       elif len(weights) == 4:
         assert 'gamma' in layer.weights[0].name
-        gamma, beta, movingmean, movingvariance = weights
-        res_kernel[clean_name(layer.name) + '/gamma'] = gamma
-        res_bias[clean_name(layer.name) + '/beta'] = beta
-        res_bias[clean_name(layer.name) + '/moving-mean'] = movingmean
-        res_bias[clean_name(layer.name) + '/moving-var'] = movingvariance
+        # gamma, beta, movingmean, movingvariance = weights
+        # res_kernel[clean_name(layer.name) + '/gamma'] = gamma
+        # res_bias[clean_name(layer.name) + '/beta'] = beta
+        # res_bias[clean_name(layer.name) + '/moving-mean'] = movingmean
+        # res_bias[clean_name(layer.name) + '/moving-var'] = movingvariance
+        pass
       else:
         raise ValueError('how many ' + len(weights))
     return res_kernel, res_bias
@@ -315,7 +316,7 @@ class TensorBoard2(Callback):
     for name, series in df.iteritems():
       for _iter, val in series.iteritems():
         if 'act' in name and 'ptrate' in name and 'softmax' in name:
-          print name, _iter, val
+          logger.debug('{} {} {}  is write into df'.format(name, _iter, val))
         if not math.isnan(val):
           self.write_single_val(val, _iter, name)
   
@@ -354,7 +355,7 @@ def schedule(epoch, x=(30., 100.), y=(10., 10.), init=0.01):
 
 
 if __name__ == '__main__':
-  y = [schedule(i,x=(150,),y=(10,),init=0.01) for i in range(0, 999, 2)]
+  y = [schedule(i, x=(150,), y=(10,), init=0.01) for i in range(0, 999, 2)]
   from vis_utils import *
   
   plt.plot(y)
