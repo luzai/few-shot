@@ -142,8 +142,12 @@ class TensorBoard2(Callback):
   
   def on_epoch_begin(self, epoch, logs=None):
     logger.info('Model {} Epoch {} begin'.format(self.name, epoch))
-    
     self.epoch = epoch
+    lr = K.get_value(self.model.optimizer.lr)
+    logger.info('lr is ' + str(lr))
+    lr_dict = {}
+    lr_dict['lr'] = lr
+    self.write_dict(lr_dict, self.iter)
   
   def on_epoch_end(self, epoch, logs=None):
     
