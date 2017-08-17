@@ -329,9 +329,9 @@ class TotVar(object):
           fenmu += 1.
         sum /= fenmu
         
-        _tensor = self.windows.get_tensor(name, win_size)
-        _diff = np.abs(_tensor[1:] - _tensor[:-1])
-        assert np.allclose(_diff.mean(), [sum])
+        # _tensor = self.windows.get_tensor(name, win_size)
+        # _diff = np.abs(_tensor[1:] - _tensor[:-1])
+        # assert np.allclose(_diff.mean(), [sum])
         
         return self.windows.get_iter(win_size), sum
     else:
@@ -352,24 +352,23 @@ class PTRate(object):
         polarity = []
         for ind in range(len(self.windows.l_tensor[name]) - 1):
           last_tensor = self.windows.l_tensor[name][ind]
-          now_tensor = self.windows.l_tensor[name][ind]
+          now_tensor = self.windows.l_tensor[name][ind+1]
           polarity_now = (-np.sign(last_tensor * now_tensor) + 1.) / 2.
           polarity.append(polarity_now)
         polarity_time_space = np.array(polarity)
-        polarity_time_space = polarity_time_space.reshape(polarity_time_space.shape[0],-1)
+        polarity_time_space = polarity_time_space.reshape(polarity_time_space.shape[0], -1)
         
-
-        _tensor = self.windows.get_tensor(name, win_size)
-
-        _tensor = _tensor.reshape(_tensor.shape[0], -1)
-        polarity_time_space2 = (-np.sign(_tensor[1:] * _tensor[:-1]) + 1.) / 2.
-
-        assert np.allclose(polarity_time_space,polarity_time_space2)
+        # _tensor = self.windows.get_tensor(name, win_size)
+        #
+        # _tensor = _tensor.reshape(_tensor.shape[0], -1)
+        # polarity_time_space2 = (-np.sign(_tensor[1:] * _tensor[:-1]) + 1.) / 2.
+        #
+        # assert np.allclose(polarity_time_space, polarity_time_space2)
         polarity_space = polarity_time_space.mean(axis=0)
         
         if thresh == 'mean':
           res = polarity_space.mean()
-        
+          # logger.info('log ptrate mean ok')
         
         else:
           _, res = thresh_proportion(arr=polarity_space, thresh=thresh)
@@ -531,9 +530,9 @@ def fake_data(max_win_size, epochs, iter_per_epoch):
 
 
 if __name__ == '__main__':
-  epochs = 4
-  iter_per_epoch = 196
-  max_win_size = 2
+  epochs = 12
+  iter_per_epoch = 150
+  max_win_size = 11
   log_pnts = fake_data(max_win_size, epochs, iter_per_epoch)
   
   res = []
@@ -541,12 +540,12 @@ if __name__ == '__main__':
   kernel_stat = KernelStat(max_win_size=max_win_size, log_pnt=log_pnts)
   
   for _ind in range(epochs * iter_per_epoch):
-    v = np.random.randn(512, 512) * (_ind + 1) / 100.
+    v = np.random.randn(128, 3, 3, 128) * (_ind + 1) / 100.
     _res = kernel_stat.calc_all(v, 'ok/kernel', _ind)
     res.append(_res)
-    # v = np.random.randn(10, 10000) * (_ind + 1) / 100.
-    # _res = act_stat.calc_all(v, 'ok/act', _ind)
-    # res.append(_res)
+    v = np.random.randn(6, 8, 8, 7) * (_ind + 1) / 100.
+    _res = act_stat.calc_all(v, 'ok/act', _ind)
+    res.append(_res)
   
   df = pd.concat(res)
   df.head()

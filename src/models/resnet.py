@@ -28,7 +28,6 @@ def _bn_relu(input):
   # else:
 #   norm = input
   return Activation("relu")(norm)
-  
 
 
 def _conv_bn_relu(**conv_params):

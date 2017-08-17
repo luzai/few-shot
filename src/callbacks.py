@@ -219,7 +219,8 @@ class TensorBoard2(Callback):
         logs['val_acc'] = val_acc
         self.write_dict(logs, iter)
 
-    logger.debug('1 batch consume '+ str( self.timer.toc()))
+    # logger.info('1 batch consume '+ str( self.timer.toc()))
+    # print('1 batch consume '+ str( self.timer.toc()))
   
   def on_train_end(self, logs=None):
     self.writer.close()
