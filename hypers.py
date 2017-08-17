@@ -1,7 +1,7 @@
 import numpy as np
 
 hyper = {
-  "gpu"         : [0, 1, 2, 3],
+  "gpu"         : [0, 1, ],
   "use"         : "cifar10",
   "logger_level": "info",
   "dbg"         : False,
@@ -24,11 +24,11 @@ hyper = {
   },
   
   "cifar10"     : {
-    "epochs"         : 201,
-    "sample_rate"    : 1. / 4,  # epoch^-1
+    "epochs"         : 301,
+    "sample_rate"    : 1.,  # epoch^-1
     "sub_sample"     : [10, 30],  # epoch
-    "sub_sample_rate": [3, 2, 1],
-    "grids"          : {'dataset'   : ['cifar10'],
+    "sub_sample_rate": [5, 2, 1],
+    "grids"          : {'dataset'   : ['cifar10', 'cifar100'],
                         'model_type': ['resnet10', 'vgg10', ],
                         'optimizer' : [{'name': 'sgd',
                                         'lr'  : 0.001, },
@@ -44,7 +44,7 @@ hyper = {
     "sample_rate"    : 1,  # epoch^-1
     "sub_sample"     : [10, 30],  # epoch
     "sub_sample_rate": [6, 3, 1],
-    "grids"          : {'dataset'   : ['cifar10', 'cifar100', 'mnist', 'svhn'],
+    "grids"          : {'dataset'   : ['cifar10'],
                         'model_type': ['resnet10', 'vgg10', ],
                         'optimizer' : [{'name': 'sgd',
                                         'lr'  : 0.001, },
@@ -59,7 +59,7 @@ hyper = {
                                         'decay_epoch': [50, ],
                                         'decay'      : [10, ], },
                                        ],
-                        'with_bn'   : [True, False]
+                        'with_bn'   : [True]
                         }
   },
   

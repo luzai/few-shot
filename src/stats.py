@@ -106,8 +106,8 @@ class Stat(object):
   #         logger.error('different method calc pso_proportion should close {} {}'.format(res, res2))
   #     return res
   
-  # def magmean(self, tensor, **kwargs):
-  #     return np.abs(tensor).mean()
+  def norm(self, tensor, **kwargs):
+      return np.linalg.norm(tensor)
   
   
   
@@ -338,6 +338,8 @@ class PTRate(object):
       if not self.windows.isfull(name, win_size=win_size):
         return NAN, NAN
       else:
+        
+        
         _tensor = self.windows.get_tensor(name, win_size)
         # if 'act' in name and 'ptrate' in name and 'softmax' in name:
         #   logger.info(name, (_tensor >= 0).all(), (tensor >= 0).all())

@@ -165,6 +165,7 @@ def get_colors(label):
     color = get_colors.label2color[label]
   return color
 
+# class ColorManager
 
 def choose_three(names):
   def comb_index(n, k):
@@ -297,17 +298,12 @@ def plot(perf_df, axes_names, sup_title, legend=True, ):
   else:
     logger.info('dbg small fig mode')
     figsize = (4.2, 2.25)
-  fig, axes = plt.subplots(rows, cols, figsize=figsize)
+  
+  fig, axes = plt.subplots(rows, cols , figsize=figsize)
   
   # plt.tight_layout(pad=3, w_pad=.9, h_pad=1.5,rect=(.2,.2,1,1))
   fig.subplots_adjust(hspace=1., wspace=.6)
   axes = np.array(axes).reshape(rows, cols)
-  
-  # for _i in range(rows):
-  #     axes[_i][0].set_ylabel(re.sub('/','\n',row_level[_i]),rotation=0, fontsize=15,labelpad=35)
-  #
-  # for _j in range(cols):
-  #     axes[0][_j].set_title(col_level[_j], y=1.09)
   
   for _i in range(rows):
     for _j in range(cols):
@@ -340,15 +336,15 @@ def plot(perf_df, axes_names, sup_title, legend=True, ):
   for axis in axes.flatten():
     for line in axis.get_lines():
       _label = line.get_label()
-      for level in inside_level:
-        if level in _label: label = level
+      _label = [__label.strip('(').strip(')') for __label in _label.split(', ')]
+      label=None
+      for __label in _label:
+        if __label in inside_level:
+          label = __label
+      # print label
       color = get_colors(label)
       line.set_color(color)
-  
-  # # plot legend
-  # if legend:
-  #     axes[0, 0].legend(list(legends[0, 0]))
-  # legend_set=set()
+ 
   for _row in range(legends.shape[0]):
     for _col in range(legends.shape[1]):
       axes[_row, _col].yaxis.get_major_formatter().set_powerlimits((-2, 2))
@@ -357,8 +353,7 @@ def plot(perf_df, axes_names, sup_title, legend=True, ):
         logger.info('Attatin: float error' + str(_ylim) + str((_row, _col)))
         if _row == legends.shape[0] - 1:
           axes[_row, _col].set_ylim([0, 1])
-      # if legend:
-      # try:
+     
       if len(legends[_row, _col]) > 1 and _row == 0:
         axes[_row, _col].legend(legends[_row, _col])
         # logger.info('legend' + str(legends[_row, _col]))
@@ -366,14 +361,11 @@ def plot(perf_df, axes_names, sup_title, legend=True, ):
         # logger.debug('shouldnot has legend')
         axes[_row, _col].legend([])
         
-        # except:
-        #     from IPython import  embed;embed()
-        # else:
-        #     axes[_row, _col].legend([])
-  
+        
+  # from IPython import embed;embed()
   sup_title += '_' + inside
   sup_title = sup_title.strip('_')
-  fig.suptitle(sup_title, fontsize=50)
+  fig.suptitle(sup_title, fontsize=25)
   # plt.show()
   return fig, sup_title
 
@@ -487,7 +479,6 @@ def heatmap(df, limits=None, suptitle=''):
   
   fig, ax = plt.subplots(1, figsize=(5, 40))
   ax.set_title(suptitle, fontsize=5)
-  im = ax.imshow(mat, interpolation='none')
   
   im = ax.imshow(mat, interpolation='none')
   # ax.set_aspect(1.5)
@@ -537,10 +528,16 @@ def map_name(names):
 
 
 if __name__ == '__main__':
- 
-  visualizer = Visualizer('ortho')
+  visualizer = Visualizer('lr_search')
   df = visualizer.stat_df.copy()
   df = split_layer_stat(df)
-  # df = select(df,{'model_type':'vgg10'})
-  df = select(df, {'stat': '.*ortho.*'})
+  # df=select(df,{'name':'val_acc'})
+  df = exclude(df, {'optimizer': '.*001.*sgd.*'})
+  df = exclude(df, {'stat': '.*beta.*'})
+  df = exclude(df, {'layer': '.*bn.*'})
+  df = exclude(df, {'stat': '.*moving.*'})
+  df = exclude(df, {'stat': '.*gamma.*'})
+  df = df.iloc[:10, :]
   df.head()
+
+  auto_plot(df,('layer','stat','optimizer'))

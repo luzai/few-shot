@@ -17,12 +17,3 @@
 | resnet6  | ![resnet6_cifar10_start_lr_2](https://github.com/luzai/Perf_Pred/tree/gh-graph/doc/resnet6_cifar10_start_lr_2.gif) | ![resnet6_cifar100_start_lr_2](https://github.com/luzai/Perf_Pred/tree/gh-graph/doc/resnet6_cifar100_start_lr_2.gif) |
 | resnet10 | ![resnet10_cifar10_start_lr_2](https://github.com/luzai/Perf_Pred/tree/gh-graph/doc/resnet10_cifar10_start_lr_2.gif) | ![resnet10_cifar100_start_lr_2](https://github.com/luzai/Perf_Pred/tree/gh-graph/doc/resnet10_cifar100_start_lr_2.gif) |
 
-
-
-## TODO 
-
-- Survey 
-    - with changelist
-- Experiments 
-    - scalable 
-
