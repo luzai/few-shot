@@ -149,8 +149,8 @@ def reindex(t):
 
 @utils.static_vars(ind=0, label2color={})
 def get_colors(label):
-  colors = [u'#E24A33', u'#348ABD', u'#988ED5', u'#777777', u'#FBC15E', u'#8EBA42', u'#FFFF00', u'#FF8C00',
-            u'#FFEFD5', u'#FFA500', u'#6B8E23', u'#87CEEB', u'#006400', u'#008080',
+  colors = [u'#348ABD', u'#988ED5', u'#8EBA42', u'#E24A33', u'#FFA500', u'#FFFF00', u'#FBC15E', u'#777777', u'#FF8C00',
+            u'#FFEFD5', u'#6B8E23', u'#87CEEB', u'#006400', u'#008080',
             u'#9ACD32', u'#696969', u'#F0FFF0', u'#BDB76B', u'#FFE4C4', u'#F5DEB3', u'#4682B4', u'#800080',
             u'#F5F5DC', u'#FDF5E6', u'#A0522D', u'#00FF00', u'#00FA9A', u'#CD853F', u'#D3D3D3', u'#D2691E',
             u'#808000', u'#FFFAF0', u'#808080', u'#FF1493', u'#800000', u'#D2B48C', u'#DB7093', u'#B0E0E6',
@@ -303,6 +303,7 @@ def plot(perf_df, axes_names, sup_title, lr, val_acc, legend=True, ):
   inside_level = names2levels[inside]
   level2inside = {val: ind for ind, val in enumerate(inside_level)}
   insides = len(inside_level)
+  # print insides
   from cycler import cycler
   
   # # arrange xlabel ylabel
@@ -313,20 +314,36 @@ def plot(perf_df, axes_names, sup_title, lr, val_acc, legend=True, ):
     figsize = (4.2, 2.25)
   
   fig, axes = plt.subplots(rows + 2, cols, figsize=figsize)
-  
+  axes = np.array(axes).reshape(rows + 2, cols)
+  if insides == 2:
+    refaxis = 1
+  else:
+    refaxis = 0
   for _j in range(cols):
-    ax = axes[0, _j]
+    ax = axes[refaxis, _j]
     ax.set_title('lr')
-    lr.plot(ax=ax,legend=False)
-    ax = axes[1, _j]
+    ((lr.interpolate(limit_direction='backward') + lr.interpolate()) / 2.).plot(ax=ax, legend=False)
+    ax = axes[refaxis + 1, _j]
     ax.set_title('val_acc')
-    val_acc.plot(ax=ax,legend=False)
+    ((val_acc.interpolate(limit_direction='backward') + val_acc.interpolate()) / 2.).plot(ax=ax, legend=False)
   
-  axes = axes[2:, :]
-  
+  for axis in axes[(refaxis, refaxis + 1), :].flatten():
+    for line in axis.get_lines():
+      _label = line.get_label()
+      _label = [__label.strip('(').strip(')') for __label in _label.split(', ')]
+      label = None
+      for __label in _label:
+        if __label in inside_level:
+          label = __label
+      # print label
+      color = get_colors(label)
+      line.set_color(color)
+  if insides == 2:
+    axes = np.concatenate([axes[(refaxis - 1,), :], axes[refaxis + 2:, :]])
+  else:
+    axes = axes[2:, :]
   # plt.tight_layout(pad=3, w_pad=.9, h_pad=1.5,rect=(.2,.2,1,1))
   fig.subplots_adjust(hspace=1., wspace=.6)
-  axes = np.array(axes).reshape(rows, cols)
   
   for _i in range(rows):
     for _j in range(cols):
@@ -353,7 +370,9 @@ def plot(perf_df, axes_names, sup_title, lr, val_acc, legend=True, ):
     target.append(axes[_row, _col])
   
   # perf_df.plot(subplots=True, legend=False, ax=target, marker=None, sharex=False)
-  perf_df.interpolate().plot(subplots=True, legend=False, ax=target, marker=None, sharex=False)
+  ((perf_df.interpolate(limit_direction='backward') + perf_df.interpolate()) / 2.).plot(subplots=True, legend=False,
+                                                                                        ax=target, marker=None,
+                                                                                        sharex=False)
   #  # change color
   
   for axis in axes.flatten():
@@ -401,8 +420,8 @@ def auto_plot(df, lr, val_acc, axes_names=('layer', 'stat', '_'),
     df.columns = append_level(df.columns, '_')
   indexf = MultiIndexFacilitate(df.columns)
   other_names = np.setdiff1d(indexf.names, axes_names)
-  
-  df = append_dummy(df)
+  if axes_names[-1] != '_':
+    df = append_dummy(df)
   
   paths = []
   if len(other_names) == 0:
@@ -470,8 +489,9 @@ def select(df, level2pattern, regexp=True):
     level_name = 'iter'
     df_name = df_name.unstack().reset_index().pivot_table(values=0, index=level_name,
                                                           columns=set(indexf.names) - {level_name})
-
+  
   return df_name
+
 
 def exclude(df, level2pattern, regexp=True):
   df_name = df
@@ -589,17 +609,15 @@ def map_name(names):
 if __name__ == '__main__':
   visualizer = Visualizer(paranet_folder='all')
   df = visualizer.stat_df.copy()
-  df = df.iloc[:, :]
+  
+  # df = df.iloc[:, :200]
   df = split_layer_stat(df)
-  df = select(df, {'model_type': 'vgg10', 'optimizer': '_lr_0.001_name_sgd'})
+  df = select(df, {'model_type': 'vgg10', 'optimizer': '_lr_0.001_name_sgd'}, regexp=False)
   
   lr = visualizer.lr.copy()
   val_acc = visualizer.val_acc.copy()
-  lr = select(lr, {'model_type': 'vgg10', 'optimizer': '_lr_0.001_name_sgd'})
-  val_acc = select(val_acc, {'model_type': 'vgg10', 'optimizer': '_lr_0.001_name_sgd'})
+  lr = select(lr, {'model_type': 'vgg10', 'optimizer': '_lr_0.001_name_sgd'}, regexp=False)
+  val_acc = select(val_acc, {'model_type': 'vgg10', 'optimizer': '_lr_0.001_name_sgd'}, regexp=False)
   
   df.head()
-
   auto_plot(df, lr, val_acc, ('layer', 'stat', '_'))
-  
-  
