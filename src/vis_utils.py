@@ -109,19 +109,19 @@ def split_layer_stat(df):
 def custom_sort(columns, how='layer'):
   # todo please do not add thighs that do not exsits
   new_index0 = ['act', 'kernel', 'bias', 'beta', 'gamma', 'moving-mean', 'moving-var']
-  new_index1 = ['diff', 'stdtime', 'iqr', 'std', 'mean', 'median', 'magmean', 'posmean', 'negmean', 'posproportion',
-                'max', 'min', 'orthogonality', 'sparsity', 'ptrate-thresh-0.2', 'ptrate-thresh-0.6',
-                'ptrate-thresh-mean', 'totvar', 'updateratio', 'orthogonalitychannel', 'orthogonalitysample']
+  new_index1 = ['diff', 'stdtime', 'iqr', 'std', 'mean', 'median', 'norm','magmean', 'posmean', 'negmean', 'posproportion',
+                'max', 'min', 'ortho', 'sparsity', 'ptrate-thresh-0.2', 'ptrate-thresh-0.6',
+                'ptrate-thresh-mean','ptrate', 'totvar', 'updateratio', 'orthochannel', 'orthosample',]
   new_index = cartesian([new_index0, new_index1])
   new_index = ['/'.join(index_) for index_ in new_index]
-  
+  new_index.insert(0, 'dummy')
   sort_order = {index: ind for ind, index in enumerate(new_index)}
   
   new_index0 = ['layer' + str(ind) for ind in range(100)]  # todo increase it when needed
   new_index1 = ['input', 'conv', 'bn', 'conv-s', 'add', 'fc', 'softmax']  # although it is not necessaryli right
   new_index = cartesian([new_index0, new_index1]).tolist()
   new_index = ['/'.join(index_) for index_ in new_index]
-  
+  new_index.insert(0, 'dummy')
   sort_order2 = {index: ind for ind, index in enumerate(new_index)}
   
   # print sort_order2
@@ -204,6 +204,8 @@ class Visualizer(object):
   def split(self):
     self.perf_df = select(self.df, {'name': "(?:val_loss|loss|val_acc|acc)"})
     self.stat_df = select(self.df, {'name': "(?:^layer.*|^layer.*)"})
+    self.lr= select(self.df, {'name': 'lr'})
+    self.val_acc = select(self.df, {'name': 'val_acc'})
   
   def aggregate(self, join, parant_folder, stat_only):
     conf_name_dict = {}
@@ -224,11 +226,8 @@ class Visualizer(object):
     for ind in range(len(conf_name_dict)):
       conf_name = conf_name_dict.keys()[ind]
       conf_dict = conf_name_dict[conf_name]
-      
       loader = loaders[conf_name]
-      
       scalar = loader.scalars
-      
       df_l.append(scalar)
       for name in scalar.columns:
         name = map_name(name)[0]
@@ -253,7 +252,6 @@ class Visualizer(object):
     df.columns = index
     df = df.sort_index(axis=1, level=index_name)
     self.names = index_name
-    self.columns = index
     self.columns = index
     df.index.name = 'epoch' if not stat_only else 'iter'
     self.df = df
@@ -369,6 +367,23 @@ def plot(perf_df, axes_names, sup_title, legend=True, ):
   # plt.show()
   return fig, sup_title
 
+def df2arr(df):
+  df = df.copy()
+  df = df.unstack()
+  shape = map(len, df.index.levels)
+  arr = np.full(shape, np.nan)
+  arr[df.index.labels] = df.values.flat
+  return arr, MultiIndexFacilitate(df.index)
+
+
+def arr2df(arr, indexf):
+  df2 = pd.DataFrame(arr.flatten(), index=indexf.index)
+  df2.reset_index().pivot_table(values=0, index=indexf.names[-1:], columns=indexf.names[:-1])
+  return df2
+
+def test():
+  print 'www'
+
 
 def select(df, level2pattern, regexp=True):
   df_name = df
@@ -388,9 +403,23 @@ def select(df, level2pattern, regexp=True):
   return df_name
 
 
+def append_dummy(df):
+  indexf = MultiIndexFacilitate(df.unstack().index)
+  level_name = 'layer'
+  t = df.unstack().reset_index().pivot_table(values=0, index=level_name,
+                                             columns=set(indexf.names) - {level_name})
+  t.head()
+  t.loc['dummy', :] = np.nan
+
+  level_name = 'iter'
+  df_name = t.unstack().reset_index().pivot_table(values=0, index=level_name,
+                                                        columns=set(indexf.names) - {level_name})
+  
+  return df_name
+
+
 def exclude(df, level2pattern, regexp=True):
   df_name = df
-  
   for level_name, pattern_name in level2pattern.iteritems():
     indexf = MultiIndexFacilitate(df.unstack().index)
     df_name = df_name.unstack().reset_index().pivot_table(values=0, index=level_name,
@@ -417,11 +446,11 @@ def auto_plot(df, axes_names=('layer', 'stat', '_'), path_suffix='default', ipyt
   if len(df.columns.names) < 3 or axes_names[-1] == '_':
     df.columns = append_level(df.columns, '_')
   indexf = MultiIndexFacilitate(df.columns)
-  
   other_names = np.setdiff1d(indexf.names, axes_names)
+
+  df=append_dummy(df)
   
   paths = []
-  
   if len(other_names) == 0:
     _df = df.copy()
     if 'stat' in _df.columns.names:
@@ -513,31 +542,22 @@ def map_name(names):
   name_dict = {
     'conv2d'                     : 'conv',
     'dense'                      : 'fc',
-    '_win_size_(.*)$'            : '/winsize-\g<1>',
-    '_win_size_(\d+)_thresh_(.*)': '-thresh-\g<2>/winsize-\g<1>',
-    'batchnormalization'         : 'bn'
+    # '_win_size_(.*)$'            : '/winsize-\g<1>',
+    # '_win_size_(\d+)_thresh_(.*)': '-thresh-\g<2>/winsize-\g<1>',
+    'ptrate_win_size_11_thresh_mean' : 'ptrate',
+    'totvar_win_size_11' : 'totvar',
+    'batchnormalization'         : 'bn',
+    'orthogonality' :'ortho'
   }
   for ind, name in enumerate(names):
     new_name = name
     for pattern, replace in name_dict.iteritems():
       new_name = re.sub(pattern, replace, new_name)
-    
     names[ind] = new_name
   
   return names
 
 
 if __name__ == '__main__':
-  visualizer = Visualizer('lr_search')
-  df = visualizer.stat_df.copy()
-  df = split_layer_stat(df)
-  # df=select(df,{'name':'val_acc'})
-  df = exclude(df, {'optimizer': '.*001.*sgd.*'})
-  df = exclude(df, {'stat': '.*beta.*'})
-  df = exclude(df, {'layer': '.*bn.*'})
-  df = exclude(df, {'stat': '.*moving.*'})
-  df = exclude(df, {'stat': '.*gamma.*'})
-  df = df.iloc[:10, :]
-  df.head()
-
-  auto_plot(df,('layer','stat','optimizer'))
+  visualizer = Visualizer('all')
+  

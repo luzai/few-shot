@@ -13,9 +13,10 @@ from stats import Stat
 import threading
 from utils import clean_name
 
-dbg = False
 
-
+def test():
+  print 'ok'
+  
 class Loader(object):
   def __init__(self, name, path):
     self.name = name
