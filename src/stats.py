@@ -192,11 +192,11 @@ class KernelStat(Stat):
   @utils.timeit('kernel ortho consume')
   def orthogonality(self, tensor, name=None, iter=None, axis=-1):
     tensor = tensor.reshape(-1, tensor.shape[axis])
-    
     shape1, shape2 = tensor.shape
     tensor = tensor.T
     tensor = tensor / np.linalg.norm(tensor, axis=1)[:, np.newaxis]
     angles = np.abs(np.dot(tensor, tensor.T))
+    logger.debug('angles matrix is {}'.format(angles.shape))
     np.fill_diagonal(angles, np.nan)
     return np.nanmean(angles)
 
@@ -236,6 +236,7 @@ class ActStat(Stat):
     tensor = tensor.T
     tensor = tensor / np.linalg.norm(tensor, axis=1)[:, np.newaxis]
     angles = np.abs(np.dot(tensor, tensor.T))
+    logger.debug('angles matrix is {}'.format(angles.shape))
     np.fill_diagonal(angles, np.nan)
     return np.nanmean(angles)
   
@@ -245,7 +246,7 @@ class ActStat(Stat):
     # print tensor.shape
     tensor = tensor / np.linalg.norm(tensor, axis=1)[:, np.newaxis]
     angles = np.abs(np.dot(tensor, tensor.T))
-    # print angles.shape
+    logger.debug('angles matrix is {}'.format(angles.shape))
     np.fill_diagonal(angles, np.nan)
     return np.nanmean(angles)
   
@@ -318,9 +319,16 @@ class TotVar(object):
       if not self.windows.isfull(name, win_size=win_size):
         return NAN, NAN
       else:
-        _tensor = self.windows.get_tensor(name, win_size)
-        _diff = np.abs(_tensor[1:] - _tensor[:-1])
-        return self.windows.get_iter(win_size), _diff.mean()
+        fenmu = sum = 0.
+        
+        for ind in range(len(self.windows.l_tensor[name]) - 1):
+          last_tensor = self.windows.l_tensor[name][ind]
+          now_tensor = self.windows.l_tensor[name][ind + 1]
+          diff = np.abs(last_tensor - now_tensor)
+          sum += diff.mean()
+          fenmu += 1.
+        sum /= fenmu
+        return self.windows.get_iter(win_size), sum
     else:
       return NAN, NAN
 
@@ -507,7 +515,7 @@ def fake_data(max_win_size, epochs, iter_per_epoch):
 
 
 if __name__ == '__main__':
-  epochs = 11
+  epochs = 4
   iter_per_epoch = 196
   max_win_size = 2
   log_pnts = fake_data(max_win_size, epochs, iter_per_epoch)
@@ -517,17 +525,17 @@ if __name__ == '__main__':
   kernel_stat = KernelStat(max_win_size=max_win_size, log_pnt=log_pnts)
   
   for _ind in range(epochs * iter_per_epoch):
-    v = np.random.randn(10000, 10) * (_ind + 1) / 100.
+    v = np.random.randn(512, 512) * (_ind + 1) / 100.
     _res = kernel_stat.calc_all(v, 'ok/kernel', _ind)
     res.append(_res)
-    v = np.random.randn(10, 10000) * (_ind + 1) / 100.
-    _res = act_stat.calc_all(v, 'ok/act', _ind)
-    res.append(_res)
+    # v = np.random.randn(10, 10000) * (_ind + 1) / 100.
+    # _res = act_stat.calc_all(v, 'ok/act', _ind)
+    # res.append(_res)
   
   df = pd.concat(res)
   df.head()
   df = df.groupby(df.index).sum()
   df.head()
   
-  print df['ok/kernel/orthogonality']
-  print df['ok/act/orthogonality']
+  # print df['ok/kernel/orthogonality']
+  # print df['ok/act/orthogonality']

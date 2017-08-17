@@ -1,10 +1,10 @@
 import numpy as np
 
 hyper = {
-  "gpu"         : [0, 1, ],
+  "gpu"         : [0, 1,2,3 ],
   "use"         : "cifar10",
   "logger_level": "info",
-  "dbg"         : False,
+  "dbg"         : True,
   "win_size"    : 12,
   
   "cifar10_otho": {
@@ -27,7 +27,7 @@ hyper = {
     "epochs"         : 301,
     "sample_rate"    : 1.,  # epoch^-1
     "sub_sample"     : [10, 30],  # epoch
-    "sub_sample_rate": [5, 2, 1],
+    "sub_sample_rate": [6, 3, 1],
     "grids"          : {'dataset'   : ['cifar10', 'cifar100'],
                         'model_type': ['resnet10', 'vgg10', ],
                         'optimizer' : [{'name': 'sgd',

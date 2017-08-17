@@ -27,6 +27,7 @@ class TensorBoard2(Callback):
     if K.backend() != 'tensorflow':
       raise RuntimeError('TensorBoard callback only works '
                          'with the TensorFlow backend.')
+    self.timer = utils.Timer()
     self.epochs = tot_epochs
     self.log_dir = log_dir
     self.write_graph = write_graph
@@ -164,6 +165,9 @@ class TensorBoard2(Callback):
     if not self.batch_based:
       self.write_dict(logs, epoch)
   
+  def on_batch_begin(self, batch, logs=None):
+    self.timer.tic()
+  
   @utils.timeit('batch end log stats consume')
   def on_batch_end(self, batch, logs=None):
     self.batch = batch
@@ -214,6 +218,8 @@ class TensorBoard2(Callback):
         logs['val_loss'] = val_loss
         logs['val_acc'] = val_acc
         self.write_dict(logs, iter)
+
+    logger.debug('1 batch consume '+ str( self.timer.toc()))
   
   def on_train_end(self, logs=None):
     self.writer.close()
