@@ -107,9 +107,7 @@ class Stat(object):
   #     return res
   
   def norm(self, tensor, **kwargs):
-      return np.linalg.norm(tensor)
-  
-  
+    return np.linalg.norm(tensor)
   
   def totvar(self, tensor, name, iter, win_size):
     _iter, _val = self.totvar_inst.tot_var(tensor, iter, name, win_size, 'save')
@@ -198,7 +196,7 @@ class KernelStat(Stat):
     shape1, shape2 = tensor.shape
     tensor = tensor.T
     tensor = tensor / np.linalg.norm(tensor, axis=1)[:, np.newaxis]
-    angles = np.arccos(np.dot(tensor, tensor.T))
+    angles = np.abs(np.dot(tensor, tensor.T))
     np.fill_diagonal(angles, np.nan)
     return np.nanmean(angles)
 
@@ -237,7 +235,7 @@ class ActStat(Stat):
     shape1, shape2 = tensor.shape
     tensor = tensor.T
     tensor = tensor / np.linalg.norm(tensor, axis=1)[:, np.newaxis]
-    angles = np.arccos(np.dot(tensor, tensor.T))
+    angles = np.abs(np.dot(tensor, tensor.T))
     np.fill_diagonal(angles, np.nan)
     return np.nanmean(angles)
   
@@ -246,7 +244,7 @@ class ActStat(Stat):
     shape1, shape2 = tensor.shape
     # print tensor.shape
     tensor = tensor / np.linalg.norm(tensor, axis=1)[:, np.newaxis]
-    angles = np.arccos(np.dot(tensor, tensor.T))
+    angles = np.abs(np.dot(tensor, tensor.T))
     # print angles.shape
     np.fill_diagonal(angles, np.nan)
     return np.nanmean(angles)
@@ -338,14 +336,15 @@ class PTRate(object):
       if not self.windows.isfull(name, win_size=win_size):
         return NAN, NAN
       else:
-        
-        
-        _tensor = self.windows.get_tensor(name, win_size)
-        # if 'act' in name and 'ptrate' in name and 'softmax' in name:
-        #   logger.info(name, (_tensor >= 0).all(), (tensor >= 0).all())
-        _tensor = _tensor.reshape(_tensor.shape[0], -1)
-        polarity_time_space = (-np.sign(_tensor[1:] * _tensor[:-1]) + 1.) / 2.
-        polarity_space = polarity_time_space.mean(axis=0)
+        polarity = []
+        for ind in range(len(self.windows.l_tensor[name]) - 1):
+          last_tensor = self.windows.l_tensor[name][ind]
+          last_tensor = last_tensor.reshape(last_tensor.shape[0], -1)
+          now_tensor = self.windows.l_tensor[name][ind]
+          now_tensor = now_tensor.reshape(now_tensor.shape[0], -1)
+          polarity_now = (-np.sign(last_tensor * now_tensor) + 1.) / 2.
+          polarity.append(polarity_now)
+        polarity_space = np.array(polarity).mean(axis=0)
         if thresh == 'mean':
           res = polarity_space.mean()
         else:
