@@ -328,6 +328,11 @@ class TotVar(object):
           sum += diff.mean()
           fenmu += 1.
         sum /= fenmu
+        
+        _tensor = self.windows.get_tensor(name, win_size)
+        _diff = np.abs(_tensor[1:] - _tensor[:-1])
+        assert np.allclose(_diff.mean(), [sum])
+        
         return self.windows.get_iter(win_size), sum
     else:
       return NAN, NAN
@@ -347,14 +352,25 @@ class PTRate(object):
         polarity = []
         for ind in range(len(self.windows.l_tensor[name]) - 1):
           last_tensor = self.windows.l_tensor[name][ind]
-          last_tensor = last_tensor.reshape(last_tensor.shape[0], -1)
           now_tensor = self.windows.l_tensor[name][ind]
-          now_tensor = now_tensor.reshape(now_tensor.shape[0], -1)
           polarity_now = (-np.sign(last_tensor * now_tensor) + 1.) / 2.
           polarity.append(polarity_now)
-        polarity_space = np.array(polarity).mean(axis=0)
+        polarity_time_space = np.array(polarity)
+        polarity_time_space = polarity_time_space.reshape(polarity_time_space.shape[0],-1)
+        
+
+        _tensor = self.windows.get_tensor(name, win_size)
+
+        _tensor = _tensor.reshape(_tensor.shape[0], -1)
+        polarity_time_space2 = (-np.sign(_tensor[1:] * _tensor[:-1]) + 1.) / 2.
+
+        assert np.allclose(polarity_time_space,polarity_time_space2)
+        polarity_space = polarity_time_space.mean(axis=0)
+        
         if thresh == 'mean':
           res = polarity_space.mean()
+        
+        
         else:
           _, res = thresh_proportion(arr=polarity_space, thresh=thresh)
         return self.windows.get_iter(win_size), res
