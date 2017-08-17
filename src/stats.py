@@ -107,7 +107,7 @@ class Stat(object):
   #     return res
   
   def norm(self, tensor, **kwargs):
-    return np.linalg.norm(tensor)
+    return np.linalg.norm(tensor) / tensor.size
   
   def totvar(self, tensor, name, iter, win_size):
     _iter, _val = self.totvar_inst.tot_var(tensor, iter, name, win_size, 'save')

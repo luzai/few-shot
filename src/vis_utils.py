@@ -261,209 +261,16 @@ class Visualizer(object):
     df.index.name = 'epoch' if not stat_only else 'iter'
     self.df = df
   
-  def plot(self, perf_df, axes_names, sup_title, lr, val_acc, legend=True, ):
-    row_name, col_name, inside = axes_names
-    names2levels = {name: level for level, name in zip(perf_df.columns.levels, perf_df.columns.names)}
-    row_level = names2levels[row_name]
-    level2row = {val: ind for ind, val in enumerate(row_level)}
-    rows = len(row_level)
-    
-    col_level = names2levels[col_name]
-    level2col = {val: ind for ind, val in enumerate(col_level)}
-    cols = len(col_level)
-    
-    inside_level = names2levels[inside]
-    level2inside = {val: ind for ind, val in enumerate(inside_level)}
-    insides = len(inside_level)
-    from cycler import cycler
-    
-    # # arrange xlabel ylabel
-    if not utils.get_config('dbg'):
-      figsize = (4.2 * cols, 2.25 * rows)
-    else:
-      logger.info('dbg small fig mode')
-      figsize = (4.2, 2.25)
-    
-    fig, axes = plt.subplots(rows + 2, cols, figsize=figsize)
-    
-    for _j in range(cols):
-      ax = axes[0, _j]
-      lr.plot(ax=ax)
-      ax = axes[1, _j]
-      val_acc.plot(ax=ax)
-    
-    axes = axes[2:, :]
-    
-    # plt.tight_layout(pad=3, w_pad=.9, h_pad=1.5,rect=(.2,.2,1,1))
-    fig.subplots_adjust(hspace=1., wspace=.6)
-    axes = np.array(axes).reshape(rows, cols)
-    
-    for _i in range(rows):
-      for _j in range(cols):
-        axes[_i][_j].set_ylabel(re.sub('/', '\n', row_level[_i]), rotation=0, fontsize=13, labelpad=36)
-        axes[_i][_j].set_title(col_level[_j], y=1.09)
-    
-    # # plot to right place
-    target = []
-    legends = np.empty((rows, cols)).astype(object)
-    for _row in range(rows):
-      for _col in range(cols):
-        legends[_row, _col] = []
-    
-    for inds in perf_df.columns:
-      for ind in inds:
-        if ind in row_level: _row = level2row[ind]
-        if ind in col_level: _col = level2col[ind]
-      for ind in inds:
-        if ind in inside_level:
-          if legends[_row, _col] == []:
-            legends[_row, _col] = [str(ind)]
-          else:
-            legends[_row, _col] += [str(ind)]
-      target.append(axes[_row, _col])
-    
-    # perf_df.plot(subplots=True, legend=False, ax=target, marker=None, sharex=False)
-    perf_df.interpolate().plot(subplots=True, legend=False, ax=target, marker=None, sharex=False)
-    #  # change color
-    
-    for axis in axes.flatten():
-      for line in axis.get_lines():
-        _label = line.get_label()
-        _label = [__label.strip('(').strip(')') for __label in _label.split(', ')]
-        label = None
-        for __label in _label:
-          if __label in inside_level:
-            label = __label
-        # print label
-        color = get_colors(label)
-        line.set_color(color)
-    
-    for _row in range(legends.shape[0]):
-      for _col in range(legends.shape[1]):
-        axes[_row, _col].yaxis.get_major_formatter().set_powerlimits((-2, 2))
-        _ylim = axes[_row, _col].get_ylim()
-        if np.diff(_ylim) < 1e-7 and np.mean(_ylim) > 1e-3:
-          logger.info('Attatin: float error' + str(_ylim) + str((_row, _col)))
-          if _row == legends.shape[0] - 1:
-            axes[_row, _col].set_ylim([0, 1])
-        
-        if len(legends[_row, _col]) > 1 and _row == 0:
-          axes[_row, _col].legend(legends[_row, _col])
-          # logger.info('legend' + str(legends[_row, _col]))
-        else:
-          # logger.debug('shouldnot has legend')
-          axes[_row, _col].legend([])
-    
-    # from IPython import embed;embed()
-    sup_title += '_' + inside
-    sup_title = sup_title.strip('_')
-    fig.suptitle(sup_title, fontsize=25)
-    # plt.show()
-    return fig, sup_title
-  
-  def auto_plot(self, df, lr, val_acc, axes_names=('layer', 'stat', '_'), path_suffix='_default', ipython=True,
-                show=False):
-    df, sup_title = drop_level(df)
-    if len(df.columns.names) < 3 or axes_names[-1] == '_':
-      df.columns = append_level(df.columns, '_')
-    indexf = MultiIndexFacilitate(df.columns)
-    other_names = np.setdiff1d(indexf.names, axes_names)
-    
-    df = append_dummy(df)
-    
-    paths = []
-    if len(other_names) == 0:
-      _df = df.copy()
-      if 'stat' in _df.columns.names:
-        _df = reindex(_df)
-      fig, sup_title = plot(_df, axes_names, sup_title, lr=lr, val_acc=val_acc)
-      utils.mkdir_p(Config.output_path + path_suffix + '/')
-      sav_path = (Config.output_path
-                  + path_suffix + '/'
-                  + re.sub('/', '', sup_title)
-                  + '.pdf').strip('_')
-      fig.savefig(sav_path,
-                  bbox_inches='tight')
-      paths.append(sav_path)
-      plt.close()
-    
-    for poss in cartesian([indexf.names2levels[name] for name in other_names]):
-      _df = df.copy()
-      _lr = lr.copy()
-      _val_acc = val_acc.copy()
-      for _name, _poss in zip(other_names, poss):
-        _df = select(_df, {_name: _poss}, regexp=False)
-        _lr = select(_lr, {_name: _poss}, regexp=False)
-        _val_acc = select(_val_acc, {_name: _poss}, regexp=False)
-      
-      sup_title_ = '_' + utils.list2str(poss) + sup_title
-      
-      # if _df is None: break
-      # if _df is None: continue
-      
-      if 'layer' in _df.columns.names:
-        _df = reindex(_df)
-      
-      fig, sup_title_ = plot(_df, axes_names, sup_title_, lr=_lr, val_acc=_val_acc)
-      utils.mkdir_p(Config.output_path + path_suffix + '/')
-      sav_path = (Config.output_path
-                  + path_suffix + '/'
-                  + re.sub('/', '', sup_title_)
-                  + '.pdf').strip('_')
-      fig.savefig(sav_path,
-                  bbox_inches='tight')
-      paths.append(sav_path)
-      if show: plt.show()
-      plt.close()
-      if osp.exists('dbg'):
-        logger.info('dbg mode break')
-        break
-    
-    return paths
-  
-  def select(self, df, level2pattern, regexp=True):
-    df_name = df
-    for level_name, pattern_name in level2pattern.iteritems():
-      indexf = MultiIndexFacilitate(df.unstack().index)
-      
-      df_name = df_name.unstack().reset_index().pivot_table(values=0, index=level_name,
-                                                            columns=set(indexf.names) - {level_name})
-      
-      if regexp:
-        df_name = df_name.filter(regex=pattern_name, axis=0)
-      else:
-        df_name = df_name.loc[(pattern_name,), :]
-      level_name = 'iter'
-      df_name = df_name.unstack().reset_index().pivot_table(values=0, index=level_name,
-                                                            columns=set(indexf.names) - {level_name})
-    return df_name
-  
-  def exclude(self, df, level2pattern, regexp=True):
-    df_name = df
-    for level_name, pattern_name in level2pattern.iteritems():
-      indexf = MultiIndexFacilitate(df.unstack().index)
-      df_name = df_name.unstack().reset_index().pivot_table(values=0, index=level_name,
-                                                            columns=set(indexf.names) - {level_name})
-      
-      names = df_name.index
-      
-      all_ind = np.arange(len(names))
-      if regexp:
-        match_ind = [ind for ind, name in enumerate(names) if re.match(pattern_name, name)]
-      else:
-        match_ind = [ind for ind, name in enumerate(names) if pattern_name == name]
-      
-      left_ind = np.setdiff1d(all_ind, match_ind)
-      df_name = df_name.iloc[left_ind, :]
-      level_name = 'iter'
-      df_name = df_name.unstack().reset_index().pivot_table(values=0, index=level_name,
-                                                            columns=set(indexf.names) - {level_name})
-    return df_name
-  
   def copy(self):
     vis = Visualizer()
     vis.lr, vis.val_acc, vis.perf_df, vis.stat_df = self.lr.copy(), self.val_acc.copy(), self.perf_df.copy(), self.stat_df.copy()
-    return vis 
+    return vis
+  
+  def select(self, level2pattern, regexp=True):
+    self.stat_df = select(self.stat_df, level2pattern, regexp)
+    self.lr = select(self.lr, level2pattern, regexp)
+    self.val_acc = select(self.val_acc, level2pattern, regexp)
+
 
 class MultiIndexFacilitate(object):
   def __init__(self, columns):
@@ -480,6 +287,213 @@ class MultiIndexFacilitate(object):
   
   def update(self):
     self.index = pd.MultiIndex.from_product(self.levels, names=self.names)
+
+
+def plot(perf_df, axes_names, sup_title, lr, val_acc, legend=True, ):
+  row_name, col_name, inside = axes_names
+  names2levels = {name: level for level, name in zip(perf_df.columns.levels, perf_df.columns.names)}
+  row_level = names2levels[row_name]
+  level2row = {val: ind for ind, val in enumerate(row_level)}
+  rows = len(row_level)
+  
+  col_level = names2levels[col_name]
+  level2col = {val: ind for ind, val in enumerate(col_level)}
+  cols = len(col_level)
+  
+  inside_level = names2levels[inside]
+  level2inside = {val: ind for ind, val in enumerate(inside_level)}
+  insides = len(inside_level)
+  from cycler import cycler
+  
+  # # arrange xlabel ylabel
+  if not utils.get_config('dbg'):
+    figsize = (4.2 * cols, 2.25 * rows)
+  else:
+    logger.info('dbg small fig mode')
+    figsize = (4.2, 2.25)
+  
+  fig, axes = plt.subplots(rows + 2, cols, figsize=figsize)
+  
+  for _j in range(cols):
+    ax = axes[0, _j]
+    ax.set_title('lr')
+    lr.plot(ax=ax,legend=False)
+    ax = axes[1, _j]
+    ax.set_title('val_acc')
+    val_acc.plot(ax=ax,legend=False)
+  
+  axes = axes[2:, :]
+  
+  # plt.tight_layout(pad=3, w_pad=.9, h_pad=1.5,rect=(.2,.2,1,1))
+  fig.subplots_adjust(hspace=1., wspace=.6)
+  axes = np.array(axes).reshape(rows, cols)
+  
+  for _i in range(rows):
+    for _j in range(cols):
+      axes[_i][_j].set_ylabel(re.sub('/', '\n', row_level[_i]), rotation=0, fontsize=13, labelpad=36)
+      axes[_i][_j].set_title(col_level[_j], y=1.09)
+  
+  # # plot to right place
+  target = []
+  legends = np.empty((rows, cols)).astype(object)
+  for _row in range(rows):
+    for _col in range(cols):
+      legends[_row, _col] = []
+  
+  for inds in perf_df.columns:
+    for ind in inds:
+      if ind in row_level: _row = level2row[ind]
+      if ind in col_level: _col = level2col[ind]
+    for ind in inds:
+      if ind in inside_level:
+        if legends[_row, _col] == []:
+          legends[_row, _col] = [str(ind)]
+        else:
+          legends[_row, _col] += [str(ind)]
+    target.append(axes[_row, _col])
+  
+  # perf_df.plot(subplots=True, legend=False, ax=target, marker=None, sharex=False)
+  perf_df.interpolate().plot(subplots=True, legend=False, ax=target, marker=None, sharex=False)
+  #  # change color
+  
+  for axis in axes.flatten():
+    for line in axis.get_lines():
+      _label = line.get_label()
+      _label = [__label.strip('(').strip(')') for __label in _label.split(', ')]
+      label = None
+      for __label in _label:
+        if __label in inside_level:
+          label = __label
+      # print label
+      color = get_colors(label)
+      line.set_color(color)
+  
+  for _row in range(legends.shape[0]):
+    for _col in range(legends.shape[1]):
+      axes[_row, _col].yaxis.get_major_formatter().set_powerlimits((-2, 2))
+      _ylim = axes[_row, _col].get_ylim()
+      if np.diff(_ylim) < 1e-7 and np.mean(_ylim) > 1e-3:
+        logger.info('Attatin: float error' + str(_ylim) + str((_row, _col)))
+        if _row == legends.shape[0] - 1:
+          axes[_row, _col].set_ylim([0, 1])
+      
+      if len(legends[_row, _col]) > 1 and _row == 0:
+        axes[_row, _col].legend(legends[_row, _col])
+        # logger.info('legend' + str(legends[_row, _col]))
+      else:
+        # logger.debug('shouldnot has legend')
+        axes[_row, _col].legend([])
+  
+  # from IPython import embed;embed()
+  sup_title += '_' + inside
+  sup_title = sup_title.strip('_')
+  fig.suptitle(sup_title, fontsize=25)
+  # plt.show()
+  return fig, sup_title
+
+
+def auto_plot(df, lr, val_acc, axes_names=('layer', 'stat', '_'),
+              path_suffix='_default',
+              ipython=True,
+              show=False):
+  df, sup_title = drop_level(df)
+  if len(df.columns.names) < 3 or axes_names[-1] == '_':
+    df.columns = append_level(df.columns, '_')
+  indexf = MultiIndexFacilitate(df.columns)
+  other_names = np.setdiff1d(indexf.names, axes_names)
+  
+  df = append_dummy(df)
+  
+  paths = []
+  if len(other_names) == 0:
+    _df = df.copy()
+    if 'stat' in _df.columns.names:
+      _df = reindex(_df)
+    fig, sup_title = plot(_df, axes_names, sup_title, lr=lr, val_acc=val_acc)
+    utils.mkdir_p(Config.output_path + path_suffix + '/')
+    sav_path = (Config.output_path
+                + path_suffix + '/'
+                + re.sub('/', '', sup_title)
+                + '.pdf').strip('_')
+    fig.savefig(sav_path,
+                bbox_inches='tight')
+    paths.append(sav_path)
+    plt.close()
+  
+  for poss in cartesian([indexf.names2levels[name] for name in other_names]):
+    _df = df.copy()
+    _lr = lr.copy()
+    _val_acc = val_acc.copy()
+    for _name, _poss in zip(other_names, poss):
+      _df = select(_df, {_name: _poss}, regexp=False)
+      _lr = select(_lr, {_name: _poss}, regexp=False)
+      _val_acc = select(_val_acc, {_name: _poss}, regexp=False)
+    
+    sup_title_ = '_' + utils.list2str(poss) + sup_title
+    
+    # if _df is None: break
+    # if _df is None: continue
+    
+    if 'layer' in _df.columns.names:
+      _df = reindex(_df)
+    
+    fig, sup_title_ = plot(_df, axes_names, sup_title_, lr=_lr, val_acc=_val_acc)
+    utils.mkdir_p(Config.output_path + path_suffix + '/')
+    sav_path = (Config.output_path
+                + path_suffix + '/'
+                + re.sub('/', '', sup_title_)
+                + '.pdf').strip('_')
+    fig.savefig(sav_path,
+                bbox_inches='tight')
+    paths.append(sav_path)
+    if show: plt.show()
+    plt.close()
+    if osp.exists('dbg'):
+      logger.info('dbg mode break')
+      break
+  
+  return paths
+
+
+def select(df, level2pattern, regexp=True):
+  df_name = df
+  for level_name, pattern_name in level2pattern.iteritems():
+    indexf = MultiIndexFacilitate(df.unstack().index)
+    
+    df_name = df_name.unstack().reset_index().pivot_table(values=0, index=level_name,
+                                                          columns=set(indexf.names) - {level_name})
+    
+    if regexp:
+      df_name = df_name.filter(regex=pattern_name, axis=0)
+    else:
+      df_name = df_name.loc[(pattern_name,), :]
+    level_name = 'iter'
+    df_name = df_name.unstack().reset_index().pivot_table(values=0, index=level_name,
+                                                          columns=set(indexf.names) - {level_name})
+
+  return df_name
+
+def exclude(df, level2pattern, regexp=True):
+  df_name = df
+  for level_name, pattern_name in level2pattern.iteritems():
+    indexf = MultiIndexFacilitate(df.unstack().index)
+    df_name = df_name.unstack().reset_index().pivot_table(values=0, index=level_name,
+                                                          columns=set(indexf.names) - {level_name})
+    
+    names = df_name.index
+    
+    all_ind = np.arange(len(names))
+    if regexp:
+      match_ind = [ind for ind, name in enumerate(names) if re.match(pattern_name, name)]
+    else:
+      match_ind = [ind for ind, name in enumerate(names) if pattern_name == name]
+    
+    left_ind = np.setdiff1d(all_ind, match_ind)
+    df_name = df_name.iloc[left_ind, :]
+    level_name = 'iter'
+    df_name = df_name.unstack().reset_index().pivot_table(values=0, index=level_name,
+                                                          columns=set(indexf.names) - {level_name})
+  return df_name
 
 
 def df2arr(df):
@@ -574,12 +588,18 @@ def map_name(names):
 
 if __name__ == '__main__':
   visualizer = Visualizer(paranet_folder='all')
-  
   df = visualizer.stat_df.copy()
-  df = df.iloc[:10, :100]
+  df = df.iloc[:, :]
   df = split_layer_stat(df)
-  
   df = select(df, {'model_type': 'vgg10', 'optimizer': '_lr_0.001_name_sgd'})
-  df.head()
   
-  auto_plot(df, visualizer.lr, visualizer.val_acc, ('layer', 'stat', '_'))
+  lr = visualizer.lr.copy()
+  val_acc = visualizer.val_acc.copy()
+  lr = select(lr, {'model_type': 'vgg10', 'optimizer': '_lr_0.001_name_sgd'})
+  val_acc = select(val_acc, {'model_type': 'vgg10', 'optimizer': '_lr_0.001_name_sgd'})
+  
+  df.head()
+
+  auto_plot(df, lr, val_acc, ('layer', 'stat', '_'))
+  
+  
