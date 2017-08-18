@@ -44,7 +44,7 @@ def dict2df(my_dict):
   return pd.DataFrame.from_dict(tensor_d)
 
 
-def drop_level(perf_df):
+def drop_level(perf_df, allow_downcast=False):
   indexf = MultiIndexFacilitate(perf_df.columns)
   
   res_str = ''
@@ -55,7 +55,7 @@ def drop_level(perf_df):
     level = indexf.names2levels[name]
     # print name, level
     res_str += level[0] + '_'
-  if not isinstance(perf_df.columns, pd.MultiIndex):
+  if not isinstance(perf_df.columns, pd.MultiIndex) and not allow_downcast:
     perf_df.columns = append_level(perf_df.columns, '_')
   return perf_df, res_str
 
@@ -315,7 +315,7 @@ def plot(perf_df, axes_names, sup_title, lr, val_acc, legend=True, ):
   
   fig, axes = plt.subplots(rows + 2, cols, figsize=figsize)
   axes = np.array(axes).reshape(rows + 2, cols)
-  if insides == 2:
+  if insides >= 2:
     refaxis = 1
   else:
     refaxis = 0
@@ -338,7 +338,7 @@ def plot(perf_df, axes_names, sup_title, lr, val_acc, legend=True, ):
       # print label
       color = get_colors(label)
       line.set_color(color)
-  if insides == 2:
+  if insides >= 2:
     axes = np.concatenate([axes[(refaxis - 1,), :], axes[refaxis + 2:, :]])
   else:
     axes = axes[2:, :]
@@ -546,40 +546,64 @@ def append_dummy(df):
   return df_name
 
 
-def heatmap(df, limits=None, suptitle=''):
-  df, sup_ = drop_level(df)
-  suptitle += sup_
-  mat = df.values.transpose()[:10, :limits]
+def heatmap(df):
+  df, super_title = drop_level(df)
   
-  if np.isnan(mat).any():
-    logger.warning('mat conations nan' + suptitle)
+  indexf = MultiIndexFacilitate(df.unstack().index)
+  dest = indexf.names2levels['layer']
+  dest = custom_sort(dest)
+  df = df.transpose().reindex(dest, level='layer').transpose()
   
-  fig, ax = plt.subplots(1, figsize=(5, 40))
-  ax.set_title(suptitle, fontsize=5)
+  new_index = np.concatenate([df.index, range(min(df.index), max(df.index), np.diff(df.index).max())])
+  new_index.sort()
+  new_index = np.unique(new_index)
+  df = df.reindex(new_index).interpolate()
   
+  df = df.loc[range(min(df.index), max(df.index) + 1, 196), :]
+  
+  mat = df.values.transpose()
+  
+  fig, ax = plt.subplots(1, figsize=(50, 50))
   im = ax.imshow(mat, interpolation='none')
-  # ax.set_aspect(1.5)
-  
-  # ax.tick_params(axis=u'both', which=u'both', length=0)
-  # ax.set_xlim(-0.5, limits-0.5)
-  # ax.set_ylim(10.5, -0.5)
   ax.grid('off')
   plt.xticks(rotation=20)
-  xticks = np.full((limits,), '').astype(basestring)
-  xticks[::5] = np.array(df.index[:limits][::5]).astype(basestring)
+  ax.set_title(super_title)
+  xticks = np.full((mat.shape[1],), '').astype(basestring)
+  xticks[::10] = np.array(df.index[::10]).astype(basestring)
   ax.set_xticklabels(xticks)
+  ax.set_xlim(-1.5, len(xticks) + 0.5)
+  
+  yticks = np.array([' ', ] + list(df.columns.levels[0]))
+  ax.set_yticklabels(yticks)
+  ax.set_ylim(len(yticks) - 1.5, -.5)
+  
   import matplotlib.ticker as ticker
   ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
+  ax.yaxis.set_major_locator(ticker.MultipleLocator(1))
   
   divider = make_axes_locatable(ax)
   cax = divider.append_axes("right", size="1%", pad=0.1)
   
   cbar = plt.colorbar(im, cax=cax)
-  print mat[~np.isnan(mat)].min(), mat[~np.isnan(mat)].max()
+  # print mat[~np.isnan(mat)].min(), mat[~np.isnan(mat)].max()
   # cbar.ax.get_yaxis().set_ticks([0,1])
   cbar.ax.get_yaxis().set_major_formatter(FormatStrFormatter('%.2f'))
-  paths = Config.root_path + '/' + suptitle + '.pdf'
+  paths = Config.root_path + '/' + re.sub('/', '_', super_title) + '.pdf'
   fig.savefig(paths, bbox_inches='tight')  # bbox_inches='tight'
+  return paths
+
+
+def auto_heatmap(df):
+  df = split_layer_stat(df)
+  indexf = MultiIndexFacilitate(df.columns)
+  other_names = np.setdiff1d(indexf.names, ['layer', 'stat'])
+  paths = []
+  for poss in cartesian([indexf.names2levels[name] for name in other_names]):
+    _df = df.copy()
+    for _name, _poss in zip(other_names, poss):
+      _df = select(_df, {_name: _poss}, regexp=False)
+    _df=select(_df,{'stat':'act/ptrate'})
+    paths.append(heatmap(_df))
   
   return paths
 
@@ -609,15 +633,5 @@ def map_name(names):
 if __name__ == '__main__':
   visualizer = Visualizer(paranet_folder='all')
   df = visualizer.stat_df.copy()
-  
-  # df = df.iloc[:, :200]
-  df = split_layer_stat(df)
-  df = select(df, {'model_type': 'vgg10', 'optimizer': '_lr_0.001_name_sgd'}, regexp=False)
-  
-  lr = visualizer.lr.copy()
-  val_acc = visualizer.val_acc.copy()
-  lr = select(lr, {'model_type': 'vgg10', 'optimizer': '_lr_0.001_name_sgd'}, regexp=False)
-  val_acc = select(val_acc, {'model_type': 'vgg10', 'optimizer': '_lr_0.001_name_sgd'}, regexp=False)
-  
-  df.head()
-  auto_plot(df, lr, val_acc, ('layer', 'stat', '_'))
+  df = df.iloc[3:, :]
+  print auto_heatmap(df)
