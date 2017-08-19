@@ -106,8 +106,11 @@ class Stat(object):
   #         logger.error('different method calc pso_proportion should close {} {}'.format(res, res2))
   #     return res
   
-  def norm(self, tensor, **kwargs):
-    return np.linalg.norm(tensor) / tensor.size
+  # def norm(self, tensor, **kwargs):
+  #   return np.linalg.norm(tensor) / tensor.size
+  
+  def magnitude(self, tensor, **kwargs):
+    return np.abs(tensor).mean()
   
   def totvar(self, tensor, name, iter, win_size):
     _iter, _val = self.totvar_inst.tot_var(tensor, iter, name, win_size, 'save')
