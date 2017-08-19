@@ -369,10 +369,11 @@ def plot(perf_df, axes_names, sup_title, lr, val_acc, legend=True, ):
           legends[_row, _col] += [str(ind)]
     target.append(axes[_row, _col])
   
-  # perf_df.plot(subplots=True, legend=False, ax=target, marker=None, sharex=False)
-  ((perf_df.interpolate(limit_direction='backward') + perf_df.interpolate()) / 2.).plot(subplots=True, legend=False,
-                                                                                        ax=target, marker=None,
-                                                                                        sharex=False)
+  perf_df_inter = (perf_df.interpolate(limit_direction='backward') + perf_df.interpolate()) / 2. 
+  # perf_df_inter = resample(perf_df_inter)
+  perf_df_inter.plot(subplots=True, legend=False,
+                     ax=target, marker=None,
+                     sharex=False)
   #  # change color
   
   for axis in axes.flatten():
@@ -545,15 +546,16 @@ def append_dummy(df):
   
   return df_name
 
+
 def resample(df):
-  new_index = np.concatenate([df.index, range(min(df.index), max(df.index), np.diff(df.index).max())])
+  interval = np.diff(df.index).max()
+  new_index = np.concatenate([df.index, range(min(df.index), max(df.index), interval)])
   new_index.sort()
   new_index = np.unique(new_index)
   df = df.reindex(new_index).interpolate()
-  
-  df = df.loc[range(min(df.index), max(df.index) + 1, 196), :]
-  
-  
+  df = df.loc[range(min(df.index), max(df.index) + 1, interval), :]
+  return df
+
 
 def heatmap(df):
   df, super_title = drop_level(df)
@@ -563,12 +565,7 @@ def heatmap(df):
   dest = custom_sort(dest)
   df = df.transpose().reindex(dest, level='layer').transpose()
   
-  new_index = np.concatenate([df.index, range(min(df.index), max(df.index), np.diff(df.index).max())])
-  new_index.sort()
-  new_index = np.unique(new_index)
-  df = df.reindex(new_index).interpolate()
-  
-  df = df.loc[range(min(df.index), max(df.index) + 1, 196), :]
+  df = resample(df)
   
   mat = df.values.transpose()
   
@@ -611,7 +608,7 @@ def auto_heatmap(df):
     _df = df.copy()
     for _name, _poss in zip(other_names, poss):
       _df = select(_df, {_name: _poss}, regexp=False)
-    _df=select(_df,{'stat':'act/ptrate'})
+    _df = select(_df, {'stat': 'act/ptrate'})
     paths.append(heatmap(_df))
   
   return paths
@@ -703,4 +700,3 @@ if __name__ == '__main__':
   df.head()
   
   auto_plot(df, lr, val_acc, ('layer', 'stat', 'optimizer'))
-
