@@ -545,6 +545,15 @@ def append_dummy(df):
   
   return df_name
 
+def resample(df):
+  new_index = np.concatenate([df.index, range(min(df.index), max(df.index), np.diff(df.index).max())])
+  new_index.sort()
+  new_index = np.unique(new_index)
+  df = df.reindex(new_index).interpolate()
+  
+  df = df.loc[range(min(df.index), max(df.index) + 1, 196), :]
+  
+  
 
 def heatmap(df):
   df, super_title = drop_level(df)

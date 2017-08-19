@@ -193,7 +193,7 @@ class KernelStat(Stat):
     # for bias we usually set lr mult=0.1? --> bias is not sparse
   
   @utils.timeit('kernel ortho consume')
-  def orthogonality(self, tensor, name=None, iter=None, axis=-1):
+  def orthoabs(self, tensor, name=None, iter=None, axis=-1):
     tensor = tensor.reshape(-1, tensor.shape[axis])
     shape1, shape2 = tensor.shape
     tensor = tensor.T
@@ -203,7 +203,17 @@ class KernelStat(Stat):
     np.fill_diagonal(angles, np.nan)
     return np.nanmean(angles)
 
-
+  def ortho(self, tensor, name=None, iter=None, axis=-1):
+    tensor = tensor.reshape(-1, tensor.shape[axis])
+    shape1, shape2 = tensor.shape
+    tensor = tensor.T
+    tensor = tensor / np.linalg.norm(tensor, axis=1)[:, np.newaxis]
+    angles = np.dot(tensor, tensor.T)
+    logger.debug('angles matrix is {}'.format(angles.shape))
+    np.fill_diagonal(angles, np.nan)
+    return np.nanmean(angles)
+  
+  
 class BiasStat(Stat):
   def __init__(self, max_win_size, log_pnt):
     super(BiasStat, self).__init__(max_win_size=max_win_size, log_pnt=log_pnt)
@@ -233,7 +243,7 @@ class ActStat(Stat):
     # for bias we usually set lr mult=0.1? --> bias is not sparse
   
   @utils.timeit('act ortho comsume ')
-  def orthogonalitychannel(self, tensor, name=None, iter=None, axis=-1):
+  def orthochnlabs(self, tensor, name=None, iter=None, axis=-1):
     tensor = tensor.reshape(-1, tensor.shape[axis])
     shape1, shape2 = tensor.shape
     tensor = tensor.T
@@ -243,7 +253,17 @@ class ActStat(Stat):
     np.fill_diagonal(angles, np.nan)
     return np.nanmean(angles)
   
-  def orthogonalitysample(self, tensor, name=None, iter=None, axis=-1):
+  def orthochnl(self, tensor, name=None, iter=None, axis=-1):
+    tensor = tensor.reshape(-1, tensor.shape[axis])
+    shape1, shape2 = tensor.shape
+    tensor = tensor.T
+    tensor = tensor / np.linalg.norm(tensor, axis=1)[:, np.newaxis]
+    angles = np.dot(tensor, tensor.T)
+    logger.debug('angles matrix is {}'.format(angles.shape))
+    np.fill_diagonal(angles, np.nan)
+    return np.nanmean(angles)
+  
+  def orthosmplabs(self, tensor, name=None, iter=None, axis=-1):
     tensor = tensor.reshape(tensor.shape[0], -1)
     shape1, shape2 = tensor.shape
     # print tensor.shape
@@ -253,7 +273,15 @@ class ActStat(Stat):
     np.fill_diagonal(angles, np.nan)
     return np.nanmean(angles)
   
-  # def orthogonalityplace
+  def orthosmpl(self, tensor, name=None, iter=None, axis=-1):
+    tensor = tensor.reshape(tensor.shape[0], -1)
+    shape1, shape2 = tensor.shape
+    # print tensor.shape
+    tensor = tensor / np.linalg.norm(tensor, axis=1)[:, np.newaxis]
+    angles = np.dot(tensor, tensor.T)
+    logger.debug('angles matrix is {}'.format(angles.shape))
+    np.fill_diagonal(angles, np.nan)
+    return np.nanmean(angles)
   
   @utils.timeit('act ptrate consume')
   def ptrate(self, tensor, name, iter, win_size, thresh):
