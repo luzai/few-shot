@@ -4,7 +4,7 @@ hyper = {
   "gpu"         : [0, 1, 2, 3],
   "use"         : "cifar10",
   "logger_level": "info",
-  "dbg"         : False,
+  "dbg"         : True,
   "win_size"    : 11,
  
   "cifar10"     : {
@@ -30,7 +30,6 @@ hyper = {
                         ],
                         }
   },
-  
   # mnist ok
   "mnist"       : {
     "epochs"         : 5,

@@ -633,5 +633,5 @@ def map_name(names):
 if __name__ == '__main__':
   visualizer = Visualizer(paranet_folder='all')
   df = visualizer.stat_df.copy()
-  df = df.iloc[3:, :]
+  df = df.iloc[:, :]
   print auto_heatmap(df)

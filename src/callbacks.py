@@ -94,9 +94,8 @@ class TensorBoard2(Callback):
     self.act_l = {}
     if self.merged is None:
       for layer in self.model.layers:
-        if not layer.name.startswith('layer'): continue
+        if not layer.name.startswith('Layer'): continue
         for weight in layer.weights:
-          # todo more clean way to name
           logger.info('summ log {}'.format(clean_name(weight.op.name)))
           weight_summ_l.append(tf.summary.tensor_summary(clean_name(weight.op.name), weight))
           if self.write_grads:
@@ -112,7 +111,7 @@ class TensorBoard2(Callback):
     
     self.act_summ = tf.summary.merge(act_summ_l) if act_summ_l != [] else None
     self.grad_summ = tf.summary.merge(grad_summ_l) if grad_summ_l != [] else None
-    # self.weight_summ = tf.summary.merge(weight_summ_l) if weight_summ_l != [] else None
+    self.weight_summ = tf.summary.merge(weight_summ_l) if weight_summ_l != [] else None
     self.merged = tf.summary.merge(
         act_summ_l + weight_summ_l + grad_summ_l) if act_summ_l + weight_summ_l + grad_summ_l != [] else None
     
@@ -151,22 +150,8 @@ class TensorBoard2(Callback):
     self.write_dict(lr_dict, self.iter)
   
   def on_epoch_end(self, epoch, logs=None):
-    
-    logs = logs or {}
-    
     logger.info('Model {} Epoch {} end'.format(self.name, epoch))
     assert self.batch == self.iter_per_epoch - 1, 'should equal '
-    
-    if not self.batch_based and self.validation_data:
-      logger.warning('DEPRECATED: Epoch {} record tf merged summary'.format(epoch))
-      act_summ_str_l, weight_summ_str = self.get_act_param_summ_str()
-      self.new_writer(act_summ_str_l, weight_summ_str, epoch)
-    
-    if not self.batch_based:
-      self.write_dict(logs, epoch)
-  
-  def on_batch_begin(self, batch, logs=None):
-    self.timer.tic()
   
   @utils.timeit('batch end log stats consume')
   def on_batch_end(self, batch, logs=None):
@@ -190,8 +175,8 @@ class TensorBoard2(Callback):
         kernel, bias = self.get_param()
         for name, val in kernel.iteritems():
           self.write_df(self.kernel_stat.calc_all(val, name, iter))
-        for name, val in bias.iteritems():
-          self.write_df(self.bias_stat.calc_all(val, name, iter))
+        # for name, val in bias.iteritems():
+        #   self.write_df(self.bias_stat.calc_all(val, name, iter))
         
         if self.iter >= self.log_pnts.index[-1]:
           # stdtime_tensor = {}
@@ -218,9 +203,10 @@ class TensorBoard2(Callback):
         logs['val_loss'] = val_loss
         logs['val_acc'] = val_acc
         self.write_dict(logs, iter)
-
-    # logger.info('1 batch consume '+ str( self.timer.toc()))
-    # print('1 batch consume '+ str( self.timer.toc()))
+    
+    if self.validation_data:
+      act_summ_str_l, weight_summ_str = self.get_act_param_summ_str()
+      self.new_writer(act_summ_str_l, weight_summ_str, iter)
   
   def on_train_end(self, logs=None):
     self.writer.close()
@@ -286,7 +272,9 @@ class TensorBoard2(Callback):
     return res
   
   def get_act_param_summ_str(self):
-    val_data = self.validation_data
+    val_data = [self.dataset.x_test_ref, self.dataset.y_test_ref, np.ones_like(self.validation_data[2]),
+                np.zeros_like(self.validation_data[3])]
+    # val_data = self.validation_data
     tensors = (self.model.inputs +
                self.model.targets +
                self.model.sample_weights)

@@ -62,8 +62,8 @@ class VGG(BaseModel):
                     x = Dropout(.5)(x)
             else:
                 assert config[1] == self.classes, 'should be end'
-                x = Dense(config[1], name='layer{}/dense'.format(depth))(x)
-                x = Activation('softmax', name='layer{}/softmax'.format(depth))(x)
+                x = Dense(config[1], name='Layer{}/dense'.format(depth))(x)
+                x = Activation('softmax', name='Layer{}/softmax'.format(depth))(x)
 
         model = Model(input, x, name=name)
         return model
