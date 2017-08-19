@@ -118,9 +118,8 @@ class Stat(object):
     if self.log_pnt[iter] >= 1 \
         and np.in1d(np.arange(iter - win_size + 1, iter + 1, step=1), self.log_pnt.index).all():
       _iter, _val = self.totvar_inst.tot_var(tensor, iter, name, win_size, 'load')
-      # if _iter != iter - win_size // 2:
-      #   # _iter = iter - win_size // 2
-      #   logger.error('should log to right iter!')
+      if _iter != iter - win_size // 2  :
+        logger.error('should log to right iter! {} {}'.format(_iter, iter - win_size // 2))
     
     return _iter, _val
   
@@ -202,7 +201,7 @@ class KernelStat(Stat):
     logger.debug('angles matrix is {}'.format(angles.shape))
     np.fill_diagonal(angles, np.nan)
     return np.nanmean(angles)
-
+  
   def ortho(self, tensor, name=None, iter=None, axis=-1):
     tensor = tensor.reshape(-1, tensor.shape[axis])
     shape1, shape2 = tensor.shape
@@ -212,8 +211,8 @@ class KernelStat(Stat):
     logger.debug('angles matrix is {}'.format(angles.shape))
     np.fill_diagonal(angles, np.nan)
     return np.nanmean(angles)
-  
-  
+
+
 class BiasStat(Stat):
   def __init__(self, max_win_size, log_pnt):
     super(BiasStat, self).__init__(max_win_size=max_win_size, log_pnt=log_pnt)
@@ -294,10 +293,8 @@ class ActStat(Stat):
       mode = 'load'
       _iter, _val = self.ptrate_inst.pt_rate(tensor, name=name, iter=iter, win_size=win_size, thresh=thresh,
                                              mode=mode)
-      if _iter != iter - win_size // 2:
-        # _iter = iter - win_size // 2
-        logger.error('should log to right iter!')
-    
+      if _iter != iter - win_size // 2  :
+        logger.error('should log to right iter! {} {}'.format(_iter, iter - win_size // 2))
     return _iter, _val
 
 
@@ -323,9 +320,10 @@ class Windows(object):
       self.l_tensor[name].append(tensor)
     else:
       top = self.l_tensor[name][-1]
-      if not (top is tensor or np.array_equal(top, tensor)):
+      if not (top is tensor):
         self.l_tensor[name].append(tensor)
-  
+      assert len(self.l_tensor[name]) == len(self.l_iter)
+      
   def get_tensor(self, name, win_size):
     # import gc
     # gc.collect()

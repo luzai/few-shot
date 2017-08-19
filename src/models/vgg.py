@@ -10,8 +10,8 @@ from keras.regularizers import l2
 class VGG(BaseModel):
   model_type = ['vgg11', 'vgg13', 'vgg16', 'vgg6', 'vgg19', 'vgg10', 'vgg9', 'vgg8']
   
-  def __init__(self, input_shape, classes, config, with_bn=True, with_dp=True,hiddens=512):
-    super(VGG, self).__init__(input_shape, classes, config, with_bn, with_dp,hiddens)
+  def __init__(self, input_shape, classes, config, with_bn=True, with_dp=True, hiddens=512):
+    super(VGG, self).__init__(input_shape, classes, config, with_bn, with_dp, hiddens)
     type = config.model_type
     cfg = {
       'vgg11': [[64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'], [512, 512, self.classes]],
@@ -36,7 +36,7 @@ class VGG(BaseModel):
   def build(self, name):
     x = input = Input(self.input_shape)
     depth = 1
-    for config in self.arch:
+    for ind, config in enumerate(self.arch):
       if config[0] == 'conv2d':
         if not self.with_bn:
           x = Conv2D(config[1], (3, 3), padding='same', name='layer{}/conv'.format(depth),
@@ -54,7 +54,7 @@ class VGG(BaseModel):
         x = MaxPooling2D((2, 2), strides=(2, 2))(x)
       elif config[0] == 'flatten':
         x = Flatten()(x)
-      elif config[0] == 'dense' and config[1] != self.classes:
+      elif config[0] == 'dense' and ind <= len(self.arch)-2 :
         x = Dense(config[1], name='layer{}/dense'.format(depth))(x)
         x = Activation('relu')(x)
         depth += 1
@@ -80,6 +80,6 @@ if __name__ == '__main__':
                   dataset_type='cifar10',
                   debug=False, )
   
-  model = VGG((32, 32, 3), 10, config)
+  model = VGG((32, 32, 3), 10, config, hiddens=10)
   
   model.vis()
