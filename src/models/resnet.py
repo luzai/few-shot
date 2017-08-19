@@ -26,7 +26,7 @@ def _bn_relu(input):
   # if with_bn:
   norm = BatchNormalization(axis=CHANNEL_AXIS)(input)
   # else:
-#   norm = input
+  #   norm = input
   return Activation("relu")(norm)
 
 
@@ -263,8 +263,9 @@ class ResnetBuilder(object):
     pool2 = AveragePooling2D(pool_size=(block_shape[ROW_AXIS], block_shape[COL_AXIS]),
                              strides=(1, 1))(block)
     flatten1 = Flatten()(pool2)
-    dense = Dense(units=num_outputs, kernel_initializer="he_normal", name='Layer{}/dense'.format(layer))(
-        flatten1)  # obs
+    dense = Dense(units=num_outputs, kernel_initializer="he_normal",
+                  name='Layer{}/dense'.format(layer),
+                  use_bias=False)(flatten1)  # obs
     dense = Activation('softmax', name='Layer{}/softmax'.format(layer))(dense)  # obs
     
     model = Model(inputs=input, outputs=dense, name=name)
