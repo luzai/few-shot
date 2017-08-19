@@ -1,7 +1,8 @@
 class BaseModel(object):
   model_type = []
   
-  def __init__(self, input_shape, classes, config, with_bn, with_dp):
+  def __init__(self, input_shape, classes, config, with_bn, with_dp,hiddens):
+    self.hiddens = hiddens
     self.input_shape = input_shape
     self.with_bn = with_bn
     self.with_dp = with_dp

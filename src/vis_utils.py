@@ -411,6 +411,8 @@ def plot(perf_df, axes_names, sup_title, lr, val_acc, legend=True, ):
   # plt.show()
   return fig, sup_title
 
+def interpolate(perf_df):
+  return (perf_df.interpolate(limit_direction='backward') + perf_df.interpolate()) / 2.
 
 def auto_plot(df, lr, val_acc, axes_names=('layer', 'stat', '_'),
               path_suffix='_default',

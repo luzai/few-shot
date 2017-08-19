@@ -206,7 +206,7 @@ class TensorBoard2(Callback):
         logs['val_acc'] = val_acc
         self.write_dict(logs, iter)
     
-      if not utils.get_config('log_tensor') and self.log_pnts[self.iter] >= 2:
+      if  utils.get_config('log_tensor') and self.log_pnts[self.iter] >= 2:
         act_summ_str_l, weight_summ_str = self.get_act_param_summ_str()
         self.new_writer(act_summ_str_l, weight_summ_str, iter)
   

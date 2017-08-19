@@ -1,6 +1,6 @@
 def run(model_type='vgg6', limit_val=True,
         dataset='cifar10', queue=None, runtime=1,
-        with_bn=True, optimizer={'name': 'sgd'}):
+        with_bn=True, optimizer={'name': 'sgd'},hiddens=512):
   import utils
   import warnings
   warnings.filterwarnings("ignore")
@@ -36,9 +36,9 @@ def run(model_type='vgg6', limit_val=True,
   
   dataset = Dataset(config.dataset_type, debug=config.debug, limit_val=limit_val)
   if 'vgg' in model_type:
-    model = VGG(dataset.input_shape, dataset.classes, config, with_bn=with_bn, with_dp=True)
+    model = VGG(dataset.input_shape, dataset.classes, config, with_bn=with_bn, with_dp=True,hiddens=hiddens)
   else:
-    model = ResNet(dataset.input_shape, dataset.classes, config, with_bn=with_bn, with_dp=True)
+    model = ResNet(dataset.input_shape, dataset.classes, config, with_bn=with_bn, with_dp=True,hiddens=hiddens)
   if optimizer['name'] == 'sgd':
     opt = keras.optimizers.sgd(optimizer['lr'], momentum=0.9)
   elif optimizer['name'] == 'rmsprop':
@@ -75,11 +75,9 @@ def run(model_type='vgg6', limit_val=True,
                     # TensorBoard(log_dir=config.model_tfevents_path)
                   ])
   
-  Loader(path=config.model_tfevents_path,stat_only=True).load(stat_only=True)
-  model.save()
-  # except Exception as inst:
-  #     print inst
-  #     exit(100)
+  Loader(path=config.model_tfevents_path, stat_only=True).load(stat_only=True)
+  Loader(path=config.model_tfevents_path, stat_only=False).load(stat_only=False)
+  # model.save()
 
 
 import multiprocessing as mp, time

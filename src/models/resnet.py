@@ -215,7 +215,7 @@ def _get_block(identifier):
 
 class ResnetBuilder(object):
   @staticmethod
-  def build(input_shape, num_outputs, block_fn, repetitions, name='model'):
+  def build(input_shape, num_outputs, block_fn, repetitions, name='model', hiddens=512):
     """Builds a custom ResNet like architecture.
 
     Args:
@@ -260,13 +260,20 @@ class ResnetBuilder(object):
     
     # Classifier block
     block_shape = K.int_shape(block)
-    pool2 = AveragePooling2D(pool_size=(block_shape[ROW_AXIS], block_shape[COL_AXIS]),
-                             strides=(1, 1))(block)
-    flatten1 = Flatten()(pool2)
+    # pool2 = AveragePooling2D(pool_size=(block_shape[ROW_AXIS], block_shape[COL_AXIS]),
+    #                          strides=(1, 1))(block)
+    
+    flatten1 = Flatten()(block)
+    dense = Dense(units=512, kernel_initializer='he_normal',
+                  name='layer{}/dense'.format(layer), activation='relu')(flatten1)
+    layer += 1
+    dense = Dense(units=hiddens, kernel_initializer='he_normal',
+                  name='layer{}/dense'.format(layer), activation='relu')(dense)
+    layer += 1
     dense = Dense(units=num_outputs, kernel_initializer="he_normal",
                   name='Layer{}/dense'.format(layer),
-                  use_bias=False)(flatten1)  # obs
-    dense = Activation('softmax', name='Layer{}/softmax'.format(layer))(dense)  # obs
+                  use_bias=False)(dense)
+    dense = Activation('softmax', name='Layer{}/softmax'.format(layer))(dense)
     
     model = Model(inputs=input, outputs=dense, name=name)
     return model
@@ -298,8 +305,8 @@ from models import BaseModel
 class ResNet(BaseModel):
   model_type = ['resnet5', 'resnet11', 'resnet32']
   
-  def __init__(self, input_shape, classes, config, with_bn=True, with_dp=True):
-    super(ResNet, self).__init__(input_shape, classes, config, with_bn, with_dp)
+  def __init__(self, input_shape, classes, config, with_bn=True, with_dp=True, hiddens=512):
+    super(ResNet, self).__init__(input_shape, classes, config, with_bn, with_dp, hiddens)
     type = config.model_type
     cfg = {
       'resnet6' : [1, 1],
@@ -310,7 +317,8 @@ class ResNet(BaseModel):
       'resnet34': [3, 4, 6, 3],
     }
     
-    self.model = ResnetBuilder.build(input_shape, classes, basic_block, cfg[type], name=config.name)
+    self.model = ResnetBuilder.build(input_shape, classes, basic_block, cfg[type], name=config.name,
+                                     hiddens=self.hiddens)
     self.vis()
 
 
@@ -323,7 +331,7 @@ if __name__ == '__main__':
   config = Config(epochs=301, batch_size=256, verbose=2,
                   model_type='resnet10',
                   dataset_type='cifar10',
-                  debug=False, others={'lr': 0.01}, clean_after=False)
+                  debug=False, )
   
   model = ResNet((32, 32, 3), 10, config)
   
