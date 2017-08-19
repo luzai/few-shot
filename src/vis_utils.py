@@ -632,6 +632,66 @@ def map_name(names):
 
 if __name__ == '__main__':
   visualizer = Visualizer(paranet_folder='all')
+  
   df = visualizer.stat_df.copy()
-  df = df.iloc[:, :]
-  print auto_heatmap(df)
+  # df = df.iloc[:, :200]
+  df = split_layer_stat(df)
+  df = select(df, {'model_type': 'vgg10', 'optimizer': '_lr_0.001_name_sgd'}, regexp=False)
+  
+  lr = visualizer.lr.copy()
+  val_acc = visualizer.val_acc.copy()
+  lr = select(lr, {'model_type': 'vgg10', 'optimizer': '_lr_0.001_name_sgd'}, regexp=False)
+  val_acc = select(val_acc, {'model_type': 'vgg10', 'optimizer': '_lr_0.001_name_sgd'}, regexp=False)
+  
+  df.head()
+  
+  auto_plot(df, lr, val_acc, ('layer', 'stat', '_'))
+  
+  df = visualizer.stat_df.copy()
+  # df = df.iloc[:, :200]
+  df = split_layer_stat(df)
+  df = select(df, {'model_type': 'resnet10', 'optimizer': '_lr_0.001_name_sgd'}, regexp=False)
+  
+  lr = visualizer.lr.copy()
+  val_acc = visualizer.val_acc.copy()
+  lr = select(lr, {'model_type': 'resnet10', 'optimizer': '_lr_0.001_name_sgd'}, regexp=False)
+  val_acc = select(val_acc, {'model_type': 'resnet10', 'optimizer': '_lr_0.001_name_sgd'}, regexp=False)
+  
+  df.head()
+  
+  auto_plot(df, lr, val_acc, ('layer', 'stat', '_'))
+  
+  df = visualizer.stat_df.copy()
+  # df = df.iloc[:, :200]
+  df = split_layer_stat(df)
+  df = select(df, {'model_type': 'vgg10'}, regexp=False)
+  df = exclude(df, {'optimizer': '.*001.*'})
+  
+  lr = visualizer.lr.copy()
+  val_acc = visualizer.val_acc.copy()
+  lr = select(lr, {'model_type': 'vgg10'}, regexp=False)
+  lr = exclude(lr, {'optimizer': '.*001.*'})
+  val_acc = select(val_acc, {'model_type': 'vgg10'}, regexp=False)
+  val_acc = exclude(val_acc, {'optimizer': '.*001.*'})
+  df.head()
+  
+  # auto_plot(df,lr,val_acc,('layer','stat','_'))
+  auto_plot(df, lr, val_acc, ('layer', 'stat', 'optimizer'))
+  
+  df = visualizer.stat_df.copy()
+  # df = df.iloc[:, :200]
+  df = split_layer_stat(df)
+  df = select(df, {'model_type': 'resnet10'}, regexp=False)
+  df = exclude(df, {'optimizer': '.*001.*'})
+  
+  lr = visualizer.lr.copy()
+  val_acc = visualizer.val_acc.copy()
+  lr = select(lr, {'model_type': 'resnet10'}, regexp=False)
+  lr = exclude(lr, {'optimizer': '.*001.*'})
+  
+  val_acc = select(val_acc, {'model_type': 'resnet10'}, regexp=False)
+  val_acc = exclude(val_acc, {'optimizer': '.*001.*'})
+  df.head()
+  
+  auto_plot(df, lr, val_acc, ('layer', 'stat', 'optimizer'))
+

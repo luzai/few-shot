@@ -164,14 +164,14 @@ class ParamLoader(MultiLoader):
     super(ParamLoader, self).__init__(path=path, name=name)
   
   def _load(self, path):
-    stat = Stat()
+    # stat = Stat()
     _tensor = TensorLoader(path=path).load_tensors()
-    tensor = pd.DataFrame()
-    for name, series in _tensor.iteritems():
-      for ind, val in series.iteritems():
-        for stat_name, stat_func in stat.stat.iteritems():
-          tensor.loc[ind, name + '/' + stat_name] = stat_func(stat, val)
-    return tensor
+    # tensor = pd.DataFrame()
+    # for name, series in _tensor.iteritems():
+    #   for ind, val in series.iteritems():
+    #     for stat_name, stat_func in stat.stat.iteritems():
+    #       tensor.loc[ind, name + '/' + stat_name] = stat_func(stat, val)
+    return _tensor
 
 
 class ActLoader(MultiLoader):
@@ -198,19 +198,13 @@ class ActLoader(MultiLoader):
     tensors = pd.DataFrame(tensors)
     # timer.toc()
     tensors = tensors.transpose()
-    tensors.sort_index(axis=0, inplace=True)
-    tensors.sort_index(axis=1, inplace=True)
-    stat = Stat()
-    tensor = pd.DataFrame()
-    for name, series in tensors.iteritems():
-      for ind, val in series.iteritems():
-        for stat_name, stat_func in stat.stat.iteritems():
-          tensor.loc[ind, name + '/' + stat_name] = stat_func(stat, val)
-    del tensors
-    import gc
-    gc.collect()
-    return tensor
-
+    
+    # tensors.sort_index(axis=0, inplace=True)
+    # tensors.sort_index(axis=1, inplace=True)
+    # del tensors
+    # import gc
+    # gc.collect()
+    return tensors
 
 def _select(df, pattern):
   poss_name = df.columns
@@ -283,24 +277,11 @@ class Loader(threading.Thread):
       #   cache(self.params, path)
 
       pass
-      
-      
-        
-    # if utils.get_config('dbg'):
-    #   self.scalars = self.scalars.iloc[:6, :]  # dbg !
-    #   self.params = self.params.iloc[:6, :]  # dbg !
-    #   self.act = self.act.iloc[:6, :]  # dbg !
-    #   logger.info('!!!dbg mod load scalars shape {}'.format(self.scalars.shape))
-
-
+     
 if __name__ == '__main__':
-  
-  for path in glob.glob(Config.root_path + '/all/*'):
-    print path
-    # try:
-    loader = Loader(path=path, stat_only=True)
-    loader.load(stat_only=True, parallel=True)
-    print loader.scalars
-    # except Exception as inst:
-    #     print  inst
-    # from IPython import embed;embed()
+  path = glob.glob(Config.root_path + '/test/*')[0]
+  print path
+  loader = Loader(path=path, stat_only=True)
+  # loader.load(stat_only=True, parallel=True)
+  loader.load(stat_only=False, parallel=False)
+  print loader.scalars

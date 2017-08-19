@@ -97,12 +97,13 @@ class TensorBoard2(Callback):
         if not layer.name.startswith('Layer'): continue
         for weight in layer.weights:
           logger.info('summ log {}'.format(clean_name(weight.op.name)))
+          
           weight_summ_l.append(tf.summary.tensor_summary(clean_name(weight.op.name), weight))
-          if self.write_grads:
-            grads = model.optimizer.get_gradients(model.total_loss,
-                                                  weight)
-            grad_summ_l.append(tf.summary.tensor_summary('{}/grad'.format(clean_name(weight.op.name)),
-                                                         grads))
+          # if self.write_grads:
+          #   grads = model.optimizer.get_gradients(model.total_loss,
+          #                                         weight)
+          #   grad_summ_l.append(tf.summary.tensor_summary('{}/grad'.format(clean_name(weight.op.name)),
+          #                                                grads))
         
         if hasattr(layer, 'output'):
           act_summ_l.append(tf.summary.tensor_summary('{}/act'.format(clean_name(layer.name)),
@@ -214,7 +215,7 @@ class TensorBoard2(Callback):
   def get_param(self):
     res_kernel, res_bias = {}, {}
     for layer in self.model.layers:
-      if not layer.name.startswith('layer'): continue
+      if not layer.name.startswith('Layer'): continue
       logger.debug(layer.name)
       weights = layer.get_weights()
       # for _weight in weights:

@@ -8,7 +8,7 @@ hyper = {
   "win_size"    : 11,
  
   "cifar10"     : {
-    "epochs"         : 301,
+    "epochs"         : 2,
     "sample_rate"    : 1,  # epoch^-1
     "sub_sample"     : [10, 30],  # epoch
     "sub_sample_rate": [16, 4, 1],
