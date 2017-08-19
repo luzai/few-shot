@@ -369,7 +369,7 @@ def plot(perf_df, axes_names, sup_title, lr, val_acc, legend=True, ):
           legends[_row, _col] += [str(ind)]
     target.append(axes[_row, _col])
   
-  perf_df_inter = (perf_df.interpolate(limit_direction='backward') + perf_df.interpolate()) / 2. 
+  perf_df_inter = (perf_df.interpolate(limit_direction='backward') + perf_df.interpolate()) / 2.
   # perf_df_inter = resample(perf_df_inter)
   perf_df_inter.plot(subplots=True, legend=False,
                      ax=target, marker=None,

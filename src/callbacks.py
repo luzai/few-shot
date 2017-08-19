@@ -109,6 +109,8 @@ class TensorBoard2(Callback):
         if hasattr(layer, 'output'):
           act_summ_l.append(tf.summary.tensor_summary('{}/act'.format(clean_name(layer.name)),
                                                       layer.output))
+          act_summ_l.append(tf.summary.tensor_summary('{}/in'.format(clean_name(layer.name)),
+                                                      layer.input))
           self.act_l['{}/act'.format(clean_name(layer.name))] = layer.output
     
     self.act_summ = tf.summary.merge(act_summ_l) if act_summ_l != [] else None
