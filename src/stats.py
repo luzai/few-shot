@@ -358,17 +358,11 @@ class PTRate(object):
         polarity_time_space = np.array(polarity)
         polarity_time_space = polarity_time_space.reshape(polarity_time_space.shape[0], -1)
         
-        # _tensor = self.windows.get_tensor(name, win_size)
-        #
-        # _tensor = _tensor.reshape(_tensor.shape[0], -1)
-        # polarity_time_space2 = (-np.sign(_tensor[1:] * _tensor[:-1]) + 1.) / 2.
-        #
-        # assert np.allclose(polarity_time_space, polarity_time_space2)
         polarity_space = polarity_time_space.mean(axis=0)
         
         if thresh == 'mean':
           res = polarity_space.mean()
-          # logger.info('log ptrate mean ok')
+          logger.error('layer {} iter {} ptrate mean is {} '.format(name,iter,res))
         
         else:
           _, res = thresh_proportion(arr=polarity_space, thresh=thresh)

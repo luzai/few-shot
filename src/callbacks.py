@@ -144,6 +144,7 @@ class TensorBoard2(Callback):
   def on_epoch_begin(self, epoch, logs=None):
     logger.info('Model {} Epoch {} begin'.format(self.name, epoch))
     self.epoch = epoch
+    if self.iter==-1 : return
     lr = K.get_value(self.model.optimizer.lr)
     logger.info('lr is ' + str(lr))
     lr_dict = {}
@@ -164,11 +165,8 @@ class TensorBoard2(Callback):
                                                                               self.iter)
     if self.validation_data and self.judge_log(logs):
       logger.debug('Epoch {} Batch {} Iter {} end'.format(self.epoch, self.batch, iter))
-      if not self.stat_only:
-        logger.warning('Descrapted: log all weights to splited dir')
-        act_summ_str_l, weight_summ_str = self.get_act_param_summ_str()
-        self.new_writer(act_summ_str_l, weight_summ_str, iter)
-      else:
+      
+      if utils.get_config('stat_only'):
         act = self.get_act()
         for name, val in act.iteritems():
           self.write_df(self.act_stat.calc_all(val, name, iter))
@@ -176,10 +174,10 @@ class TensorBoard2(Callback):
         kernel, bias = self.get_param()
         for name, val in kernel.iteritems():
           self.write_df(self.kernel_stat.calc_all(val, name, iter))
-        # for name, val in bias.iteritems():
-        #   self.write_df(self.bias_stat.calc_all(val, name, iter))
-        
-        if self.iter >= self.log_pnts.index[-1]:
+        for name, val in bias.iteritems():
+          self.write_df(self.bias_stat.calc_all(val, name, iter))
+      
+      if self.iter >= self.log_pnts.index[-1]:
           # stdtime_tensor = {}
           # for name, val in act.iteritems():
           #   stdtime_tensor[(iter, name)] = self.act_stat.stdtime_inst.last_std[name]
@@ -205,9 +203,9 @@ class TensorBoard2(Callback):
         logs['val_acc'] = val_acc
         self.write_dict(logs, iter)
     
-    if self.validation_data:
-      act_summ_str_l, weight_summ_str = self.get_act_param_summ_str()
-      self.new_writer(act_summ_str_l, weight_summ_str, iter)
+      if not utils.get_config('stat_only') and self.log_pnts[self.iter] >= 2:
+        act_summ_str_l, weight_summ_str = self.get_act_param_summ_str()
+        self.new_writer(act_summ_str_l, weight_summ_str, iter)
   
   def on_train_end(self, logs=None):
     self.writer.close()

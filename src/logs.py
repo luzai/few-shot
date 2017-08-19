@@ -28,8 +28,12 @@ logger.addHandler(info_handler)
 stream_handler = logging.StreamHandler()
 if utils.get_config('logger_level') == 'info':
   stream_handler.setLevel(logging.INFO)
-else:
+elif utils.get_config('logger_level') == 'debug':
   stream_handler.setLevel(logging.DEBUG)
+elif utils.get_config('logger_level') == 'error':
+  stream_handler.setLevel(logging.ERROR)
+elif utils.get_config('logger_level') == 'warning':
+  stream_handler.setLevel(logging.WARNING)
 stream_handler.setFormatter(formatter)
 logger.addHandler(stream_handler)
 
