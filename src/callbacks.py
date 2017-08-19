@@ -64,7 +64,8 @@ class TensorBoard2(Callback):
                     index=np.linspace(ind0, ind1, sample_rate, endpoint=False)[1:].astype(int))
       )
     
-    series = series.append(series1)
+    series = series.append(series1).sort_index()
+    
     series1 = pd.Series()
     for ind, _ in series.iteritems():
       series1 = series1.append([
@@ -166,7 +167,7 @@ class TensorBoard2(Callback):
     if self.validation_data and self.judge_log(logs):
       logger.debug('Epoch {} Batch {} Iter {} end'.format(self.epoch, self.batch, iter))
       
-      if utils.get_config('stat_only'):
+      if utils.get_config('log_stat'):
         act = self.get_act()
         for name, val in act.iteritems():
           self.write_df(self.act_stat.calc_all(val, name, iter))
@@ -203,7 +204,7 @@ class TensorBoard2(Callback):
         logs['val_acc'] = val_acc
         self.write_dict(logs, iter)
     
-      if not utils.get_config('stat_only') and self.log_pnts[self.iter] >= 2:
+      if not utils.get_config('log_tensor') and self.log_pnts[self.iter] >= 2:
         act_summ_str_l, weight_summ_str = self.get_act_param_summ_str()
         self.new_writer(act_summ_str_l, weight_summ_str, iter)
   

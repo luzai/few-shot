@@ -3,22 +3,23 @@ import numpy as np
 hyper = {
   "gpu"         : [0, 1, 2, 3],
   "use"         : "cifar10",
-  "logger_level": "error",
-  "dbg"         : True,
+  "logger_level": "info",
+  "dbg"         : False,
   "win_size"    : 11,
-  "stat_only"   : True,
+  "log_stat"   : True,
+  "log_tensor":True,
   "cifar10"     : {
-    "epochs"         : 311  ,
+    "epochs"         : 201,
     "sample_rate"    : 1,  # epoch^-1
-    "sub_sample"     : [10, 30],  # epoch
-    "sub_sample_rate": [16, 4, 1],
+    "sub_sample"     : [9, 30],  # epoch
+    "sub_sample_rate": [65, 4, 1],
     "grids"          : {'dataset'   : ['cifar10'],
                         'model_type': ['resnet10', 'vgg10', ],
                         'optimizer' : [
                           {'name': 'sgd',
                            'lr'  : 0.001, },
-                          {'name': 'sgd',
-                           'lr'  : 0.01, },
+                          # {'name': 'sgd',
+                          #  'lr'  : 0.01, },
                           # {'name': 'sgd',
                           #  'lr'         : 0.01,
                           #  'decay_epoch': [150, ],

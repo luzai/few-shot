@@ -134,7 +134,7 @@ class Stat(object):
       logger.debug('level1 calc tensor shape {} name {} iter {}'.format(tensor.shape, name, iter))
       fn_name = 'totvar'
       if fn_name not in self.stat: return
-      for win_size in [11, 21, 31]:
+      for win_size in [utils.get_config('win_size')]:
         _name = name + '/' + fn_name + '_win_size_' + str(win_size)
         _iter, _val = self.totvar(name=name, iter=iter, tensor=tensor, win_size=win_size)
         if math.isnan(_iter): continue
@@ -143,7 +143,7 @@ class Stat(object):
       fn_name = 'ptrate'
       if fn_name not in self.stat: return
       for thresh in ['mean']:  # .2, .6,
-        for win_size in [11]:  # 31 , 21
+        for win_size in [utils.get_config('win_size')]:  # 31 , 21
           _name = name + '/' + fn_name + '_win_size_' + str(win_size) + '_thresh_' + str(thresh)
           _iter, _val = self.ptrate(name=name, iter=iter, tensor=tensor, win_size=win_size, thresh=thresh)
           if math.isnan(_iter): continue
@@ -319,8 +319,7 @@ class TotVar(object):
       if not self.windows.isfull(name, win_size=win_size):
         return NAN, NAN
       else:
-        fenmu = sum = 0.
-        
+        fenmu, sum = 0., 0.
         for ind in range(len(self.windows.l_tensor[name]) - 1):
           last_tensor = self.windows.l_tensor[name][ind]
           now_tensor = self.windows.l_tensor[name][ind + 1]
@@ -328,11 +327,7 @@ class TotVar(object):
           sum += diff.mean()
           fenmu += 1.
         sum /= fenmu
-        
-        # _tensor = self.windows.get_tensor(name, win_size)
-        # _diff = np.abs(_tensor[1:] - _tensor[:-1])
-        # assert np.allclose(_diff.mean(), [sum])
-        
+        logger.debug('layer {} iter {} totvar is {} '.format(name, iter, sum))
         return self.windows.get_iter(win_size), sum
     else:
       return NAN, NAN
@@ -352,7 +347,7 @@ class PTRate(object):
         polarity = []
         for ind in range(len(self.windows.l_tensor[name]) - 1):
           last_tensor = self.windows.l_tensor[name][ind]
-          now_tensor = self.windows.l_tensor[name][ind+1]
+          now_tensor = self.windows.l_tensor[name][ind + 1]
           polarity_now = (-np.sign(last_tensor * now_tensor) + 1.) / 2.
           polarity.append(polarity_now)
         polarity_time_space = np.array(polarity)
@@ -362,7 +357,7 @@ class PTRate(object):
         
         if thresh == 'mean':
           res = polarity_space.mean()
-          logger.error('layer {} iter {} ptrate mean is {} '.format(name,iter,res))
+          logger.debug('layer {} iter {} ptrate mean is {} '.format(name, iter, res))
         
         else:
           _, res = thresh_proportion(arr=polarity_space, thresh=thresh)
