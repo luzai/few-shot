@@ -31,13 +31,22 @@ class Dataset(object):
       x_test = x_test[..., np.newaxis]
     
     print x_train.shape
-    # todo fix dataset bug
+
     y_train = keras.utils.to_categorical(y_train, self.classes)
     y_test = keras.utils.to_categorical(y_test, self.classes)
     x_train = x_train.astype('float32')
     x_test = x_test.astype('float32')
+    assert x_test.max() > 1.1
+    
     x_train /= 255.
     x_test /= 255.
+    
+    mean_img = x_train.mean(axis=0)
+    x_train -= mean_img
+    # print x_test.mean()
+    x_test -= mean_img
+    # print x_test.mean()
+    
     self.x_train, self.y_train, self.x_test, self.y_test = x_train, y_train, x_test, y_test
     if limit_val:
       self.x_test_ref, self.y_test_ref = map(sample_data, [self.x_test, self.y_test])
@@ -112,7 +121,7 @@ def load_data_svhn():
 if __name__ == '__main__':
   config = Config(epochs=301, batch_size=256, verbose=2,
                   model_type='vgg6',
-                  dataset_type='mnist',
+                  dataset_type='cifar10',
                   debug=False)
   
   dataset = Dataset(config.dataset_type, debug=config.debug)

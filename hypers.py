@@ -29,7 +29,7 @@ hyper = {
                                        #  'decay_epoch': [50, ],
                                        #  'decay'      : [10, ], },
                                        ],
-                        'hiddens'   : [5, 10, 20, 512]
+                        'hiddens'   : [5, 20, 512]
                         }
   },
   # mnist ok
@@ -50,14 +50,14 @@ hyper = {
                         }
   },
   'vgg'         : {
-    "epochs": 201,
+    "epochs": 101,
     "grids" : {'dataset'   : ['cifar10', ],  # 'cifar10'],
                'model_type': ['vgg101', 'vgg102', 'vgg103', 'vgg104', 'resnet10'],  # 'vgg16', , 'vgg19'
                'optimizer' : [{'name': 'sgd',
                                'lr'  : 0.01, },
                               ],
                'with_dp'   : [True, False],
-               'hiddens'   : [5, 10, 20, 512]
+               'hiddens'   : [5, 20, 512]
                }
   },
 }

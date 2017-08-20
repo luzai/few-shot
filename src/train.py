@@ -27,7 +27,7 @@ def run(model_type='vgg6', limit_val=True,
                     # 'with_bn'  : with_bn,
                     'optimizer': optimizer,
                     'hiddens'  : hiddens,
-                    'with_dp'  : with_dp
+                    # 'with_dp'  : with_dp
                   }, )
   # if len(glob.glob(config.model_tfevents_path + '/*tfevents*')) >= 1:
   #   logger.info('exist ' + config.model_tfevents_path)

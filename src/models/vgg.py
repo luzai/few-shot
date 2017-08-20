@@ -14,22 +14,22 @@ class VGG(BaseModel):
     super(VGG, self).__init__(input_shape, classes, config, with_bn, with_dp, hiddens)
     type = config.model_type
     cfg = {
-      'vgg11': [[64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'], [512, 512, self.classes]],
-      'vgg13': [[64, 64, 'M', 128, 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
-                [512, 512, self.classes]],
-      'vgg16': [[64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M'],
-                [512, 512, self.classes]],
-      'vgg19': [[64, 64, 'M', 128, 128, 'M', 256, 256, 256, 256, 'M', 512, 512, 512, 512, 'M', 512, 512, 512, 512,
-                 'M'], [512, 512, self.classes]],
-      'vgg6' : [[32, 32, 'M', 64, 64, 'M'], [512, self.classes]],
-      'vgg10': [[32, 'M', 64, 64, 'M', 128, 128, 'M', 256, 256, 'M'], [512, self.hiddens, self.classes]],
+      'vgg11' : [[64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'], [512, 512, self.classes]],
+      'vgg13' : [[64, 64, 'M', 128, 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
+                 [512, 512, self.classes]],
+      'vgg16' : [[64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M'],
+                 [512, 512, self.classes]],
+      'vgg19' : [[64, 64, 'M', 128, 128, 'M', 256, 256, 256, 256, 'M', 512, 512, 512, 512, 'M', 512, 512, 512, 512,
+                  'M'], [512, 512, self.classes]],
+      'vgg6'  : [[32, 32, 'M', 64, 64, 'M'], [512, self.classes]],
+      'vgg10' : [[32, 'M', 64, 64, 'M', 128, 128, 'M', 256, 256, 'M'], [512, self.hiddens, self.classes]],
       'vgg101': [[32, 'M', 64, 64, 'M', 128, 128, 'M', 256, 256, 'M'], [512, self.hiddens, self.classes]],
       'vgg102': [[64, 'M', 128, 128, 'M', 256, 256, 'M', 512, 512, 'M'], [512, self.hiddens, self.classes]],
       'vgg103': [[32, 'M', 64, 64, 'M', 128, 128, 'M', 256, 256, 'M'], [1024, self.hiddens, self.classes]],
       'vgg104': [[64, 'M', 128, 128, 'M', 256, 256, 'M', 512, 512, 'M'], [1024, self.hiddens, self.classes]],
-      # 'vgg105': [[32, 'M', 64, 64, 'M', 128, 128, 'M', 256, 256, 'M'], [512, self.hiddens, self.classes]],
-      'vgg9' : [[64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M'], [512, 512, self.classes]],
-      'vgg8' : [[64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M'], [512, self.classes]],
+      
+      'vgg9'  : [[64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M'], [512, 512, self.classes]],
+      'vgg8'  : [[64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M'], [512, self.classes]],
     }
     # convert to my coding
     self.arch = [['conv2d', _config] if _config != 'M' else ['maxpooling2d'] for _config in cfg[type][0]]
@@ -39,7 +39,7 @@ class VGG(BaseModel):
     self.vis()
   
   def build(self, name):
-    x = input = Input(self.input_shape)
+    x = input = Input(self.input_shape, name='layer0/input')  # layer --stat Layer --tensor
     depth = 1
     for ind, config in enumerate(self.arch):
       if config[0] == 'conv2d':
@@ -50,7 +50,7 @@ class VGG(BaseModel):
         else:
           x = Conv2D(config[1], (3, 3), padding='same', name='layer{}/conv'.format(depth),
                      kernel_regularizer=l2(1.e-4))(x)
-          x = BatchNormalization(axis=-1, name='layer{}/batchnormalization'.format(depth))(x)
+          x = BatchNormalization(axis=-1)(x)  # , name='layer{}/batchnormalization'.format(depth)
           x = Activation('relu')(x)
         if self.with_dp:
           x = Dropout(.35)(x)
@@ -59,7 +59,7 @@ class VGG(BaseModel):
         x = MaxPooling2D((2, 2), strides=(2, 2))(x)
       elif config[0] == 'flatten':
         x = Flatten()(x)
-      elif config[0] == 'dense' and ind <= len(self.arch)-2 :
+      elif config[0] == 'dense' and ind <= len(self.arch) - 2:
         x = Dense(config[1], name='layer{}/dense'.format(depth))(x)
         x = Activation('relu')(x)
         depth += 1
