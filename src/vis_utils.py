@@ -208,7 +208,7 @@ class Visualizer(object):
   
   def split(self):
     self.perf_df = select(self.df, {'name': "(?:val_loss|loss|val_acc|acc)"})
-    self.stat_df = select(self.df, {'name': "(?:^layer.*|^layer.*)"})
+    self.stat_df = select(self.df, {'name': "(?:^Layer.*|^Layer.*)"})
     self.lr = select(self.df, {'name': 'lr'})
     self.val_acc = select(self.df, {'name': 'val_acc'})
   
@@ -270,6 +270,71 @@ class Visualizer(object):
     self.stat_df = select(self.stat_df, level2pattern, regexp)
     self.lr = select(self.lr, level2pattern, regexp)
     self.val_acc = select(self.val_acc, level2pattern, regexp)
+  
+  def auto_plot(self, axes_names=('layer', 'stat', '_'),
+                path_suffix='_default',
+                ipython=True,
+                show=False):
+    df = self.stat_df
+    lr = self.lr
+    val_acc = self.val_acc
+    df, sup_title = drop_level(df)
+    if len(df.columns.names) < 3 or axes_names[-1] == '_':
+      df.columns = append_level(df.columns, '_')
+    indexf = MultiIndexFacilitate(df.columns)
+    other_names = np.setdiff1d(indexf.names, axes_names)
+    if axes_names[-1] != '_':
+      df = append_dummy(df)
+    
+    paths = []
+    if len(other_names) == 0:
+      _df = df.copy()
+      if 'stat' in _df.columns.names:
+        _df = reindex(_df)
+      fig, sup_title = plot(_df, axes_names, sup_title, lr=lr, val_acc=val_acc)
+      utils.mkdir_p(Config.output_path + path_suffix + '/')
+      sav_path = (Config.output_path
+                  + path_suffix + '/'
+                  + re.sub('/', '', sup_title)
+                  + '.pdf').strip('_')
+      fig.savefig(sav_path,
+                  bbox_inches='tight')
+      paths.append(sav_path)
+      plt.close()
+    
+    for poss in cartesian([indexf.names2levels[name] for name in other_names]):
+      _df = df.copy()
+      _lr = lr.copy()
+      _val_acc = val_acc.copy()
+      for _name, _poss in zip(other_names, poss):
+        _df = select(_df, {_name: _poss}, regexp=False)
+        _lr = select(_lr, {_name: _poss}, regexp=False)
+        _val_acc = select(_val_acc, {_name: _poss}, regexp=False)
+      
+      sup_title_ = '_' + utils.list2str(poss) + sup_title
+      
+      # if _df is None: break
+      # if _df is None: continue
+      
+      if 'layer' in _df.columns.names:
+        _df = reindex(_df)
+      
+      fig, sup_title_ = plot(_df, axes_names, sup_title_, lr=_lr, val_acc=_val_acc)
+      utils.mkdir_p(Config.output_path + path_suffix + '/')
+      sav_path = (Config.output_path
+                  + path_suffix + '/'
+                  + re.sub('/', '', sup_title_)
+                  + '.pdf').strip('_')
+      fig.savefig(sav_path,
+                  bbox_inches='tight')
+      paths.append(sav_path)
+      if show: plt.show()
+      plt.close()
+      if osp.exists('dbg'):
+        logger.info('dbg mode break')
+        break
+    
+    return paths
 
 
 class MultiIndexFacilitate(object):
@@ -289,7 +354,65 @@ class MultiIndexFacilitate(object):
     self.index = pd.MultiIndex.from_product(self.levels, names=self.names)
 
 
-def plot(perf_df, axes_names, sup_title, lr, val_acc, legend=True, ):
+def auto_plot(df, axes_names=('layer', 'stat', '_'),
+              path_suffix='_default',
+              ipython=True,
+              show=False):
+  df, sup_title = drop_level(df)
+  if len(df.columns.names) < 3 or axes_names[-1] == '_':
+    df.columns = append_level(df.columns, '_')
+  indexf = MultiIndexFacilitate(df.columns)
+  other_names = np.setdiff1d(indexf.names, axes_names)
+  if axes_names[-1] != '_':
+    df = append_dummy(df)
+  
+  paths = []
+  if len(other_names) == 0:
+    _df = df.copy()
+    if 'stat' in _df.columns.names:
+      _df = reindex(_df)
+    fig, sup_title = plot(_df, axes_names, sup_title)
+    utils.mkdir_p(Config.output_path + path_suffix + '/')
+    sav_path = (Config.output_path
+                + path_suffix + '/'
+                + re.sub('/', '', sup_title)
+                + '.pdf').strip('_')
+    fig.savefig(sav_path,
+                bbox_inches='tight')
+    paths.append(sav_path)
+    plt.close()
+  
+  for poss in cartesian([indexf.names2levels[name] for name in other_names]):
+    _df = df.copy()
+    for _name, _poss in zip(other_names, poss):
+      _df = select(_df, {_name: _poss}, regexp=False)
+      _lr = select(_lr, {_name: _poss}, regexp=False)
+      _val_acc = select(_val_acc, {_name: _poss}, regexp=False)
+    
+    sup_title_ = '_' + utils.list2str(poss) + sup_title
+    
+    if 'layer' in _df.columns.names:
+      _df = reindex(_df)
+    
+    fig, sup_title_ = plot(_df, axes_names, sup_title_)
+    utils.mkdir_p(Config.output_path + path_suffix + '/')
+    sav_path = (Config.output_path
+                + path_suffix + '/'
+                + re.sub('/', '', sup_title_)
+                + '.pdf').strip('_')
+    fig.savefig(sav_path,
+                bbox_inches='tight')
+    paths.append(sav_path)
+    if show: plt.show()
+    plt.close()
+    if osp.exists('dbg'):
+      logger.info('dbg mode break')
+      break
+  
+  return paths
+
+
+def plot(perf_df, axes_names, sup_title, lr=None, val_acc=None, legend=True, ):
   row_name, col_name, inside = axes_names
   names2levels = {name: level for level, name in zip(perf_df.columns.levels, perf_df.columns.names)}
   row_level = names2levels[row_name]
@@ -312,36 +435,40 @@ def plot(perf_df, axes_names, sup_title, lr, val_acc, legend=True, ):
   else:
     logger.info('dbg small fig mode')
     figsize = (4.2, 2.25)
-  
-  fig, axes = plt.subplots(rows + 2, cols, figsize=figsize)
-  axes = np.array(axes).reshape(rows + 2, cols)
-  if insides >= 2:
-    refaxis = 1
+  if lr is not None:
+    fig, axes = plt.subplots(rows + 2, cols, figsize=figsize)
+    axes = np.array(axes).reshape(rows + 2, cols)
+    if insides >= 2:
+      refaxis = 1
+    else:
+      refaxis = 0
+    for _j in range(cols):
+      ax = axes[refaxis, _j]
+      ax.set_title('lr')
+      ((lr.interpolate(limit_direction='backward') + lr.interpolate()) / 2.).plot(ax=ax, legend=False)
+      ax = axes[refaxis + 1, _j]
+      ax.set_title('val_acc')
+      ((val_acc.interpolate(limit_direction='backward') + val_acc.interpolate()) / 2.).plot(ax=ax, legend=False)
+    
+    for axis in axes[(refaxis, refaxis + 1), :].flatten():
+      for line in axis.get_lines():
+        _label = line.get_label()
+        _label = [__label.strip('(').strip(')') for __label in _label.split(', ')]
+        label = None
+        for __label in _label:
+          if __label in inside_level:
+            label = __label
+        # print label
+        color = get_colors(label)
+        line.set_color(color)
+    if insides >= 2:
+      axes = np.concatenate([axes[(refaxis - 1,), :], axes[refaxis + 2:, :]])
+    else:
+      axes = axes[2:, :]
   else:
-    refaxis = 0
-  for _j in range(cols):
-    ax = axes[refaxis, _j]
-    ax.set_title('lr')
-    ((lr.interpolate(limit_direction='backward') + lr.interpolate()) / 2.).plot(ax=ax, legend=False)
-    ax = axes[refaxis + 1, _j]
-    ax.set_title('val_acc')
-    ((val_acc.interpolate(limit_direction='backward') + val_acc.interpolate()) / 2.).plot(ax=ax, legend=False)
+    fig, axes = plt.subplots(rows, cols, figsize=figsize)
+    axes = np.array(axes).reshape(rows, cols)
   
-  for axis in axes[(refaxis, refaxis + 1), :].flatten():
-    for line in axis.get_lines():
-      _label = line.get_label()
-      _label = [__label.strip('(').strip(')') for __label in _label.split(', ')]
-      label = None
-      for __label in _label:
-        if __label in inside_level:
-          label = __label
-      # print label
-      color = get_colors(label)
-      line.set_color(color)
-  if insides >= 2:
-    axes = np.concatenate([axes[(refaxis - 1,), :], axes[refaxis + 2:, :]])
-  else:
-    axes = axes[2:, :]
   # plt.tight_layout(pad=3, w_pad=.9, h_pad=1.5,rect=(.2,.2,1,1))
   fig.subplots_adjust(hspace=1., wspace=.6)
   
@@ -411,70 +538,9 @@ def plot(perf_df, axes_names, sup_title, lr, val_acc, legend=True, ):
   # plt.show()
   return fig, sup_title
 
+
 def interpolate(perf_df):
   return (perf_df.interpolate(limit_direction='backward') + perf_df.interpolate()) / 2.
-
-def auto_plot(df, lr, val_acc, axes_names=('layer', 'stat', '_'),
-              path_suffix='_default',
-              ipython=True,
-              show=False):
-  df, sup_title = drop_level(df)
-  if len(df.columns.names) < 3 or axes_names[-1] == '_':
-    df.columns = append_level(df.columns, '_')
-  indexf = MultiIndexFacilitate(df.columns)
-  other_names = np.setdiff1d(indexf.names, axes_names)
-  if axes_names[-1] != '_':
-    df = append_dummy(df)
-  
-  paths = []
-  if len(other_names) == 0:
-    _df = df.copy()
-    if 'stat' in _df.columns.names:
-      _df = reindex(_df)
-    fig, sup_title = plot(_df, axes_names, sup_title, lr=lr, val_acc=val_acc)
-    utils.mkdir_p(Config.output_path + path_suffix + '/')
-    sav_path = (Config.output_path
-                + path_suffix + '/'
-                + re.sub('/', '', sup_title)
-                + '.pdf').strip('_')
-    fig.savefig(sav_path,
-                bbox_inches='tight')
-    paths.append(sav_path)
-    plt.close()
-  
-  for poss in cartesian([indexf.names2levels[name] for name in other_names]):
-    _df = df.copy()
-    _lr = lr.copy()
-    _val_acc = val_acc.copy()
-    for _name, _poss in zip(other_names, poss):
-      _df = select(_df, {_name: _poss}, regexp=False)
-      _lr = select(_lr, {_name: _poss}, regexp=False)
-      _val_acc = select(_val_acc, {_name: _poss}, regexp=False)
-    
-    sup_title_ = '_' + utils.list2str(poss) + sup_title
-    
-    # if _df is None: break
-    # if _df is None: continue
-    
-    if 'layer' in _df.columns.names:
-      _df = reindex(_df)
-    
-    fig, sup_title_ = plot(_df, axes_names, sup_title_, lr=_lr, val_acc=_val_acc)
-    utils.mkdir_p(Config.output_path + path_suffix + '/')
-    sav_path = (Config.output_path
-                + path_suffix + '/'
-                + re.sub('/', '', sup_title_)
-                + '.pdf').strip('_')
-    fig.savefig(sav_path,
-                bbox_inches='tight')
-    paths.append(sav_path)
-    if show: plt.show()
-    plt.close()
-    if osp.exists('dbg'):
-      logger.info('dbg mode break')
-      break
-  
-  return paths
 
 
 def select(df, level2pattern, regexp=True):
@@ -641,64 +707,55 @@ def map_name(names):
 if __name__ == '__main__':
   visualizer = Visualizer(paranet_folder='all')
   
-  df = visualizer.stat_df.copy()
-  # df = df.iloc[:, :200]
-  df = split_layer_stat(df)
-  df = select(df, {'model_type': 'vgg10', 'optimizer': '_lr_0.001_name_sgd'}, regexp=False)
+  vis = visualizer.copy()
+  vis.stat_df = split_layer_stat(vis.stat_df)
+  vis.select({'model_type': 'vgg10', 'optimizer': '_lr_0.001_name_sgd'}, regexp=False)
+  auto_plot(vis, ('layer', 'stat', '_'))
   
-  lr = visualizer.lr.copy()
-  val_acc = visualizer.val_acc.copy()
-  lr = select(lr, {'model_type': 'vgg10', 'optimizer': '_lr_0.001_name_sgd'}, regexp=False)
-  val_acc = select(val_acc, {'model_type': 'vgg10', 'optimizer': '_lr_0.001_name_sgd'}, regexp=False)
-  
-  df.head()
-  
-  auto_plot(df, lr, val_acc, ('layer', 'stat', '_'))
-  
-  df = visualizer.stat_df.copy()
-  # df = df.iloc[:, :200]
-  df = split_layer_stat(df)
-  df = select(df, {'model_type': 'resnet10', 'optimizer': '_lr_0.001_name_sgd'}, regexp=False)
-  
-  lr = visualizer.lr.copy()
-  val_acc = visualizer.val_acc.copy()
-  lr = select(lr, {'model_type': 'resnet10', 'optimizer': '_lr_0.001_name_sgd'}, regexp=False)
-  val_acc = select(val_acc, {'model_type': 'resnet10', 'optimizer': '_lr_0.001_name_sgd'}, regexp=False)
-  
-  df.head()
-  
-  auto_plot(df, lr, val_acc, ('layer', 'stat', '_'))
-  
-  df = visualizer.stat_df.copy()
-  # df = df.iloc[:, :200]
-  df = split_layer_stat(df)
-  df = select(df, {'model_type': 'vgg10'}, regexp=False)
-  df = exclude(df, {'optimizer': '.*001.*'})
-  
-  lr = visualizer.lr.copy()
-  val_acc = visualizer.val_acc.copy()
-  lr = select(lr, {'model_type': 'vgg10'}, regexp=False)
-  lr = exclude(lr, {'optimizer': '.*001.*'})
-  val_acc = select(val_acc, {'model_type': 'vgg10'}, regexp=False)
-  val_acc = exclude(val_acc, {'optimizer': '.*001.*'})
-  df.head()
-  
-  # auto_plot(df,lr,val_acc,('layer','stat','_'))
-  auto_plot(df, lr, val_acc, ('layer', 'stat', 'optimizer'))
-  
-  df = visualizer.stat_df.copy()
-  # df = df.iloc[:, :200]
-  df = split_layer_stat(df)
-  df = select(df, {'model_type': 'resnet10'}, regexp=False)
-  df = exclude(df, {'optimizer': '.*001.*'})
-  
-  lr = visualizer.lr.copy()
-  val_acc = visualizer.val_acc.copy()
-  lr = select(lr, {'model_type': 'resnet10'}, regexp=False)
-  lr = exclude(lr, {'optimizer': '.*001.*'})
-  
-  val_acc = select(val_acc, {'model_type': 'resnet10'}, regexp=False)
-  val_acc = exclude(val_acc, {'optimizer': '.*001.*'})
-  df.head()
-  
-  auto_plot(df, lr, val_acc, ('layer', 'stat', 'optimizer'))
+  # df = visualizer.stat_df.copy()
+  # # df = df.iloc[:, :200]
+  # df = split_layer_stat(df)
+  # df = select(df, {'model_type': 'resnet10', 'optimizer': '_lr_0.001_name_sgd'}, regexp=False)
+  #
+  # lr = visualizer.lr.copy()
+  # val_acc = visualizer.val_acc.copy()
+  # lr = select(lr, {'model_type': 'resnet10', 'optimizer': '_lr_0.001_name_sgd'}, regexp=False)
+  # val_acc = select(val_acc, {'model_type': 'resnet10', 'optimizer': '_lr_0.001_name_sgd'}, regexp=False)
+  #
+  # df.head()
+  #
+  # auto_plot(df, lr, val_acc, ('layer', 'stat', '_'))
+  #
+  # df = visualizer.stat_df.copy()
+  # # df = df.iloc[:, :200]
+  # df = split_layer_stat(df)
+  # df = select(df, {'model_type': 'vgg10'}, regexp=False)
+  # df = exclude(df, {'optimizer': '.*001.*'})
+  #
+  # lr = visualizer.lr.copy()
+  # val_acc = visualizer.val_acc.copy()
+  # lr = select(lr, {'model_type': 'vgg10'}, regexp=False)
+  # lr = exclude(lr, {'optimizer': '.*001.*'})
+  # val_acc = select(val_acc, {'model_type': 'vgg10'}, regexp=False)
+  # val_acc = exclude(val_acc, {'optimizer': '.*001.*'})
+  # df.head()
+  #
+  # # auto_plot(df,lr,val_acc,('layer','stat','_'))
+  # auto_plot(df, lr, val_acc, ('layer', 'stat', 'optimizer'))
+  #
+  # df = visualizer.stat_df.copy()
+  # # df = df.iloc[:, :200]
+  # df = split_layer_stat(df)
+  # df = select(df, {'model_type': 'resnet10'}, regexp=False)
+  # df = exclude(df, {'optimizer': '.*001.*'})
+  #
+  # lr = visualizer.lr.copy()
+  # val_acc = visualizer.val_acc.copy()
+  # lr = select(lr, {'model_type': 'resnet10'}, regexp=False)
+  # lr = exclude(lr, {'optimizer': '.*001.*'})
+  #
+  # val_acc = select(val_acc, {'model_type': 'resnet10'}, regexp=False)
+  # val_acc = exclude(val_acc, {'optimizer': '.*001.*'})
+  # df.head()
+  #
+  # auto_plot(df, lr, val_acc, ('layer', 'stat', 'optimizer'))

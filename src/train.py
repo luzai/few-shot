@@ -57,23 +57,23 @@ def run(model_type='vgg6', limit_val=True,
                   verbose=config.verbose,
                   validation_data=(dataset.x_test, dataset.y_test),
                   callbacks=[
-                    TensorBoard2(tot_epochs=config.epochs,
-                                 log_dir=config.model_tfevents_path,
-                                 batch_size=config.batch_size,
-                                 write_graph=True,
-                                 write_grads=False,
-                                 dataset=dataset,
-                                 max_win_size=utils.get_config('win_size'),
-                                 stat_only=True,
-                                 batch_based=True
-                                 ),
-                    LearningRateScheduler(lambda epoch: schedule(epoch,
-                                                                 x=optimizer.get('decay_epoch', None),
-                                                                 y=optimizer.get('decay', None),
-                                                                 init=optimizer['lr'],
-                                                                 ),
-                                          ),
-                    # TensorBoard(log_dir=config.model_tfevents_path)
+                    # TensorBoard2(tot_epochs=config.epochs,
+                    #              log_dir=config.model_tfevents_path,
+                    #              batch_size=config.batch_size,
+                    #              write_graph=True,
+                    #              write_grads=False,
+                    #              dataset=dataset,
+                    #              max_win_size=utils.get_config('win_size'),
+                    #              stat_only=True,
+                    #              batch_based=True
+                    #              ),
+                    # LearningRateScheduler(lambda epoch: schedule(epoch,
+                    #                                              x=optimizer.get('decay_epoch', None),
+                    #                                              y=optimizer.get('decay', None),
+                    #                                              init=optimizer['lr'],
+                    #                                              ),
+                    #                       ),
+                    TensorBoard(log_dir=config.model_tfevents_path)
                   ])
   
   Loader(path=config.model_tfevents_path, stat_only=True).load(stat_only=True)
