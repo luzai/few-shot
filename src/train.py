@@ -1,6 +1,6 @@
 def run(model_type='vgg6', limit_val=True,
         dataset='cifar10', queue=None, runtime=1,
-        with_bn=True, optimizer={'name': 'sgd'}, hiddens=512):
+        with_bn=True, optimizer={'name': 'sgd'}, hiddens=512, with_dp=False):
   import utils
   import warnings
   warnings.filterwarnings("ignore")
@@ -27,6 +27,7 @@ def run(model_type='vgg6', limit_val=True,
                     # 'with_bn'  : with_bn,
                     'optimizer': optimizer,
                     'hiddens'  : hiddens,
+                    'with_dp'  : with_dp
                   }, )
   # if len(glob.glob(config.model_tfevents_path + '/*tfevents*')) >= 1:
   #   logger.info('exist ' + config.model_tfevents_path)
@@ -37,9 +38,9 @@ def run(model_type='vgg6', limit_val=True,
   
   dataset = Dataset(config.dataset_type, debug=config.debug, limit_val=limit_val)
   if 'vgg' in model_type:
-    model = VGG(dataset.input_shape, dataset.classes, config, with_bn=with_bn, with_dp=True, hiddens=hiddens)
+    model = VGG(dataset.input_shape, dataset.classes, config, with_bn=with_bn, with_dp=with_dp, hiddens=hiddens)
   else:
-    model = ResNet(dataset.input_shape, dataset.classes, config, with_bn=with_bn, with_dp=True, hiddens=hiddens)
+    model = ResNet(dataset.input_shape, dataset.classes, config, with_bn=with_bn, with_dp=with_dp, hiddens=hiddens)
   if optimizer['name'] == 'sgd':
     opt = keras.optimizers.sgd(optimizer['lr'], momentum=0.9)
   elif optimizer['name'] == 'rmsprop':

@@ -207,10 +207,10 @@ class Visualizer(object):
       self.lr, self.val_acc, self.perf_df, self.stat_df = None, None, None, None,
   
   def split(self):
-    self.perf_df = select(self.df, {'name': "(?:val_loss|loss|val_acc|acc)"})
-    self.stat_df = select(self.df, {'name': "(?:^Layer.*|^Layer.*)"})
-    self.lr = select(self.df, {'name': 'lr'})
-    self.val_acc = select(self.df, {'name': 'val_acc'})
+    self.perf_df = select(self.df, {'name': "(?:val_loss|loss|val_acc|acc)"}).dropna(how='all')
+    self.stat_df = select(self.df, {'name': "(?:^Layer.*|^layer.*)"}).dropna(how='all')
+    self.lr = select(self.df, {'name': 'lr'}).dropna(how='all')
+    self.val_acc = select(self.df, {'name': 'val_acc'}).dropna(how='all')
   
   def aggregate(self, join, parant_folder, stat_only):
     conf_name_dict = {}
@@ -386,9 +386,7 @@ def auto_plot(df, axes_names=('layer', 'stat', '_'),
     _df = df.copy()
     for _name, _poss in zip(other_names, poss):
       _df = select(_df, {_name: _poss}, regexp=False)
-      _lr = select(_lr, {_name: _poss}, regexp=False)
-      _val_acc = select(_val_acc, {_name: _poss}, regexp=False)
-    
+      
     sup_title_ = '_' + utils.list2str(poss) + sup_title
     
     if 'layer' in _df.columns.names:
@@ -707,10 +705,15 @@ def map_name(names):
 if __name__ == '__main__':
   visualizer = Visualizer(paranet_folder='all')
   
-  vis = visualizer.copy()
-  vis.stat_df = split_layer_stat(vis.stat_df)
-  vis.select({'model_type': 'vgg10', 'optimizer': '_lr_0.001_name_sgd'}, regexp=False)
-  auto_plot(vis, ('layer', 'stat', '_'))
+  # vis = visualizer.copy()
+  # vis.stat_df = split_layer_stat(vis.stat_df)
+  # vis.select({'model_type': 'vgg10', 'optimizer': '_lr_0.001_name_sgd'}, regexp=False)
+  # vis.auto_plot(('layer', 'stat', '_'))
+  
+  df = visualizer.stat_df.copy()
+  df= split_layer_stat(df)
+  df = select(df, {'model_type': 'resnet10', 'optimizer': '_lr_0.001_name_sgd'}, regexp=False)
+  auto_plot(df, ('layer', 'stat', '_'))
   
   # df = visualizer.stat_df.copy()
   # # df = df.iloc[:, :200]

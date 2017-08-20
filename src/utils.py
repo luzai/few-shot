@@ -138,6 +138,12 @@ def optional_arg_decorator(fn):
   return wrapped_decorator
 
 
+def randomword(length):
+  import random, string
+  
+  return ''.join(random.choice(string.lowercase) for i in range(length))
+
+
 def static_vars(**kwargs):
   def decorate(func):
     for k in kwargs:

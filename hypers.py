@@ -2,7 +2,7 @@ import numpy as np
 
 hyper = {
   "gpu"         : [0, 1, 2, 3],
-  "use"         : "cifar10",
+  "use"         : "vgg",
   "logger_level": "info",
   "dbg"         : False,
   "win_size"    : 11,
@@ -10,7 +10,7 @@ hyper = {
   "log_tensor"  : True,
   # "use_bias"    : False,  # todo
   "cifar10"     : {
-    "epochs"         : 301,
+    "epochs"         : 101,
     "sample_rate"    : 1,  # epoch^-1
     "sub_sample"     : [5, 30],  # epoch
     "sub_sample_rate": [60, 4, 1],
@@ -52,10 +52,12 @@ hyper = {
   'vgg'         : {
     "epochs": 201,
     "grids" : {'dataset'   : ['cifar10', ],  # 'cifar10'],
-               'model_type': ['vgg101', 'vgg102', 'vgg103', 'vgg104'],  # 'vgg16', , 'vgg19'
+               'model_type': ['vgg101', 'vgg102', 'vgg103', 'vgg104', 'resnet10'],  # 'vgg16', , 'vgg19'
                'optimizer' : [{'name': 'sgd',
                                'lr'  : 0.01, },
                               ],
+               'with_dp'   : [True, False],
+               'hiddens'   : [5, 10, 20, 512]
                }
   },
 }
