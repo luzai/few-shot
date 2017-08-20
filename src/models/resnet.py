@@ -264,7 +264,7 @@ class ResnetBuilder(object):
     #                          strides=(1, 1))(block)
     
     flatten1 = Flatten()(block)
-    dense = Dense(units=512, kernel_initializer='he_normal',
+    dense = Dense(units=1024, kernel_initializer='he_normal',
                   name='layer{}/dense'.format(layer), activation='relu')(flatten1)
     layer += 1
     dense = Dense(units=hiddens, kernel_initializer='he_normal',

@@ -14,7 +14,7 @@ from matplotlib.ticker import NullFormatter
 from matplotlib import colors as mcolors
 
 from sklearn import preprocessing, manifold, datasets
-from utils import cartesian
+from utils import cartesian,dict2df
 import time, utils, glob, os, re, copy
 import numpy as np, os.path as osp, pandas as pd, matplotlib.pylab as plt
 
@@ -34,14 +34,6 @@ matplotlib.style.use('ggplot')
 Axes3D
 
 
-def dict2df(my_dict):
-  tensor_d = {}
-  for k, v in my_dict.iteritems():
-    #     print k,v.shape
-    if k[1] not in tensor_d:
-      tensor_d[k[1]] = pd.Series(name=k[1], index=pd.Int64Index([]))
-    tensor_d[k[1]][k[0]] = v
-  return pd.DataFrame.from_dict(tensor_d)
 
 
 def drop_level(perf_df, allow_downcast=False):
@@ -196,13 +188,23 @@ def get_columns_alias(columns):
   return list(levels), list(names), name2level, name2ind
 
 
+from utils import Timer
+
+timer = Timer()
+
+
 class Visualizer(object):
-  def __init__(self, paranet_folder=None, join='outer', stat_only=True):
+  def __init__(self, paranet_folder=None, join='outer'):
     if paranet_folder is not None:
-      self.aggregate(join, stat_only=stat_only, parant_folder=paranet_folder)
+      timer.tic()
+      self.df = self.aggregate(join, stat_only=True, parant_folder=paranet_folder)
       self.split()
-      levels, names, name2level, name2ind = get_columns_alias(self.df.columns)
-      self.name2level = name2level
+      self.stat_df = split_layer_stat(self.stat_df)
+      self.tensor = self.aggregate(join, stat_only=False, parant_folder=paranet_folder, parallel=False)
+      # self.tensor = split_layer_stat(self.tensor)
+      # levels, names, name2level, name2ind = get_columns_alias(self.df.columns)
+      # self.name2level = name2level
+      print timer.toc()
     else:
       self.lr, self.val_acc, self.perf_df, self.stat_df = None, None, None, None,
   
@@ -212,16 +214,16 @@ class Visualizer(object):
     self.lr = select(self.df, {'name': 'lr'}).dropna(how='all')
     self.val_acc = select(self.df, {'name': 'val_acc'}).dropna(how='all')
   
-  def aggregate(self, join, parant_folder, stat_only):
+  def aggregate(self, join, parant_folder, stat_only, parallel=True):
     conf_name_dict = {}
     loaders = {}
     parant_path = Config.root_path + '/' + parant_folder + '/'
     for path in glob.glob(parant_path + '/*'):
       _conf = utils.unpickle(path + '/config.pkl')
       
-      loader = Loader(path=path, stat_only=stat_only)
+      loader = Loader(path=path, stat_only=stat_only, parallel=parallel)
       # loader.start()
-      loader.load(stat_only=stat_only)
+      loader.load(stat_only=stat_only, parallel=parallel)
       loaders[_conf.name] = loader
       conf_name_dict[_conf.name] = _conf.to_dict()
     
@@ -232,8 +234,12 @@ class Visualizer(object):
       conf_name = conf_name_dict.keys()[ind]
       conf_dict = conf_name_dict[conf_name]
       loader = loaders[conf_name]
-      scalar = loader.scalars
-      df_l.append(scalar)
+      if stat_only:
+        scalar = loader.scalars
+        df_l.append(scalar)
+      else:
+        scalar = pd.concat([loader.act, loader.params],axis=1, join=join)
+        df_l.append(scalar)
       for name in scalar.columns:
         name = map_name(name)[0]
         index_l.append(conf_dict.values() + [name])
@@ -258,8 +264,8 @@ class Visualizer(object):
     df = df.sort_index(axis=1, level=index_name)
     self.names = index_name
     self.columns = index
-    df.index.name = 'epoch' if not stat_only else 'iter'
-    self.df = df
+    df.index.name = 'iter'
+    return df
   
   def copy(self):
     vis = Visualizer()
@@ -386,7 +392,7 @@ def auto_plot(df, axes_names=('layer', 'stat', '_'),
     _df = df.copy()
     for _name, _poss in zip(other_names, poss):
       _df = select(_df, {_name: _poss}, regexp=False)
-      
+    
     sup_title_ = '_' + utils.list2str(poss) + sup_title
     
     if 'layer' in _df.columns.names:
@@ -703,17 +709,19 @@ def map_name(names):
 
 
 if __name__ == '__main__':
-  visualizer = Visualizer(paranet_folder='all')
+  visualizer = Visualizer(paranet_folder='fc')
+  
+  df = visualizer.stat_df.copy()
   
   # vis = visualizer.copy()
   # vis.stat_df = split_layer_stat(vis.stat_df)
   # vis.select({'model_type': 'vgg10', 'optimizer': '_lr_0.001_name_sgd'}, regexp=False)
   # vis.auto_plot(('layer', 'stat', '_'))
   
-  df = visualizer.stat_df.copy()
-  df= split_layer_stat(df)
-  df = select(df, {'model_type': 'resnet10', 'optimizer': '_lr_0.001_name_sgd'}, regexp=False)
-  auto_plot(df, ('layer', 'stat', '_'))
+  # df = visualizer.stat_df.copy()
+  # df = split_layer_stat(df)
+  # df = select(df, {'model_type': 'resnet10', 'optimizer': '_lr_0.001_name_sgd'}, regexp=False)
+  # auto_plot(df, ('layer', 'stat', '_'))
   
   # df = visualizer.stat_df.copy()
   # # df = df.iloc[:, :200]

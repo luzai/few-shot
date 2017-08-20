@@ -10,6 +10,7 @@ from utils import clean_name
 import utils, math, itertools, os.path as osp, legacy
 
 
+# todo use hdf5 to save tensors
 # tensorboard2 is batch based
 class TensorBoard2(Callback):
   def __init__(self,
@@ -90,40 +91,28 @@ class TensorBoard2(Callback):
     self.model = model
     self.sess = K.get_session()
     weight_summ_l = []
-    grad_summ_l = []
     act_summ_l = []
     self.act_l = {}
     if self.merged is None:
       for layer in self.model.layers:
-        if not layer.name.startswith('Layer'): continue
-        for weight in layer.weights:
-          logger.info('summ log {}'.format(clean_name(weight.op.name)))
-          
-          weight_summ_l.append(tf.summary.tensor_summary(clean_name(weight.op.name), weight))
-          # if self.write_grads:
-          #   grads = model.optimizer.get_gradients(model.total_loss,
-          #                                         weight)
-          #   grad_summ_l.append(tf.summary.tensor_summary('{}/grad'.format(clean_name(weight.op.name)),
-          #                                                grads))
-        
-        if hasattr(layer, 'output'):
-          act_summ_l.append(tf.summary.tensor_summary('{}/act'.format(clean_name(layer.name)),
-                                                      layer.output))
-          act_summ_l.append(tf.summary.tensor_summary('{}/in'.format(clean_name(layer.name)),
-                                                      layer.input))
-          self.act_l['{}/act'.format(clean_name(layer.name))] = layer.output
-    
+        if layer.name.startswith('Layer') or layer.name.startswith('layer'):
+          if hasattr(layer, 'output'):
+            self.act_l['{}/act'.format(clean_name(layer.name))] = layer.output
+            # add input temporarily to observe!
+            # self.act_l['{}/in'.format(clean_name(layer.name))]=layer.input
+        if layer.name.startswith('Layer'):
+          for weight in layer.weights:
+            logger.info('summ log {}'.format(clean_name(weight.op.name)))
+            weight_summ_l.append(tf.summary.tensor_summary(clean_name(weight.op.name), weight))
+          if hasattr(layer, 'output'):
+            act_summ_l.append(tf.summary.tensor_summary('{}/act'.format(clean_name(layer.name)),
+                                                        layer.output))
+            act_summ_l.append(tf.summary.tensor_summary('{}/in'.format(clean_name(layer.name)),
+                                                        layer.input))
     self.act_summ = tf.summary.merge(act_summ_l) if act_summ_l != [] else None
-    self.grad_summ = tf.summary.merge(grad_summ_l) if grad_summ_l != [] else None
     self.weight_summ = tf.summary.merge(weight_summ_l) if weight_summ_l != [] else None
-    self.merged = tf.summary.merge(
-        act_summ_l + weight_summ_l + grad_summ_l) if act_summ_l + weight_summ_l + grad_summ_l != [] else None
-    
-    if self.write_graph:
-      self.writer = tf.summary.FileWriter(self.log_dir + '/miscellany',
-                                          self.sess.graph)  # will write graph and loss and so on
-    else:
-      self.writer = tf.summary.FileWriter(self.log_dir + '/miscellany')
+    self.merged = tf.summary.merge(act_summ_l + weight_summ_l) if act_summ_l + weight_summ_l != [] else None
+    self.writer = tf.summary.FileWriter(self.log_dir + '/miscellany')
   
   def new_writer(self, act_l, weight, epoch):
     # todo use cleaned dir
@@ -214,34 +203,36 @@ class TensorBoard2(Callback):
     self.writer.close()
   
   def get_param(self):
+    # when to use: for calculate statistic information
     res_kernel, res_bias = {}, {}
     for layer in self.model.layers:
-      if not layer.name.startswith('Layer'): continue
-      logger.debug(layer.name)
-      weights = layer.get_weights()
-      # for _weight in weights:
-      #     print _weight.shape
-      if weights == []: continue
-      if len(weights) == 2:
-        kernel, bias = weights
-        res_kernel[clean_name(layer.name) + '/kernel'] = kernel
-        res_bias[clean_name(layer.name) + '/bias'] = bias
-      elif len(weights) == 4:
-        assert 'gamma' in layer.weights[0].name
-        # gamma, beta, movingmean, movingvariance = weights
-        # res_kernel[clean_name(layer.name) + '/gamma'] = gamma
-        # res_bias[clean_name(layer.name) + '/beta'] = beta
-        # res_bias[clean_name(layer.name) + '/moving-mean'] = movingmean
-        # res_bias[clean_name(layer.name) + '/moving-var'] = movingvariance
-        pass
-      elif len(weights) == 1:
-        kernel = weights[0]
-        res_kernel[clean_name(layer.name) + '/kernel'] = kernel
-      else:
-        raise ValueError('how many '.format(len(weights)))
+      if layer.name.startswith('layer') or layer.name.startswith('Layer') :
+        logger.debug(layer.name)
+        weights = layer.get_weights()
+        # for _weight in weights:
+        #     print _weight.shape
+        if weights == []: continue
+        if len(weights) == 2:
+          kernel, bias = weights
+          res_kernel[clean_name(layer.name) + '/kernel'] = kernel
+          res_bias[clean_name(layer.name) + '/bias'] = bias
+        elif len(weights) == 4:
+          assert 'gamma' in layer.weights[0].name
+          # gamma, beta, movingmean, movingvariance = weights
+          # res_kernel[clean_name(layer.name) + '/gamma'] = gamma
+          # res_bias[clean_name(layer.name) + '/beta'] = beta
+          # res_bias[clean_name(layer.name) + '/moving-mean'] = movingmean
+          # res_bias[clean_name(layer.name) + '/moving-var'] = movingvariance
+          pass
+        elif len(weights) == 1:
+          kernel = weights[0]
+          res_kernel[clean_name(layer.name) + '/kernel'] = kernel
+        else:
+          raise ValueError('how many '.format(len(weights)))
     return res_kernel, res_bias
   
   def get_act(self):
+    # also used when statistic need to be calc
     val_data = [self.dataset.x_test_ref, self.dataset.y_test_ref, np.ones_like(self.validation_data[2]),
                 np.zeros_like(self.validation_data[3])]
     # val_data = self.validation_data
@@ -268,7 +259,14 @@ class TensorBoard2(Callback):
         batch_val.append(np.zeros_like(val_data[3]))  # do not use dropout!
       feed_dict = dict(zip(tensors, batch_val))
       
-      for _act_name, _act in self.sess.run(self.act_l, feed_dict=feed_dict).items():
+      # t=self.sess.run(self.act_l, feed_dict=feed_dict)
+      # len(t.keys())
+      # np.unique(t.keys())[:4]
+      #
+      # t['Layer12/dense/in'].shape
+      # t['Layer12/dense/act'].shape
+      
+      for _act_name, _act in self.sess.run(self.act_l, feed_dict=feed_dict).iteritems():
         if _act_name in res:
           res[_act_name] = np.concatenate((res[_act_name], _act), axis=0)
         else:

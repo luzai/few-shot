@@ -140,7 +140,6 @@ def optional_arg_decorator(fn):
 
 def randomword(length):
   import random, string
-  
   return ''.join(random.choice(string.lowercase) for i in range(length))
 
 
@@ -151,6 +150,15 @@ def static_vars(**kwargs):
     return func
   
   return decorate
+
+def dict2df(my_dict):
+  tensor_d = {}
+  for k, v in my_dict.iteritems():
+    #     print k,v.shape
+    if k[1] not in tensor_d:
+      tensor_d[k[1]] = pd.Series(name=k[1], index=pd.Int64Index([]))
+    tensor_d[k[1]][k[0]] = v
+  return pd.DataFrame.from_dict(tensor_d)
 
 
 class Timer(object):
@@ -230,7 +238,7 @@ def read_df(path):
 def mkdir_p(path, delete=False):
   assert path != ''
   from logs import logger
-  logger.info('mkdir -p  '+ path)
+  logger.debug('mkdir -p  '+ path)
   if delete:
     rm(path)
   if not osp.exists(path):

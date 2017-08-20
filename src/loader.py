@@ -16,7 +16,8 @@ from utils import clean_name
 
 def test():
   print 'ok'
-  
+
+
 class Loader(object):
   def __init__(self, name, path):
     self.name = name
@@ -66,18 +67,39 @@ class TensorLoader(Loader):
   def load_tensors(self, reload=False):
     if reload:
       self.reload()
-    tensors = pd.DataFrame()
+    
+    tensors = {}
+    
     for tensor_name in self.tensors_names:
-      tensors_t = pd.Series(name=clean_name(tensor_name), index=pd.Int64Index([]))
       for e in self.em.Tensors(tensor_name):
+        
         now_step = e.step
         now_tensor = make_ndarray(e.tensor_proto)
-        # logger.info('step {} tensors {} shape {}'.format(now_step, tensor_name, now_tensor.shape))
-        if now_step not in tensors_t:
-          tensors_t[now_step] = now_tensor
+        # print now_step , tensor_name, now_tensor.shape
+        if (now_step, tensor_name) not in tensors:
+          tensors[(now_step, tensor_name)] = now_tensor
         else:
-          tensors_t[now_step] = np.concatenate((now_tensor, tensors_t[now_step]), axis=0)
-      tensors = pd.concat((tensors, tensors_t), axis=1)
+          if np.array_equal(now_tensor, tensors[(now_step, tensor_name)][:now_tensor.shape[0]]  ):continue
+          tensors[(now_step, tensor_name)] = np.concatenate((now_tensor, tensors[(now_step, tensor_name)]), axis=0)
+    tensors = utils.dict2df(tensors)
+    
+    # tensors.shape
+    # tensors.columns
+    # tensors.iloc[0,0].shape
+    # tensors.iloc[0,1].shape
+    #
+    # tensors = pd.DataFrame()
+    # for tensor_name in self.tensors_names:
+    #   tensors_t = pd.Series(name=clean_name(tensor_name), index=pd.Int64Index([]))
+    #   for e in self.em.Tensors(tensor_name):
+    #     now_step = e.step
+    #     now_tensor = make_ndarray(e.tensor_proto)
+    #     # logger.info('step {} tensors {} shape {}'.format(now_step, tensor_name, now_tensor.shape))
+    #     if now_step not in tensors_t:
+    #       tensors_t[now_step] = now_tensor
+    #     else:
+    #       tensors_t[now_step] = np.concatenate((now_tensor, tensors_t[now_step]), axis=0)
+    #   tensors = pd.concat((tensors, tensors_t), axis=1)
     tensors.sort_index(axis=0, inplace=True)
     tensors.sort_index(axis=1, inplace=True)
     return tensors
@@ -182,6 +204,9 @@ class ActLoader(MultiLoader):
     tensor_l = []
     for path_ in glob.glob(path + '/*'):
       tensor_l.append(TensorLoader(path=path_).load_tensors())
+    # tensor_l[0].iloc[0, 0].shape
+    # tensor_l[0].iloc[0, 1].shape
+    
     acts_t = pd.concat(tensor_l)
     acts_t.reset_index(inplace=True)
     tensors = {}
@@ -205,6 +230,7 @@ class ActLoader(MultiLoader):
     # import gc
     # gc.collect()
     return tensors
+
 
 def _select(df, pattern):
   poss_name = df.columns
@@ -238,7 +264,7 @@ class Loader(threading.Thread):
       self.scalars = res
     else:
       self.scalars = ScalarLoader(path=path).load_scalars()
-      cache(self.scalars,path)
+      cache(self.scalars, path)
       # cache(_select(self.scalars, "(?:val_loss|loss|val_acc|acc)"), path)
     logger.info('load scalars consume {}'.format(timer.toc()))
     
@@ -275,13 +301,19 @@ class Loader(threading.Thread):
       # else:
       #   self.params = _select(df, "^layer.*?(?:kernel|bias).*")
       #   cache(self.params, path)
-
+      
       pass
-     
+
+
 if __name__ == '__main__':
-  path = glob.glob(Config.root_path + '/test/*')[0]
+  path = glob.glob(Config.root_path + '/fc/*')[0]
   print path
   loader = Loader(path=path, stat_only=True)
   # loader.load(stat_only=True, parallel=True)
   loader.load(stat_only=False, parallel=False)
-  print loader.scalars
+  t = loader.act
+  t.iloc[0, 0].shape
+  for i_ in range(loader.act.shape[0]):
+    print '\n'
+    for j_ in range(loader.act.shape[1]):
+      print loader.act.iloc[i_, j_].shape

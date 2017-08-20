@@ -53,29 +53,32 @@ def run(model_type='vgg6', limit_val=True,
                       metrics=['accuracy'])
   
   if queue is not None: queue.put([True])
-  
+  callback_l = []
+  if utils.get_config('curve_only'):
+    callback_l += [
+      TensorBoard(log_dir=config.model_tfevents_path)
+    ]
+  else:
+    callback_l += [TensorBoard2(tot_epochs=config.epochs,
+                                log_dir=config.model_tfevents_path,
+                                batch_size=config.batch_size,
+                                write_graph=True,
+                                write_grads=False,
+                                dataset=dataset,
+                                max_win_size=utils.get_config('win_size'),
+                                stat_only=True,
+                                batch_based=True
+                                ),
+                   LearningRateScheduler(lambda epoch: schedule(epoch,
+                                                                x=optimizer.get('decay_epoch', None),
+                                                                y=optimizer.get('decay', None),
+                                                                init=optimizer['lr'],
+                                                                ),
+                                         ), ]
   model.model.fit(dataset.x_train, dataset.y_train, batch_size=config.batch_size, epochs=config.epochs,
                   verbose=config.verbose,
                   validation_data=(dataset.x_test, dataset.y_test),
-                  callbacks=[
-                    # TensorBoard2(tot_epochs=config.epochs,
-                    #              log_dir=config.model_tfevents_path,
-                    #              batch_size=config.batch_size,
-                    #              write_graph=True,
-                    #              write_grads=False,
-                    #              dataset=dataset,
-                    #              max_win_size=utils.get_config('win_size'),
-                    #              stat_only=True,
-                    #              batch_based=True
-                    #              ),
-                    # LearningRateScheduler(lambda epoch: schedule(epoch,
-                    #                                              x=optimizer.get('decay_epoch', None),
-                    #                                              y=optimizer.get('decay', None),
-                    #                                              init=optimizer['lr'],
-                    #                                              ),
-                    #                       ),
-                    TensorBoard(log_dir=config.model_tfevents_path)
-                  ])
+                  callbacks=callback_l)
   
   Loader(path=config.model_tfevents_path, stat_only=True).load(stat_only=True)
   Loader(path=config.model_tfevents_path, stat_only=False).load(stat_only=False)

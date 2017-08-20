@@ -130,11 +130,4 @@ def subplots(visualizer, path_suffix):
   utils.merge_pdf(paths)
   
 if __name__ == '__main__':
-  from vis_utils import Visualizer
-  
-  visualizer = Visualizer(join='outer', stat_only=True, paranet_folder='stdtime')
-  df = visualizer.perf_df
-  arr, indexf = df2arr(df)
-  print df.shape, arr.shape
-  df2 = arr2df(arr, indexf)
-  
+  pass
