@@ -14,7 +14,7 @@ from matplotlib.ticker import NullFormatter
 from matplotlib import colors as mcolors
 
 from sklearn import preprocessing, manifold, datasets
-from utils import cartesian,dict2df
+from utils import cartesian, dict2df
 import time, utils, glob, os, re, copy
 import numpy as np, os.path as osp, pandas as pd, matplotlib.pylab as plt
 
@@ -32,8 +32,6 @@ from matplotlib.ticker import FormatStrFormatter
 matplotlib.style.use('ggplot')
 
 Axes3D
-
-
 
 
 def drop_level(perf_df, allow_downcast=False):
@@ -101,16 +99,20 @@ def split_layer_stat(df):
 def custom_sort(columns, how='layer'):
   # todo please do not add thighs that do not exsits
   new_index0 = ['act', 'kernel', 'bias', 'beta', 'gamma', 'moving-mean', 'moving-var']
-  new_index1 = ['diff', 'stdtime', 'iqr', 'std', 'mean', 'median', 'norm', 'magmean', 'posmean', 'negmean',
-                'posproportion',
+  new_index1 = ['diff', 'stdtime', 'iqr', 'std', 'mean', 'median',
+                'norm', 'magmean', 'magnitude', 'posmean', 'negmean','posproportion',
                 'max', 'min', 'ortho', 'sparsity', 'ptrate-thresh-0.2', 'ptrate-thresh-0.6',
-                'ptrate-thresh-mean', 'ptrate', 'totvar', 'updateratio', 'orthochannel', 'orthosample', ]
+                'ptrate-thresh-mean', 'ptrate', 'totvar', 'updateratio',
+                'ortho','orthoabs',
+                'orthochnl', 'orthochnlabs', 'orthosmpl','orthosmplabs', 'orthochannel', 'orthosample'
+                ,'orthogonalitychannel','orthogonalitysample','orthogonality'
+                ]
   new_index = cartesian([new_index0, new_index1])
   new_index = ['/'.join(index_) for index_ in new_index]
   new_index.insert(0, 'dummy')
   sort_order = {index: ind for ind, index in enumerate(new_index)}
   
-  new_index0 = ['layer' + str(ind) for ind in range(100)]  # todo increase it when needed
+  new_index0 = ['layer' + str(ind) for ind in range(20)] + ['Layer' + str(ind) for ind in range(20)]
   new_index1 = ['input', 'conv', 'bn', 'conv-s', 'add', 'fc', 'softmax']  # although it is not necessaryli right
   new_index = cartesian([new_index0, new_index1]).tolist()
   new_index = ['/'.join(index_) for index_ in new_index]
@@ -200,6 +202,7 @@ class Visualizer(object):
       self.df = self.aggregate(join, stat_only=True, parant_folder=paranet_folder)
       self.split()
       self.stat_df = split_layer_stat(self.stat_df)
+      
       self.tensor = self.aggregate(join, stat_only=False, parant_folder=paranet_folder, parallel=False)
       # self.tensor = split_layer_stat(self.tensor)
       # levels, names, name2level, name2ind = get_columns_alias(self.df.columns)
@@ -220,7 +223,10 @@ class Visualizer(object):
     parant_path = Config.root_path + '/' + parant_folder + '/'
     for path in glob.glob(parant_path + '/*'):
       _conf = utils.unpickle(path + '/config.pkl')
-      
+      if stat_only:
+        if not osp.exists(path+'/miscellany'):return
+      if not stat_only:
+        if not osp.exists(path+'act'):return
       loader = Loader(path=path, stat_only=stat_only, parallel=parallel)
       # loader.start()
       loader.load(stat_only=stat_only, parallel=parallel)
@@ -238,7 +244,7 @@ class Visualizer(object):
         scalar = loader.scalars
         df_l.append(scalar)
       else:
-        scalar = pd.concat([loader.act, loader.params],axis=1, join=join)
+        scalar = pd.concat([loader.act, loader.params], axis=1, join=join)
         df_l.append(scalar)
       for name in scalar.columns:
         name = map_name(name)[0]
@@ -297,6 +303,7 @@ class Visualizer(object):
       _df = df.copy()
       if 'stat' in _df.columns.names:
         _df = reindex(_df)
+      _df = _df.dropna(how='all').dropna(how='all',axis=1)
       fig, sup_title = plot(_df, axes_names, sup_title, lr=lr, val_acc=val_acc)
       utils.mkdir_p(Config.output_path + path_suffix + '/')
       sav_path = (Config.output_path
@@ -369,7 +376,7 @@ def auto_plot(df, axes_names=('layer', 'stat', '_'),
     df.columns = append_level(df.columns, '_')
   indexf = MultiIndexFacilitate(df.columns)
   other_names = np.setdiff1d(indexf.names, axes_names)
-  if axes_names[-1] != '_':
+  if axes_names[-1] != '_' and axes_names[0]=='layer':
     df = append_dummy(df)
   
   paths = []
@@ -392,7 +399,7 @@ def auto_plot(df, axes_names=('layer', 'stat', '_'),
     _df = df.copy()
     for _name, _poss in zip(other_names, poss):
       _df = select(_df, {_name: _poss}, regexp=False)
-    
+    _df = _df.dropna(how='all').dropna(how='all', axis=1)
     sup_title_ = '_' + utils.list2str(poss) + sup_title
     
     if 'layer' in _df.columns.names:
@@ -697,7 +704,8 @@ def map_name(names):
     'ptrate_win_size_11_thresh_mean': 'ptrate',
     'totvar_win_size_11'            : 'totvar',
     'batchnormalization'            : 'bn',
-    'orthogonality'                 : 'ortho'
+    # 'ortho'                         : 'ortho-',
+    # 'abs'                           : '-abs'
   }
   for ind, name in enumerate(names):
     new_name = name
@@ -707,11 +715,21 @@ def map_name(names):
   
   return names
 
-
+import logs
 if __name__ == '__main__':
-  visualizer = Visualizer(paranet_folder='fc')
-  
+  logger.setLevel(logs.WARN)
+  visualizer = Visualizer(paranet_folder='all')
   df = visualizer.stat_df.copy()
+  
+  vis = visualizer.copy()
+  # vis.stat_df = split_layer_stat(vis.stat_df)
+  vis.select({'model_type': 'vgg10', 'optimizer': '_lr_0.001_name_sgd'}, regexp=False)
+  vis.stat_df = select(vis.stat_df, {'stat': '.*orth.*'})
+  vis.stat_df = exclude(vis.stat_df, {'layer': '.*bn.*'})
+  vis.auto_plot(('layer', 'stat', '_'))
+  # visualizer = Visualizer(paranet_folder='fc')
+  #
+  # df = visualizer.stat_df.copy()
   
   # vis = visualizer.copy()
   # vis.stat_df = split_layer_stat(vis.stat_df)

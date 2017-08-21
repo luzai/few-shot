@@ -118,7 +118,7 @@ class Stat(object):
     if self.log_pnt[iter] >= 1 \
         and np.in1d(np.arange(iter - win_size + 1, iter + 1, step=1), self.log_pnt.index).all():
       _iter, _val = self.totvar_inst.tot_var(tensor, iter, name, win_size, 'load')
-      if _iter != iter - win_size // 2  :
+      if _iter != iter - win_size // 2:
         logger.error('should log to right iter! {} {}'.format(_iter, iter - win_size // 2))
     
     return _iter, _val
@@ -293,7 +293,7 @@ class ActStat(Stat):
       mode = 'load'
       _iter, _val = self.ptrate_inst.pt_rate(tensor, name=name, iter=iter, win_size=win_size, thresh=thresh,
                                              mode=mode)
-      if _iter != iter - win_size // 2  :
+      if _iter != iter - win_size // 2:
         logger.error('should log to right iter! {} {}'.format(_iter, iter - win_size // 2))
     return _iter, _val
 
@@ -323,7 +323,7 @@ class Windows(object):
       if not (top is tensor):
         self.l_tensor[name].append(tensor)
       assert len(self.l_tensor[name]) == len(self.l_iter)
-      
+  
   def get_tensor(self, name, win_size):
     # import gc
     # gc.collect()
@@ -377,7 +377,7 @@ class PTRate(object):
         for ind in range(len(self.windows.l_tensor[name]) - 1):
           last_tensor = self.windows.l_tensor[name][ind]
           now_tensor = self.windows.l_tensor[name][ind + 1]
-          polarity_now = (-np.sign(last_tensor * now_tensor) + 1.) / 2.
+          polarity_now = ((last_tensor * now_tensor) < 0).astype(float)
           polarity.append(polarity_now)
         polarity_time_space = np.array(polarity)
         polarity_time_space = polarity_time_space.reshape(polarity_time_space.shape[0], -1)
