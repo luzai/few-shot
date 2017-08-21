@@ -203,7 +203,7 @@ class Visualizer(object):
       self.split()
       self.stat_df = split_layer_stat(self.stat_df)
       
-      self.tensor = self.aggregate(join, stat_only=False, parant_folder=paranet_folder, parallel=False)
+      self.tensor = self.aggregate(join, stat_only=False, parant_folder=paranet_folder, parallel=True)
       # self.tensor = split_layer_stat(self.tensor)
       # levels, names, name2level, name2ind = get_columns_alias(self.df.columns)
       # self.name2level = name2level
@@ -424,7 +424,10 @@ def auto_plot(df, axes_names=('layer', 'stat', '_'),
 
 
 def plot(perf_df, axes_names, sup_title, lr=None, val_acc=None, legend=True, ):
+  # print perf_df.head()
+  # print perf_df.columns.levels
   perf_df= perf_df.dropna(how='all').dropna(how='all',axis=1)
+  # print perf_df.columns.levels
   row_name, col_name, inside = axes_names
   names2levels = {name: level for level, name in zip(perf_df.columns.levels, perf_df.columns.names)}
   row_level = names2levels[row_name]
@@ -509,10 +512,12 @@ def plot(perf_df, axes_names, sup_title, lr=None, val_acc=None, legend=True, ):
     target.append(axes[_row, _col])
   
   perf_df_inter = (perf_df.interpolate(limit_direction='backward') + perf_df.interpolate()) / 2.
-  # perf_df_inter = resample(perf_df_inter)
+  
   perf_df_inter.plot(subplots=True, legend=False,
-                     ax=target, marker=None,
-                     sharex=False)
+                     ax=target,
+                     sharex=False,
+                     # style='.'
+                     )
   #  # change color
   
   for axis in axes.flatten():

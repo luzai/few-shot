@@ -9,30 +9,30 @@ hyper = {
   "log_stat"    : True,
   # we need 2 mode : log all stat
   # stat and tensor for only Layer
-  "log_tensor"  : True,
-  "last_only" : True,
+  "log_tensor"  : False,
+  "last_only"   : False,
   "cifar"       : {
-    "epochs"         : 71,
+    "epochs"         : 2,
     "sample_rate"    : 1.,  # epoch^-1
     "sub_sample"     : [3, 5],  # epoch
-    "sub_sample_rate": [10, 5, 1],
+    "sub_sample_rate": [30, 5, 1],
     "grids"          : {'dataset'   : ['cifar10', ],
                         'model_type': ['resnet10', 'vgg10', ],
                         'optimizer' : [
-                          # {'name': 'sgd',
-                          #               'lr'  : 0.001, },
+                          {'name': 'sgd',
+                           'lr'  : 0.001, },
                           {'name': 'sgd',
                            'lr'  : 0.01, },
-                          # {'name'       : 'sgd',
-                          #  'lr'         : 0.01,
-                          #  'decay_epoch': [150, ],
-                          #  'decay'      : [10, ], },
-                          # {'name'       : 'sgd',
-                          #  'lr'         : 0.01,
-                          #  'decay_epoch': [50, ],
-                          #  'decay'      : [10, ], },
+                          {'name'       : 'sgd',
+                           'lr'         : 0.01,
+                           'decay_epoch': [150, ],
+                           'decay'      : [10, ], },
+                          {'name'       : 'sgd',
+                           'lr'         : 0.01,
+                           'decay_epoch': [50, ],
+                           'decay'      : [10, ], },
                         ],
-                        'hiddens'   : [5, 20, 512]
+                        # 'hiddens'   : [5, 20, 512]
                         }
   },
   # mnist ok
@@ -63,7 +63,7 @@ hyper = {
                }
   },
   
-  "win_size"    : 31,
+  "win_size"    : 11,
   # "use_bias"    : False,  # todo
   "curve_only"  : False,
 }
