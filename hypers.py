@@ -8,9 +8,9 @@ hyper = {
   
   "log_stat"    : True,
   # we need 2 mode : log all stat
-  # stat and tensor for only Layer 
-  "log_tensor"  : False,
-  
+  # stat and tensor for only Layer
+  "log_tensor"  : True,
+  "last_only" : True,
   "cifar"       : {
     "epochs"         : 71,
     "sample_rate"    : 1.,  # epoch^-1

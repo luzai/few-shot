@@ -424,6 +424,7 @@ def auto_plot(df, axes_names=('layer', 'stat', '_'),
 
 
 def plot(perf_df, axes_names, sup_title, lr=None, val_acc=None, legend=True, ):
+  perf_df= perf_df.dropna(how='all').dropna(how='all',axis=1)
   row_name, col_name, inside = axes_names
   names2levels = {name: level for level, name in zip(perf_df.columns.levels, perf_df.columns.names)}
   row_level = names2levels[row_name]
