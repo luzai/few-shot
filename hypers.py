@@ -9,8 +9,8 @@ hyper = {
   "log_stat"    : True,
   # we need 2 mode : log all stat
   # stat and tensor for only Layer
-  "log_tensor"  : False,
-  "last_only"   : False,
+  "log_tensor"  : True,
+  "last_only"   : True,
   "curve_only"  : False,
   
   "cifar"       : {
@@ -34,7 +34,7 @@ hyper = {
                           {'name': 'sgd',
                            'lr'  : 0.01, },
                         ],
-                        # 'hiddens'   : [5, 20, 512]
+                        'hiddens'   : [5, 20, 512]
                         }
   },
   # mnist ok

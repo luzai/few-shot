@@ -278,10 +278,10 @@ class Visualizer(object):
     vis.lr, vis.val_acc, vis.perf_df, vis.stat_df = self.lr.copy(), self.val_acc.copy(), self.perf_df.copy(), self.stat_df.copy()
     return vis
   
-  def loc(self,ind):
-    self.stat_df = self.stat_df.loc[:ind,:]
-    self.lr = self.lr.loc[:ind,:]
-    self.val_acc = self.val_acc.loc[:ind,:]
+  def loc(self, ind):
+    self.stat_df = self.stat_df.loc[:ind, :]
+    self.lr = self.lr.loc[:ind, :]
+    self.val_acc = self.val_acc.loc[:ind, :]
   
   def select(self, level2pattern, regexp=True):
     self.stat_df = select(self.stat_df, level2pattern, regexp)
@@ -709,7 +709,7 @@ def auto_heatmap(df):
     _df = select(_df, {'stat': 'act/ptrate'})
     _df = _df.dropna(how='all').dropna(how='all', axis=1)
     print _df.shape
-    _df = _df.iloc[21:, :]
+    # _df = _df.iloc[21:, :]
     print _df.shape
     paths.append(heatmap(_df))
   
@@ -742,4 +742,24 @@ def map_name(names):
 import logs
 
 if __name__ == '__main__':
-  pass
+  vis1 = vis.copy()
+  vis1.select({'model_type': 'vgg10', 'optimizer': '_lr_0.01_name_sgd'}, regexp=False)
+  vis1.auto_plot()
+  
+  show_pdf(_[0])
+  
+  vis1 = vis.copy()
+  vis1.select({'model_type': 'resnet10', 'optimizer': '_lr_0.01_name_sgd'}, regexp=False)
+  vis1.auto_plot()
+  
+  vis1 = vis.copy()
+  vis1.select({'model_type': 'resnet10'})
+  vis1.exclude({'optimizer': '.*001.*'})
+  vis1.exclude({'optimizer': '_decay_epoch-150_lr_0.01_name_sgd_decay-10'}, regexp=False)
+  vis1.auto_plot(('layer', 'stat', 'optimizer'))
+  
+  vis1 = vis.copy()
+  vis1.select({'model_type': 'vgg10'})
+  vis1.exclude({'optimizer': '.*001.*'})
+  vis1.exclude({'optimizer': '_decay_epoch-150_lr_0.01_name_sgd_decay-10'}, regexp=False)
+  vis1.auto_plot(('layer', 'stat', 'optimizer'))

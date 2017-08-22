@@ -82,10 +82,11 @@ def run(model_type='vgg6', limit_val=True,
                   verbose=config.verbose,
                   validation_data=(dataset.x_test, dataset.y_test),
                   callbacks=callback_l)
+  model.save()
   
   Loader(path=config.model_tfevents_path, stat_only=True).load(stat_only=True)
   Loader(path=config.model_tfevents_path, stat_only=False).load(stat_only=False)
-  model.save()
+  
 
 
 import multiprocessing as mp, time
