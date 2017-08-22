@@ -3,18 +3,18 @@ import numpy as np
 hyper = {
   "gpu"         : [0, 1, 2, 3],
   "use"         : "cifar",
-  "logger_level": "info",
+  "logger_level": "warn",
   "dbg"         : False,
   
   "log_stat"    : True,
   # we need 2 mode : log all stat
   # stat and tensor for only Layer
-  "log_tensor"  : False,
+  "log_tensor"  : True,
   "last_only"   : False,
   "cifar"       : {
-    "epochs"         : 2,
+    "epochs"         : 301,
     "sample_rate"    : 1.,  # epoch^-1
-    "sub_sample"     : [3, 5],  # epoch
+    "sub_sample"     : [5, 30],  # epoch
     "sub_sample_rate": [30, 5, 1],
     "grids"          : {'dataset'   : ['cifar10', ],
                         'model_type': ['resnet10', 'vgg10', ],
@@ -32,7 +32,7 @@ hyper = {
                            'decay_epoch': [50, ],
                            'decay'      : [10, ], },
                         ],
-                        # 'hiddens'   : [5, 20, 512]
+                        'hiddens'   : [5, 20, 512]
                         }
   },
   # mnist ok
