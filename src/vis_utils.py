@@ -278,6 +278,11 @@ class Visualizer(object):
     vis.lr, vis.val_acc, vis.perf_df, vis.stat_df = self.lr.copy(), self.val_acc.copy(), self.perf_df.copy(), self.stat_df.copy()
     return vis
   
+  def loc(self,ind):
+    self.stat_df = self.stat_df.loc[:ind,:]
+    self.lr = self.lr.loc[:ind,:]
+    self.val_acc = self.val_acc.loc[:ind,:]
+  
   def select(self, level2pattern, regexp=True):
     self.stat_df = select(self.stat_df, level2pattern, regexp)
     self.lr = select(self.lr, level2pattern, regexp)
@@ -703,6 +708,7 @@ def auto_heatmap(df):
       _df = select(_df, {_name: _poss}, regexp=False)
     _df = select(_df, {'stat': 'act/ptrate'})
     _df = _df.dropna(how='all').dropna(how='all', axis=1)
+    print _df.shape
     _df = _df.iloc[21:, :]
     print _df.shape
     paths.append(heatmap(_df))
@@ -736,47 +742,4 @@ def map_name(names):
 import logs
 
 if __name__ == '__main__':
-  logger.setLevel(logs.WARN)
-  visualizer = Visualizer(paranet_folder='all')
-  df = visualizer.stat_df.copy()
-  
-  vis = visualizer.copy()
-  # vis.stat_df = split_layer_stat(vis.stat_df)
-  vis.select({'model_type': 'vgg10', 'optimizer': '_lr_0.001_name_sgd'}, regexp=False)
-  vis.stat_df = select(vis.stat_df, {'stat': '.*orth.*'})
-  vis.stat_df = exclude(vis.stat_df, {'layer': '.*bn.*'})
-  vis.auto_plot(('layer', 'stat', '_'))
-  
-  df = visualizer.stat_df.copy()
-  # df = df.iloc[:, :200]
-  df = split_layer_stat(df)
-  df = select(df, {'model_type': 'vgg10'}, regexp=False)
-  df = exclude(df, {'optimizer': '.*001.*'})
-  
-  lr = visualizer.lr.copy()
-  val_acc = visualizer.val_acc.copy()
-  lr = select(lr, {'model_type': 'vgg10'}, regexp=False)
-  lr = exclude(lr, {'optimizer': '.*001.*'})
-  val_acc = select(val_acc, {'model_type': 'vgg10'}, regexp=False)
-  val_acc = exclude(val_acc, {'optimizer': '.*001.*'})
-  df.head()
-  
-  # auto_plot(df,lr,val_acc,('layer','stat','_'))
-  auto_plot(df, lr, val_acc, ('layer', 'stat', 'optimizer'))
-  
-  df = visualizer.stat_df.copy()
-  # df = df.iloc[:, :200]
-  df = split_layer_stat(df)
-  df = select(df, {'model_type': 'resnet10'}, regexp=False)
-  df = exclude(df, {'optimizer': '.*001.*'})
-  
-  lr = visualizer.lr.copy()
-  val_acc = visualizer.val_acc.copy()
-  lr = select(lr, {'model_type': 'resnet10'}, regexp=False)
-  lr = exclude(lr, {'optimizer': '.*001.*'})
-  
-  val_acc = select(val_acc, {'model_type': 'resnet10'}, regexp=False)
-  val_acc = exclude(val_acc, {'optimizer': '.*001.*'})
-  df.head()
-  
-  auto_plot(df, lr, val_acc, ('layer', 'stat', 'optimizer'))
+  pass

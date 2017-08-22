@@ -5,8 +5,11 @@ def run(model_type='vgg6', limit_val=True,
   import warnings
   warnings.filterwarnings("ignore")
   
+  import psutil
+  p = psutil.Process(os.getpid())
+  p.nice(19)
   utils.init_dev(utils.get_dev(ok=utils.get_config('gpu')))
-  # utils.allow_growth()
+  utils.allow_growth()
   import tensorflow as tf, keras
   from callbacks import TensorBoard2, schedule
   from keras.callbacks import TensorBoard, LearningRateScheduler
@@ -108,6 +111,6 @@ for grid in utils.grid_iter(grids):
     tasks.append(p)
     _res = queue.get()
     logger.info('last task return {}'.format(_res))
-    time.sleep(15)
+    time.sleep(10)
 for p in tasks:
   p.join()

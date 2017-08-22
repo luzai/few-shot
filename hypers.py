@@ -1,38 +1,40 @@
 import numpy as np
 
 hyper = {
-  "gpu"         : [0, 1, 2, 3],
+  "gpu"         : [0, 1, 2, 3, ],
   "use"         : "cifar",
-  "logger_level": "warn",
+  "logger_level": "info",
   "dbg"         : False,
   
   "log_stat"    : True,
   # we need 2 mode : log all stat
   # stat and tensor for only Layer
-  "log_tensor"  : True,
+  "log_tensor"  : False,
   "last_only"   : False,
+  "curve_only"  : False,
+  
   "cifar"       : {
-    "epochs"         : 301,
-    "sample_rate"    : 1.,  # epoch^-1
+    "epochs"         : 61,
+    "sample_rate"    : 1./2.,  # epoch^-1
     "sub_sample"     : [5, 30],  # epoch
-    "sub_sample_rate": [30, 5, 1],
+    "sub_sample_rate": [30, 15, 1],
     "grids"          : {'dataset'   : ['cifar10', ],
                         'model_type': ['resnet10', 'vgg10', ],
                         'optimizer' : [
-                          {'name': 'sgd',
-                           'lr'  : 0.001, },
+                          # {'name': 'sgd',
+                          #  'lr'  : 0.001, },
+                          {'name'       : 'sgd',
+                           'lr'         : 0.01,
+                           'decay_epoch': [49, ],
+                           'decay'      : [10, ], },
+                          {'name'       : 'sgd',
+                           'lr'         : 0.01,
+                           'decay_epoch': [25, ],
+                           'decay'      : [10, ], },
                           {'name': 'sgd',
                            'lr'  : 0.01, },
-                          {'name'       : 'sgd',
-                           'lr'         : 0.01,
-                           'decay_epoch': [150, ],
-                           'decay'      : [10, ], },
-                          {'name'       : 'sgd',
-                           'lr'         : 0.01,
-                           'decay_epoch': [50, ],
-                           'decay'      : [10, ], },
                         ],
-                        'hiddens'   : [5, 20, 512]
+                        # 'hiddens'   : [5, 20, 512]
                         }
   },
   # mnist ok
@@ -65,5 +67,5 @@ hyper = {
   
   "win_size"    : 11,
   # "use_bias"    : False,  # todo
-  "curve_only"  : False,
+  
 }
