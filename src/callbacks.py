@@ -95,7 +95,9 @@ class TensorBoard2(Callback):
     self.act_l = {}
     if self.merged is None:
       for layer in self.model.layers:
-        if (not utils.get_config('last_only') and (layer.name.startswith('Layer') or layer.name.startswith('layer'))) or (utils.get_config('last_only') and layer.name.startswith('Layer')):
+        if (
+          not utils.get_config('last_only') and (layer.name.startswith('Layer') or layer.name.startswith('layer'))) or (
+          utils.get_config('last_only') and layer.name.startswith('Layer')):
           if hasattr(layer, 'output'):
             self.act_l['{}/act'.format(clean_name(layer.name))] = layer.output
             # add input temporarily to observe!
@@ -206,7 +208,9 @@ class TensorBoard2(Callback):
     # when to use: for calculate statistic information
     res_kernel, res_bias = {}, {}
     for layer in self.model.layers:
-      if layer.name.startswith('layer') or layer.name.startswith('Layer'):
+      if (not utils.get_config('last_only') and (layer.name.startswith('Layer') or layer.name.startswith('layer'))) or (
+            utils.get_config('last_only') and layer.name.startswith('Layer')):
+        # if layer.name.startswith('layer') or layer.name.startswith('Layer') :
         logger.debug(layer.name)
         weights = layer.get_weights()
         # for _weight in weights:
