@@ -10,7 +10,7 @@ hyper = {
   # we need 2 mode : log all stat
   # stat and tensor for only Layer
   "log_tensor"  : True,
-  "last_only"   : True,
+  "last_only"   : False,
   "curve_only"  : False,
   
   "cifar"       : {

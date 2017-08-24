@@ -63,7 +63,7 @@ def evaluate(model, x=None, y=None, verbose=0):
   return res[1]
 
 
-def orthochnl(tensor ):
+def orthochnl(tensor):
   tensor = tensor.reshape(-1, tensor.shape[-1])
   shape1, shape2 = tensor.shape
   tensor = tensor.T
@@ -73,7 +73,8 @@ def orthochnl(tensor ):
   np.fill_diagonal(angles, np.nan)
   return np.nanmean(angles)
 
-def orthosmpl(self, tensor ):
+
+def orthosmpl(self, tensor):
   tensor = tensor.reshape(tensor.shape[0], -1)
   shape1, shape2 = tensor.shape
   # print tensor.shape
@@ -82,6 +83,7 @@ def orthosmpl(self, tensor ):
   logger.debug('angles matrix is {}'.format(angles.shape))
   np.fill_diagonal(angles, np.nan)
   return np.nanmean(angles)
+
 
 def orthogonalize(weights):
   flat_shape = shape = weights.shape
@@ -159,8 +161,15 @@ def custom_sort(tensor, y):
   tt = [tensor_.tolist() for tensor_ in t]
   return np.array(tt)
 
-def calc_margin(inp,out):
-  dataset=Dataset('cifar10')
+def gen_fake():
+  fake = np.arange(20).reshape(5, 4)
+  return fake
+  
+
+def calc_margin(inp, out):
+  inp=inp.squeeze()
+  out=out.squeeze()
+  dataset = Dataset('cifar10')
   y_ori = np.where(dataset.y_test_ref)[1]
   x_norm = np.linalg.norm(inp, axis=1)
   
@@ -168,12 +177,12 @@ def calc_margin(inp,out):
   out_t = out.copy()
   out_t[np.arange(out.shape[0]), y_ori] = out_t.min(axis=1) - 1
   
-  out_max = out_t.max(axis=1)
+  out_max = np.nanmax(out_t, axis=1)
+  res=(out_ori - out_max) / x_norm
+  return res
 
-  return (out_ori-out_max)/x_norm
-
-
-
+def hasnan(t):
+  return np.isnan(t).any()
 
 if __name__ == '__main__':
   tensor = np.random.rand(272, 5)
