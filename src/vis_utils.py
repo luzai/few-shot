@@ -470,10 +470,10 @@ def plot(perf_df, axes_names, sup_title, lr=None, val_acc=None, legend=True, ):
     for _j in range(cols):
       ax = axes[refaxis, _j]
       ax.set_title('lr')
-      ((lr.interpolate(limit_direction='backward') + lr.interpolate()) / 2.).plot(ax=ax, legend=False)
+      ((lr.interpolate(limit_direction='backward') + lr.interpolate()) / 2.).plot(ax=ax, legend=legend)
       ax = axes[refaxis + 1, _j]
       ax.set_title('val_acc')
-      ((val_acc.interpolate(limit_direction='backward') + val_acc.interpolate()) / 2.).plot(ax=ax, legend=False)
+      ((val_acc.interpolate(limit_direction='backward') + val_acc.interpolate()) / 2.).plot(ax=ax, legend=legend)
     
     for axis in axes[(refaxis, refaxis + 1), :].flatten():
       for line in axis.get_lines():
@@ -526,7 +526,7 @@ def plot(perf_df, axes_names, sup_title, lr=None, val_acc=None, legend=True, ):
   
   perf_df_inter = (perf_df.interpolate(limit_direction='backward') + perf_df.interpolate()) / 2.
   
-  perf_df_inter.plot(subplots=True, legend=False,
+  perf_df_inter.plot(subplots=True, legend=legend,
                      ax=target,
                      sharex=False,
                      # style='.'

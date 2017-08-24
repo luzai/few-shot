@@ -30,7 +30,7 @@ class Dataset(object):
       x_train = x_train[..., np.newaxis]
       x_test = x_test[..., np.newaxis]
     
-    print x_train.shape
+    # logger.info(str( x_train.shape))
 
     y_train = keras.utils.to_categorical(y_train, self.classes)
     y_test = keras.utils.to_categorical(y_test, self.classes)
