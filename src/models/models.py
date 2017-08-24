@@ -1,13 +1,14 @@
 class BaseModel(object):
   model_type = []
   
-  def __init__(self, input_shape, classes, config, with_bn, with_dp,hiddens):
+  def __init__(self, input_shape, classes, config, with_bn, with_dp,hiddens,last_act_layer):
     self.hiddens = hiddens
     self.input_shape = input_shape
     self.with_bn = with_bn
     self.with_dp = with_dp
     self.classes = classes
     self.model_output_path = config.model_output_path
+    self.last_act_layer=last_act_layer
   
   def vis(self):
     from keras.utils import vis_utils

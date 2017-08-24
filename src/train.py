@@ -1,6 +1,8 @@
 def run(model_type='vgg6', limit_val=True,
         dataset='cifar10', queue=None, runtime=1,
-        with_bn=True, optimizer={'name': 'sgd'}, hiddens=512, with_dp=False):
+        with_bn=True, optimizer={'name': 'sgd'},
+        hiddens=512, with_dp=False,
+        loss='softmax'):
   import utils
   import warnings
   warnings.filterwarnings("ignore")
@@ -30,7 +32,8 @@ def run(model_type='vgg6', limit_val=True,
                     # 'with_bn'  : with_bn,
                     'optimizer': optimizer,
                     'hiddens'  : hiddens,
-                    # 'with_dp'  : with_dp
+                    # 'with_dp'  : with_dp,
+                    'loss'     : loss
                   }, )
   # if len(glob.glob(config.model_tfevents_path + '/*tfevents*')) >= 1:
   #   logger.info('exist ' + config.model_tfevents_path)
@@ -40,10 +43,18 @@ def run(model_type='vgg6', limit_val=True,
   #   logger.info('do not exist ' + config.model_tfevents_path)
   
   dataset = Dataset(config.dataset_type, debug=config.debug, limit_val=limit_val)
+  
   if 'vgg' in model_type:
-    model = VGG(dataset.input_shape, dataset.classes, config, with_bn=with_bn, with_dp=with_dp, hiddens=hiddens)
+    model = VGG(dataset.input_shape, dataset.classes, config,
+                with_bn=with_bn, with_dp=with_dp, hiddens=hiddens,
+                last_act_layer='linear' if loss == 'mse' else 'softmax'
+                )
   else:
-    model = ResNet(dataset.input_shape, dataset.classes, config, with_bn=with_bn, with_dp=with_dp, hiddens=hiddens)
+    model = ResNet(dataset.input_shape, dataset.classes, config,
+                   with_bn=with_bn, with_dp=with_dp, hiddens=hiddens,
+                   last_act_layer='linear' if loss == 'mse' else 'softmax'
+                   )
+  
   if optimizer['name'] == 'sgd':
     opt = keras.optimizers.sgd(optimizer['lr'], momentum=0.9)
   elif optimizer['name'] == 'rmsprop':
@@ -52,7 +63,7 @@ def run(model_type='vgg6', limit_val=True,
     opt = keras.optimizers.adam(optimizer['lr'])
   model.model.summary()
   model.model.compile(opt,
-                      loss='categorical_crossentropy',
+                      loss='mse' if loss == 'mse' else 'categorical_crossentropy',
                       metrics=['accuracy'])
   
   if queue is not None: queue.put([True])
@@ -86,7 +97,6 @@ def run(model_type='vgg6', limit_val=True,
   
   Loader(path=config.model_tfevents_path, stat_only=True).load(stat_only=True)
   Loader(path=config.model_tfevents_path, stat_only=False).load(stat_only=False)
-  
 
 
 import multiprocessing as mp, time

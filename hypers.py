@@ -1,7 +1,7 @@
 import numpy as np
 
 hyper = {
-  "gpu"         : [0, 1, 2, ],
+  "gpu"         : [0, 1, 2, 3],
   "use"         : "cifar",
   "logger_level": "info",
   "dbg"         : False,
@@ -11,7 +11,7 @@ hyper = {
   # stat and tensor for only Layer
   "log_tensor"  : True,
   "last_only"   : True,
-  "curve_only"  : False,
+  "curve_only"  : True,
   
   "cifar"       : {
     "epochs"         : 71,
@@ -19,22 +19,21 @@ hyper = {
     "sub_sample"     : [5, 20, ],  # epoch
     "sub_sample_rate": [20, 2, .2],
     "grids"          : {'dataset'   : ['cifar10', ],
-                        'model_type': ['resnet10', 'vgg10', ],
+                        'model_type': ['resnet10'  ],
                         'optimizer' : [
-                          # {'name': 'sgd',
-                          #  'lr'  : 0.001, },
-                          {'name'       : 'sgd',
-                           'lr'         : 0.01,
-                           'decay_epoch': [49, ],
-                           'decay'      : [10, ], },
-                          {'name'       : 'sgd',
-                           'lr'         : 0.01,
-                           'decay_epoch': [25, ],
-                           'decay'      : [10, ], },
+                          # {'name'       : 'sgd',
+                          #  'lr'         : 0.01,
+                          #  'decay_epoch': [49, ],
+                          #  'decay'      : [10, ], },
+                          # {'name'       : 'sgd',
+                          #  'lr'         : 0.01,
+                          #  'decay_epoch': [25, ],
+                          #  'decay'      : [10, ], },
                           {'name': 'sgd',
                            'lr'  : 0.01, },
                         ],
-                        'hiddens'   : [2, 5, 20, 512]
+                        'hiddens'   : [  512],
+                        'loss'      : ['softmax' ]
                         }
   },
   # mnist ok

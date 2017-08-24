@@ -215,7 +215,7 @@ def _get_block(identifier):
 
 class ResnetBuilder(object):
   @staticmethod
-  def build(input_shape, num_outputs, block_fn, repetitions, name='model', hiddens=512):
+  def build(input_shape, num_outputs, block_fn, repetitions, name='model', hiddens=512,last_act_layer='softmax'):
     """Builds a custom ResNet like architecture.
 
     Args:
@@ -273,7 +273,8 @@ class ResnetBuilder(object):
     dense = Dense(units=num_outputs, kernel_initializer="he_normal",
                   name='Layer{}/dense'.format(layer),
                   use_bias=False)(dense)
-    dense = Activation('softmax', name='Layer{}/softmax'.format(layer))(dense)
+    if last_act_layer == 'softmax':
+      dense = Activation('softmax', name='Layer{}/softmax'.format(layer))(dense)
     
     model = Model(inputs=input, outputs=dense, name=name)
     return model
@@ -305,8 +306,8 @@ from models import BaseModel
 class ResNet(BaseModel):
   model_type = ['resnet5', 'resnet11', 'resnet32']
   
-  def __init__(self, input_shape, classes, config, with_bn=True, with_dp=True, hiddens=512):
-    super(ResNet, self).__init__(input_shape, classes, config, with_bn, with_dp, hiddens)
+  def __init__(self, input_shape, classes, config, with_bn=True, with_dp=True, hiddens=512, last_act_layer='softmax'):
+    super(ResNet, self).__init__(input_shape, classes, config, with_bn, with_dp, hiddens, last_act_layer)
     type = config.model_type
     cfg = {
       'resnet6' : [1, 1],
@@ -318,7 +319,7 @@ class ResNet(BaseModel):
     }
     
     self.model = ResnetBuilder.build(input_shape, classes, basic_block, cfg[type], name=config.name,
-                                     hiddens=self.hiddens)
+                                     hiddens=self.hiddens,last_act_layer=last_act_layer)
     self.vis()
 
 

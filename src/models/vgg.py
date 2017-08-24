@@ -10,8 +10,8 @@ from keras.regularizers import l2
 class VGG(BaseModel):
   model_type = ['vgg11', 'vgg13', 'vgg16', 'vgg6', 'vgg19', 'vgg10', 'vgg9', 'vgg8']
   
-  def __init__(self, input_shape, classes, config, with_bn=True, with_dp=True, hiddens=512):
-    super(VGG, self).__init__(input_shape, classes, config, with_bn, with_dp, hiddens)
+  def __init__(self, input_shape, classes, config, with_bn=True, with_dp=True, hiddens=512,last_act_layer='softmax'):
+    super(VGG, self).__init__(input_shape, classes, config, with_bn, with_dp, hiddens,last_act_layer)
     type = config.model_type
     cfg = {
       'vgg11' : [[64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'], [512, 512, self.classes]],
@@ -34,10 +34,10 @@ class VGG(BaseModel):
     self.arch = [['conv2d', _config] if _config != 'M' else ['maxpooling2d'] for _config in cfg[type][0]]
     self.arch += [['flatten']]
     self.arch += [['dense', _config] for _config in cfg[type][1]]
-    self.model = self.build(name=config.name)
+    self.model = self.build(name=config.name,last_act_layer=last_act_layer)
     self.vis()
   
-  def build(self, name):
+  def build(self, name,last_act_layer='softmax'):
     x = input = Input(self.input_shape, name='layer0/input')  # layer --stat Layer --tensor
     depth = 1
     for ind, config in enumerate(self.arch):
@@ -67,7 +67,8 @@ class VGG(BaseModel):
       else:
         assert config[1] == self.classes, 'should be end'
         x = Dense(config[1], name='Layer{}/dense'.format(depth), use_bias=False)(x)
-        x = Activation('softmax', name='Layer{}/softmax'.format(depth))(x)
+        if last_act_layer == 'softmax':
+          x = Activation('softmax', name='Layer{}/softmax'.format(depth))(x)
     
     model = Model(input, x, name=name)
     return model

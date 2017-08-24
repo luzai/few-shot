@@ -63,26 +63,32 @@ def evaluate(model, x=None, y=None, verbose=0):
   return res[1]
 
 
-def orthochnl(tensor):
+def orthochnl(tensor,single=True):
   tensor = tensor.reshape(-1, tensor.shape[-1])
   shape1, shape2 = tensor.shape
   tensor = tensor.T
   tensor = tensor / np.linalg.norm(tensor, axis=1)[:, np.newaxis]
   angles = np.dot(tensor, tensor.T)
   logger.debug('angles matrix is {}'.format(angles.shape))
-  np.fill_diagonal(angles, np.nan)
-  return np.nanmean(angles)
+  if single:
+    np.fill_diagonal(angles, np.nan)
+    return np.nanmean(angles)
+  else:
+    return angles
 
 
-def orthosmpl(self, tensor):
+def orthosmpl(tensor,single=True):
   tensor = tensor.reshape(tensor.shape[0], -1)
   shape1, shape2 = tensor.shape
   # print tensor.shape
   tensor = tensor / np.linalg.norm(tensor, axis=1)[:, np.newaxis]
   angles = np.dot(tensor, tensor.T)
   logger.debug('angles matrix is {}'.format(angles.shape))
-  np.fill_diagonal(angles, np.nan)
-  return np.nanmean(angles)
+  if single:
+    np.fill_diagonal(angles, np.nan)
+    return np.nanmean(angles)
+  else:
+    return angles
 
 
 def orthogonalize(weights):
@@ -95,11 +101,11 @@ def orthogonalize(weights):
   return u_new
 
 
-def perm_iter(U):
-  import itertools
-  for ind, u in enumerate(itertools.permutations(U.transpose())):
-    u_new = np.array(u).transpose()
-    yield u_new
+# def perm_iter(U):
+#   import itertools
+#   for ind, u in enumerate(itertools.permutations(U.transpose())):
+#     u_new = np.array(u).transpose()
+#     yield u_new
 
 
 def perm(weights):
@@ -161,14 +167,15 @@ def custom_sort(tensor, y):
   tt = [tensor_.tolist() for tensor_ in t]
   return np.array(tt)
 
+
 def gen_fake():
   fake = np.arange(20).reshape(5, 4)
   return fake
-  
+
 
 def calc_margin(inp, out):
-  inp=inp.squeeze()
-  out=out.squeeze()
+  inp = inp.squeeze()
+  out = out.squeeze()
   dataset = Dataset('cifar10')
   y_ori = np.where(dataset.y_test_ref)[1]
   x_norm = np.linalg.norm(inp, axis=1)
@@ -178,25 +185,13 @@ def calc_margin(inp, out):
   out_t[np.arange(out.shape[0]), y_ori] = out_t.min(axis=1) - 1
   
   out_max = np.nanmax(out_t, axis=1)
-  res=(out_ori - out_max) / x_norm
+  res = (out_ori - out_max) / x_norm
   return res
+
 
 def hasnan(t):
   return np.isnan(t).any()
 
+
 if __name__ == '__main__':
   tensor = np.random.rand(272, 5)
-  y = [7, 9, 3, 8, 0, 1, 0, 6, 3, 7, 8, 8, 9, 4, 4, 3, 3, 5, 2, 4, 5, 9, 0,
-       0, 5, 4, 5, 0, 0, 2, 2, 2, 9, 8, 8, 6, 1, 7, 5, 6, 3, 8, 8, 3, 8, 8,
-       9, 4, 1, 2, 8, 8, 5, 5, 1, 3, 3, 6, 8, 7, 1, 6, 8, 2, 5, 4, 9, 7, 8,
-       6, 4, 1, 7, 7, 6, 7, 2, 2, 7, 6, 8, 9, 4, 3, 1, 9, 5, 4, 8, 4, 9, 8,
-       3, 9, 4, 5, 6, 1, 0, 2, 3, 5, 0, 4, 3, 4, 4, 9, 2, 1, 6, 4, 1, 9, 4,
-       1, 2, 4, 1, 3, 9, 1, 7, 3, 7, 5, 6, 2, 3, 8, 6, 1, 1, 2, 6, 0, 3, 9,
-       1, 3, 4, 6, 7, 5, 6, 9, 1, 9, 3, 2, 2, 6, 9, 8, 1, 5, 4, 1, 5, 2, 3,
-       8, 0, 4, 3, 4, 6, 2, 3, 8, 8, 1, 5, 4, 6, 4, 5, 6, 2, 4, 6, 0, 1, 7,
-       7, 4, 2, 2, 4, 4, 9, 7, 8, 3, 0, 5, 9, 0, 1, 4, 4, 5, 9, 8, 4, 9, 0,
-       1, 1, 6, 6, 6, 8, 8, 5, 3, 2, 5, 2, 0, 3, 5, 6, 2, 9, 4, 8, 8, 3, 4,
-       3, 1, 2, 8, 1, 1, 3, 0, 6, 5, 5, 8, 6, 4, 3, 7, 0, 9, 8, 7, 3, 7, 4,
-       7, 0, 3, 1, 3, 1, 4, 4, 0, 8, 4, 5, 4, 7, 4, 3, 8, 9, 9]
-  
-  custom_sort(tensor, y)
