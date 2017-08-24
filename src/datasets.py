@@ -57,7 +57,7 @@ class Dataset(object):
 
 
 @utils.static_vars(ind=None)
-def sample_data(data, n=256 + 16):
+def sample_data(data, n=4500):
   # todo
   np.random.seed(1)
   if sample_data.ind is None:

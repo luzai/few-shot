@@ -10,14 +10,14 @@ hyper = {
   # we need 2 mode : log all stat
   # stat and tensor for only Layer
   "log_tensor"  : True,
-  "last_only"   : False,
+  "last_only"   : True,
   "curve_only"  : False,
   
   "cifar"       : {
     "epochs"         : 71,
-    "sample_rate"    : 1. / 2.,  # epoch^-1
-    "sub_sample"     : [5, 30],  # epoch
-    "sub_sample_rate": [30, 15, 1],
+    "sample_rate"    : 1.,  # epoch^-1
+    "sub_sample"     : [5, 20, ],  # epoch
+    "sub_sample_rate": [20, 2, .2],
     "grids"          : {'dataset'   : ['cifar10', ],
                         'model_type': ['resnet10', 'vgg10', ],
                         'optimizer' : [
@@ -34,7 +34,7 @@ hyper = {
                           {'name': 'sgd',
                            'lr'  : 0.01, },
                         ],
-                        'hiddens'   : [5, 20, 512]
+                        'hiddens'   : [2, 5, 20, 512]
                         }
   },
   # mnist ok
