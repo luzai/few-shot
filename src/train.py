@@ -9,7 +9,7 @@ def run(model_type='vgg6', limit_val=True,
   
   import psutil
   p = psutil.Process(os.getpid())
-  p.nice(19)
+  p.nice(utils.get_config('priority'))
   utils.init_dev(utils.get_dev(ok=utils.get_config('gpu')))
   utils.allow_growth()
   import tensorflow as tf, keras

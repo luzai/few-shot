@@ -215,7 +215,7 @@ def _get_block(identifier):
 
 class ResnetBuilder(object):
   @staticmethod
-  def build(input_shape, num_outputs, block_fn, repetitions, name='model', hiddens=512,last_act_layer='softmax'):
+  def build(input_shape, num_outputs, block_fn, repetitions, name='model', hiddens=512, last_act_layer='softmax'):
     """Builds a custom ResNet like architecture.
 
     Args:
@@ -310,16 +310,16 @@ class ResNet(BaseModel):
     super(ResNet, self).__init__(input_shape, classes, config, with_bn, with_dp, hiddens, last_act_layer)
     type = config.model_type
     cfg = {
-      'resnet6' : [1, 1],
-      'resnet8' : [1, 1, 1],
-      'resnet10': [1, 2, 1],
-      'resnet12': [1, 2, 1, 1],
-      'resnet18': [2, 2, 2, 2],
-      'resnet34': [3, 4, 6, 3],
+      'resnet8'  : [1, 1],
+      'resnet10' : [1, 1, 1],
+      'resnet10s': [2, 2, 1],
+      'resnet12' : [1, 2, 1, 1],
+      'resnet18' : [2, 2, 2, 2],
+      'resnet34' : [3, 4, 6, 3],
     }
     
     self.model = ResnetBuilder.build(input_shape, classes, basic_block, cfg[type], name=config.name,
-                                     hiddens=self.hiddens,last_act_layer=last_act_layer)
+                                     hiddens=self.hiddens, last_act_layer=last_act_layer)
     self.vis()
 
 

@@ -55,10 +55,13 @@ def merge_level(columns, start, stop):
   return pd.MultiIndex.from_tuples(columns_tuples)
 
 
-def split_level(columns, mid=2):
-  df_tuples = [c.split('/') for c in columns]
-  df_tuples = [['/'.join(c[:mid]), '/'.join(c[mid:])] for c in df_tuples]
-  fcolumns = pd.MultiIndex.from_tuples(df_tuples, names=['layer', 'stat'])
+def split_level(columns, mid=2,splitter='/',names=None):
+  df_tuples = [c.split(splitter) for c in columns]
+  if mid is not None:
+    df_tuples = [['/'.join(c[:mid]), '/'.join(c[mid:])] for c in df_tuples]
+    fcolumns = pd.MultiIndex.from_tuples(df_tuples, names=['layer', 'stat'])
+  else:
+    fcolumns = pd.MultiIndex.from_tuples(df_tuples,names=names)
   return fcolumns
 
 

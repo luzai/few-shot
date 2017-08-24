@@ -8,6 +8,8 @@ class BaseModel(object):
     self.with_dp = with_dp
     self.classes = classes
     self.model_output_path = config.model_output_path
+    self.model_output_path2 = config.model_tfevents_path
+    
     self.last_act_layer=last_act_layer
   
   def vis(self):
@@ -20,3 +22,4 @@ class BaseModel(object):
   
   def save(self):
     self.model.save(self.model_output_path + '/model.h5')
+    self.model.save(self.model_output_path2 + '/model.h5')

@@ -5,7 +5,7 @@ hyper = {
   "use"         : "cifar",
   "logger_level": "info",
   "dbg"         : False,
-  
+  "priority"    : 11,  # 11
   "log_stat"    : True,
   # we need 2 mode : log all stat
   # stat and tensor for only Layer
@@ -14,12 +14,12 @@ hyper = {
   "curve_only"  : True,
   
   "cifar"       : {
-    "epochs"         : 71,
+    "epochs"         : 53,
     "sample_rate"    : 1.,  # epoch^-1
     "sub_sample"     : [5, 20, ],  # epoch
     "sub_sample_rate": [20, 2, .2],
     "grids"          : {'dataset'   : ['cifar10', ],
-                        'model_type': ['resnet10'  ],
+                        'model_type': ['resnet10',],
                         'optimizer' : [
                           # {'name'       : 'sgd',
                           #  'lr'         : 0.01,
@@ -32,8 +32,8 @@ hyper = {
                           {'name': 'sgd',
                            'lr'  : 0.01, },
                         ],
-                        'hiddens'   : [  512],
-                        'loss'      : ['softmax' ]
+                        'hiddens'   : [3],
+                        'loss'      : ['softmax']
                         }
   },
   # mnist ok
@@ -43,7 +43,7 @@ hyper = {
     "sub_sample"     : [1, 2],
     "sub_sample_rate": [5, 3, 1],
     "grids"          : {'dataset'   : ['mnist', ],  # 'cifar10'],
-                        'model_type': ['resnet10'],  # 'vgg16', , 'vgg19'
+                        'model_type': ['resnet10'],  # 'vgg16',  'vgg19'
                         'optimizer' : [{'name': 'sgd',
                                         'lr'  : 0.001,
                                         },

@@ -63,7 +63,26 @@ def evaluate(model, x=None, y=None, verbose=0):
   return res[1]
 
 
-def orthochnl(tensor,single=True):
+# def
+
+
+def ortho(tt):
+  # print tt.shape
+  angles = orthochnl(tt, single=False)
+  # print angles.shape
+  np.fill_diagonal(angles, np.nan)
+  
+  return np.nanmax(angles, axis=1).sum() / tt.shape[0]
+
+
+def series2tensor(t, flatten=False):
+  if flatten:
+    return np.array(t.values.tolist()).squeeze()
+  else:
+    return np.array(t.values).squeeze()
+
+
+def orthochnl(tensor, single=True):
   tensor = tensor.reshape(-1, tensor.shape[-1])
   shape1, shape2 = tensor.shape
   tensor = tensor.T
@@ -74,10 +93,11 @@ def orthochnl(tensor,single=True):
     np.fill_diagonal(angles, np.nan)
     return np.nanmean(angles)
   else:
+    
     return angles
 
 
-def orthosmpl(tensor,single=True):
+def orthosmpl(tensor, single=True):
   tensor = tensor.reshape(tensor.shape[0], -1)
   shape1, shape2 = tensor.shape
   # print tensor.shape
