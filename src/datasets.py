@@ -9,17 +9,17 @@ def load_cifar10(classes):
   (x_train, y_train), (x_test, y_test) = cifar10.load_data()
   from model_utils import cosort
   y_train_ori = y_train.copy()
-  x_train = cosort(x_train, y_train_ori)
-  y_train = cosort(y_train, y_train_ori)
+  x_train, y_train = cosort(x_train, y_train_ori, return_y=True)
   
   y_test_ori = y_test.copy()
-  x_test = cosort(x_test, y_test_ori)
-  y_test = cosort(y_test, y_test_ori)
+  x_test, y_test = cosort(x_test, y_test_ori, return_y=True)
   
   x_train, y_train = map(lambda x: limit_data(x, n=5000 * classes), [x_train, y_train])
   x_test, y_test = map(lambda x: limit_data(x, n=1000 * classes), [x_test, y_test])
   
-  map(np.random.shuffle, [x_train, y_train])
+  ind = np.random.permutation(x_train.shape[0])
+  x_train = x_train[ind]
+  y_train = y_train[ind]
   
   return (x_train, y_train), (x_test, y_test)
 

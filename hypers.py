@@ -4,7 +4,7 @@ hyper = {
   "gpu"         : [0, 1, 2, 3],
   "use"         : "cifar",
   "logger_level": "info",
-  "dbg"         : False,
+  "dbg"         : True,
   "priority"    : 19,  # 11
   "log_stat"    : True,
   # we need 2 mode : log all stat
@@ -19,7 +19,7 @@ hyper = {
     "sub_sample"     : [5, 20, ],  # epoch
     "sub_sample_rate": [20, 2, .5],
     "grids"          : {'dataset'   : ['cifar10', ],
-                        'model_type': ['resnet10',], # 'vgg10', 'resnet10'
+                        'model_type': ['vgg6',], # 'vgg10', 'resnet10'
                         'optimizer' : [
                           # {'name'       : 'sgd',
                           #  'lr'         : 0.01,
@@ -29,8 +29,8 @@ hyper = {
                           #  'lr'         : 0.01,
                           #  'decay_epoch': [25, ],
                           #  'decay'      : [10, ], },
-                          {'name': 'sgd',
-                           'lr'  : 0.01, },
+                          {'name': 'adam',
+                           'lr'  : 0.001, },
                         ],
                         'hiddens'   : [3 ],
                         'loss'      : ['softmax'],

@@ -212,7 +212,7 @@ def softmax(x):
   return ex / ex.sum(axis=1).reshape(-1,1)
 
 
-def cosort(tensor, y):
+def cosort(tensor, y, return_y=False):
   # comb = zip(tensor, y)
   # res = sorted(comb, key=lambda x: x[1])
   # t = np.array(res)
@@ -221,7 +221,10 @@ def cosort(tensor, y):
   # return np.array(tt)
   comb = np.array(zip(tensor,y),dtype= [ ('tensor',np.ndarray),('y',float)] )
   comb.sort(order='y')
-  return np.array(zip(*comb)[0])
+  if not return_y:
+    return np.array(zip(*comb)[0])
+  else:
+    return np.array(zip(*comb)[0]), np.array(zip(*comb)[1])
   
 
 def gen_fake(shape=(4, 3)):

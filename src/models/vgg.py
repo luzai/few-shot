@@ -21,11 +21,8 @@ class VGG(BaseModel):
                  [512, 512, self.classes]],
       'vgg19' : [[64, 64, 'M', 128, 128, 'M', 256, 256, 256, 256, 'M', 512, 512, 512, 512, 'M', 512, 512, 512, 512,
                   'M'], [512, 512, self.classes]],
-      'vgg6'  : [[32, 32, 'M', 64, 64, 'M'], [512, self.classes]],
+      'vgg6'  : [[16,   'M', 32,'M' ], [512, self.classes]],
       'vgg10' : [[32, 'M', 64, 64, 'M', 128, 128, 'M', 256, 256, 'M'], [1024, self.hiddens, self.classes]],
-      'vgg101': [[32, 'M', 64, 64, 'M', 128, 128, 'M', 256, 256, 'M'], [512, self.hiddens, self.classes]],
-      'vgg102': [[64, 'M', 128, 128, 'M', 256, 256, 'M', 512, 512, 'M'], [512, self.hiddens, self.classes]],
-      'vgg103': [[32, 'M', 64, 64, 'M', 128, 128, 'M', 256, 256, 'M'], [1024, self.hiddens, self.classes]],
       
       'vgg9'  : [[64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M'], [512, 512, self.classes]],
       'vgg8'  : [[64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M'], [512, self.classes]],
