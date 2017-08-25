@@ -6,7 +6,7 @@ import os, csv, time, cPickle, \
 import keras.backend as K
 from logs import logger
 from datasets import Dataset
-
+import matplotlib.pylab as plt
 
 def rand_weight_like(weight):
   assert K.image_data_format() == "channels_last", "support channels last, but you are {}".format(
@@ -63,33 +63,48 @@ def evaluate(model, x=None, y=None, verbose=0):
   return res[1]
 
 
-# def
+def conf_mat(model_path):
+  model=keras.models.load_model(model_path)
+  dataset=Dataset('cifar10')
+  pred = np.argmax(model.predict(dataset.x_test), axis=1)
+  ori = np.argmax(dataset.y_test, axis=1)
+  from sklearn.metrics import confusion_matrix
+  conf = confusion_matrix(ori, pred).astype(float)
+  return conf
 
+
+def plot_mat(angles):
+  fig,ax=plt.subplots()
+  ax.matshow(angles)
+  ax.grid('off')
+  # ax.colorbar()
+  return fig,ax
+  
 
 def ortho(tt):
   # print tt.shape
-  angles = orthochnl(tt, single=False)
+  angles = orthochnl(tt, reduce=False)
   # print angles.shape
   np.fill_diagonal(angles, np.nan)
   
   return np.nanmax(angles, axis=1).sum() / tt.shape[0]
 
 
-def series2tensor(t, flatten=False):
-  if flatten:
-    return np.array(t.values.tolist()).squeeze()
-  else:
-    return np.array(t.values).squeeze()
+# def series2tensor(t, flatten=False):
+#   if flatten:
+#     return np.array(t.values.tolist()).squeeze()
+#   else:
+#     return np.array(t.values).squeeze()
 
 
-def orthochnl(tensor, single=True):
+def orthochnl(tensor, reduce=True):
   tensor = tensor.reshape(-1, tensor.shape[-1])
   shape1, shape2 = tensor.shape
   tensor = tensor.T
   tensor = tensor / np.linalg.norm(tensor, axis=1)[:, np.newaxis]
   angles = np.dot(tensor, tensor.T)
   logger.debug('angles matrix is {}'.format(angles.shape))
-  if single:
+  if reduce:
     np.fill_diagonal(angles, np.nan)
     return np.nanmean(angles)
   else:

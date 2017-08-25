@@ -55,13 +55,13 @@ def merge_level(columns, start, stop):
   return pd.MultiIndex.from_tuples(columns_tuples)
 
 
-def split_level(columns, mid=2,splitter='/',names=None):
+def split_level(columns, mid=2, splitter='/', names=None):
   df_tuples = [c.split(splitter) for c in columns]
   if mid is not None:
     df_tuples = [['/'.join(c[:mid]), '/'.join(c[mid:])] for c in df_tuples]
     fcolumns = pd.MultiIndex.from_tuples(df_tuples, names=['layer', 'stat'])
   else:
-    fcolumns = pd.MultiIndex.from_tuples(df_tuples,names=names)
+    fcolumns = pd.MultiIndex.from_tuples(df_tuples, names=names)
   return fcolumns
 
 
@@ -221,8 +221,10 @@ class Visualizer(object):
     self.val_acc = select(self.df, {'name': 'val_acc'}).dropna(how='all')
   
   def aggregate(self, join, parant_folder, stat_only, parallel=True):
-    conf_name_dict = {}
-    loaders = {}
+    name2dict = {}
+    name2loader = {}
+    name2path = {}
+    
     parant_path = Config.root_path + '/' + parant_folder + '/'
     for path in glob.glob(parant_path + '/*'):
       _conf = utils.unpickle(path + '/config.pkl')
@@ -233,16 +235,22 @@ class Visualizer(object):
       loader = Loader(path=path, stat_only=stat_only, parallel=parallel)
       # loader.start()
       loader.load(stat_only=stat_only, parallel=parallel)
-      loaders[_conf.name] = loader
-      conf_name_dict[_conf.name] = _conf.to_dict()
+      name2loader[_conf.name] = loader
+      name2dict[_conf.name] = _conf.to_dict()
+      name2path[_conf.name] = path
+    
+    self.name2dict = name2dict
+    self.name2path = name2path
+    self.name2ind = dict(zip(self.name2dict.keys(), range(len(self.name2dict.keys()))))
+    self.ind2name = dict(zip(range(len(self.name2dict.keys())), self.name2dict.keys()))
     
     df_l = []
     index_l = []
-    assert len(conf_name_dict) != 0, 'should not be empty'
-    for ind in range(len(conf_name_dict)):
-      conf_name = conf_name_dict.keys()[ind]
-      conf_dict = conf_name_dict[conf_name]
-      loader = loaders[conf_name]
+    assert len(name2dict) != 0, 'should not be empty'
+    for ind in range(len(name2dict)):
+      conf_name = name2dict.keys()[ind]
+      conf_dict = name2dict[conf_name]
+      loader = name2loader[conf_name]
       if stat_only:
         scalar = loader.scalars
         df_l.append(scalar)
@@ -742,27 +750,6 @@ def map_name(names):
   return names
 
 
-import logs
-
 if __name__ == '__main__':
-  vis1 = vis.copy()
-  vis1.select({'model_type': 'vgg10', 'optimizer': '_lr_0.01_name_sgd'}, regexp=False)
-  vis1.auto_plot()
-  
-  show_pdf(_[0])
-  
-  vis1 = vis.copy()
-  vis1.select({'model_type': 'resnet10', 'optimizer': '_lr_0.01_name_sgd'}, regexp=False)
-  vis1.auto_plot()
-  
-  vis1 = vis.copy()
-  vis1.select({'model_type': 'resnet10'})
-  vis1.exclude({'optimizer': '.*001.*'})
-  vis1.exclude({'optimizer': '_decay_epoch-150_lr_0.01_name_sgd_decay-10'}, regexp=False)
-  vis1.auto_plot(('layer', 'stat', 'optimizer'))
-  
-  vis1 = vis.copy()
-  vis1.select({'model_type': 'vgg10'})
-  vis1.exclude({'optimizer': '.*001.*'})
-  vis1.exclude({'optimizer': '_decay_epoch-150_lr_0.01_name_sgd_decay-10'}, regexp=False)
-  vis1.auto_plot(('layer', 'stat', 'optimizer'))
+  vis = Visualizer(paranet_folder='all')
+  vis.tensor.head()

@@ -5,21 +5,21 @@ hyper = {
   "use"         : "cifar",
   "logger_level": "info",
   "dbg"         : False,
-  "priority"    : 11,  # 11
+  "priority"    : 19,  # 11
   "log_stat"    : True,
   # we need 2 mode : log all stat
   # stat and tensor for only Layer
   "log_tensor"  : True,
   "last_only"   : True,
-  "curve_only"  : True,
+  "curve_only"  : False,
   
   "cifar"       : {
-    "epochs"         : 53,
+    "epochs"         : 81,
     "sample_rate"    : 1.,  # epoch^-1
     "sub_sample"     : [5, 20, ],  # epoch
-    "sub_sample_rate": [20, 2, .2],
+    "sub_sample_rate": [20, 2, .5],
     "grids"          : {'dataset'   : ['cifar10', ],
-                        'model_type': ['resnet10',],
+                        'model_type': ['resnet10','vgg10','resnet10s'],
                         'optimizer' : [
                           # {'name'       : 'sgd',
                           #  'lr'         : 0.01,
@@ -32,8 +32,8 @@ hyper = {
                           {'name': 'sgd',
                            'lr'  : 0.01, },
                         ],
-                        'hiddens'   : [3],
-                        'loss'      : ['softmax']
+                        'hiddens'   : [3,20,512],
+                        'loss'      : ['softmax','mse']
                         }
   },
   # mnist ok
