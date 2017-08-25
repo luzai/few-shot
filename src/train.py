@@ -2,7 +2,8 @@ def run(model_type='vgg6', limit_val=True,
         dataset='cifar10', queue=None, runtime=1,
         with_bn=True, optimizer={'name': 'sgd'},
         hiddens=512, with_dp=False,
-        loss='softmax'):
+        loss='softmax',
+        classes=10):
   import utils
   import warnings
   warnings.filterwarnings("ignore")
@@ -33,7 +34,8 @@ def run(model_type='vgg6', limit_val=True,
                     'optimizer': optimizer,
                     'hiddens'  : hiddens,
                     # 'with_dp'  : with_dp,
-                    'loss'     : loss
+                    'loss'     : loss,
+                    'classes' : classes
                   }, )
   # if len(glob.glob(config.model_tfevents_path + '/*tfevents*')) >= 1:
   #   logger.info('exist ' + config.model_tfevents_path)
@@ -42,7 +44,7 @@ def run(model_type='vgg6', limit_val=True,
   # else:
   #   logger.info('do not exist ' + config.model_tfevents_path)
   
-  dataset = Dataset(config.dataset_type, debug=config.debug, limit_val=limit_val)
+  dataset = Dataset(config.dataset_type, debug=config.debug, limit_val=limit_val,classes=classes)
   
   if 'vgg' in model_type:
     model = VGG(dataset.input_shape, dataset.classes, config,
@@ -103,8 +105,7 @@ import multiprocessing as mp, time
 from logs import logger
 import logs, os.path as osp
 import numpy as np
-import utils, os, legacy
-
+import utils, os
 utils.rm(utils.root_path + '/tfevents  ' + utils.root_path + '/output')
 tasks = []
 

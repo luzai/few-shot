@@ -7,7 +7,7 @@ from logs import logger
 from stats import KernelStat, ActStat, BiasStat
 from utils import clean_name
 
-import utils, math, itertools, os.path as osp, legacy
+import utils, math, itertools, os.path as osp
 
 
 # todo use hdf5 to save tensors

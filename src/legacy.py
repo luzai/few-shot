@@ -3,7 +3,14 @@ from configs import Config
 from datasets import Dataset
 import time, utils, glob, os, re, copy
 import numpy as np, os.path as osp, pandas as pd, matplotlib.pylab as plt
+from sklearn import preprocessing, manifold, datasets
+Axes3D
 
+try:
+  from moviepy.video.io.bindings import mplfig_to_npimage
+  import moviepy.editor as mpy
+except:
+  pass
 
 def t_sne(visualizer, model_type, dataset_type, start_lr):
   logger.info('start ' + '_'.join((model_type, dataset_type, 'start_lr', str(start_lr))))

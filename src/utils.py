@@ -473,7 +473,7 @@ def dict2str(others):
 def list2str(li):
   name = ''
   for name_ in li:
-    name+=name_
+    name+=str(name_)
     
   return name
 

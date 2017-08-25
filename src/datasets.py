@@ -5,14 +5,33 @@ import numpy as np
 import utils
 
 
+def load_cifar10(classes):
+  (x_train, y_train), (x_test, y_test) = cifar10.load_data()
+  from model_utils import cosort
+  y_train_ori = y_train.copy()
+  x_train = cosort(x_train, y_train_ori)
+  y_train = cosort(y_train, y_train_ori)
+  
+  y_test_ori = y_test.copy()
+  x_test = cosort(x_test, y_test_ori)
+  y_test = cosort(y_test, y_test_ori)
+  
+  x_train, y_train = map(lambda x: limit_data(x, n=5000 * classes), [x_train, y_train])
+  x_test, y_test = map(lambda x: limit_data(x, n=1000 * classes), [x_test, y_test])
+  
+  map(np.random.shuffle, [x_train, y_train])
+  
+  return (x_train, y_train), (x_test, y_test)
+
+
 class Dataset(object):
   dataset_type = ['cifar10', 'cifar100', 'imagenet']
   
-  def __init__(self, name='cifar10', debug=False, limit_val=True):
+  def __init__(self, name='cifar10', debug=False, limit_val=True, classes=10):
     if name == 'cifar10':
       self.input_shape = (32, 32, 3)
-      self.classes = 10
-      (x_train, y_train), (x_test, y_test) = cifar10.load_data()
+      self.classes = classes
+      (x_train, y_train), (x_test, y_test) = load_cifar10(classes)
     elif name == 'cifar100':
       self.input_shape = (32, 32, 3)
       self.classes = 100
@@ -31,7 +50,7 @@ class Dataset(object):
       x_test = x_test[..., np.newaxis]
     
     # logger.info(str( x_train.shape))
-
+    
     y_train = keras.utils.to_categorical(y_train, self.classes)
     y_test = keras.utils.to_categorical(y_test, self.classes)
     x_train = x_train.astype('float32')
@@ -119,10 +138,4 @@ def load_data_svhn():
 
 
 if __name__ == '__main__':
-  config = Config(epochs=301, batch_size=256, verbose=2,
-                  model_type='vgg6',
-                  dataset_type='cifar10',
-                  debug=False)
-  
-  dataset = Dataset(config.dataset_type, debug=config.debug)
-  
+  data = Dataset('cifar10', classes=3)

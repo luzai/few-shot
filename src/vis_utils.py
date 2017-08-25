@@ -13,7 +13,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.ticker import NullFormatter
 from matplotlib import colors as mcolors
 
-from sklearn import preprocessing, manifold, datasets
+
 from utils import cartesian, dict2df
 import time, utils, glob, os, re, copy
 import numpy as np, os.path as osp, pandas as pd, matplotlib.pylab as plt
@@ -21,17 +21,12 @@ import numpy as np, os.path as osp, pandas as pd, matplotlib.pylab as plt
 from itertools import combinations, chain
 from scipy.misc import comb
 
-try:
-  from moviepy.video.io.bindings import mplfig_to_npimage
-  import moviepy.editor as mpy
-except:
-  pass
 
 from matplotlib.ticker import FormatStrFormatter
 
 matplotlib.style.use('ggplot')
 
-Axes3D
+
 
 
 def drop_level(perf_df, allow_downcast=False):
@@ -243,6 +238,7 @@ class Visualizer(object):
     self.name2path = name2path
     self.name2ind = dict(zip(self.name2dict.keys(), range(len(self.name2dict.keys()))))
     self.ind2name = dict(zip(range(len(self.name2dict.keys())), self.name2dict.keys()))
+    self.column2name = {}
     
     df_l = []
     index_l = []
@@ -260,6 +256,8 @@ class Visualizer(object):
       for name in scalar.columns:
         name = map_name(name)[0]
         index_l.append(conf_dict.values() + [name])
+        
+        self.column2name[utils.list2str(conf_dict.values() + [name])] = name2dict.keys()[ind]
         
         # act = loader.act
         # df_l.append(act)

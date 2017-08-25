@@ -11,7 +11,7 @@ hyper = {
   # stat and tensor for only Layer
   "log_tensor"  : True,
   "last_only"   : True,
-  "curve_only"  : False,
+  "curve_only"  : True,
   
   "cifar"       : {
     "epochs"         : 81,
@@ -19,7 +19,7 @@ hyper = {
     "sub_sample"     : [5, 20, ],  # epoch
     "sub_sample_rate": [20, 2, .5],
     "grids"          : {'dataset'   : ['cifar10', ],
-                        'model_type': ['resnet10','vgg10','resnet10s'],
+                        'model_type': ['resnet10',], # 'vgg10', 'resnet10'
                         'optimizer' : [
                           # {'name'       : 'sgd',
                           #  'lr'         : 0.01,
@@ -32,8 +32,9 @@ hyper = {
                           {'name': 'sgd',
                            'lr'  : 0.01, },
                         ],
-                        'hiddens'   : [3,20,512],
-                        'loss'      : ['softmax','mse']
+                        'hiddens'   : [3 ],
+                        'loss'      : ['softmax'],
+                        'classes'   : [3, ],
                         }
   },
   # mnist ok
