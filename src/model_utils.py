@@ -8,6 +8,7 @@ from logs import logger
 from datasets import Dataset
 import matplotlib.pylab as plt
 
+
 def rand_weight_like(weight):
   assert K.image_data_format() == "channels_last", "support channels last, but you are {}".format(
       K.image_data_format())
@@ -64,22 +65,33 @@ def evaluate(model, x=None, y=None, verbose=0):
 
 
 def conf_mat(model_path):
-  model=keras.models.load_model(model_path)
-  dataset=Dataset('cifar10')
+  if isinstance(model_path, basestring):
+    model = keras.models.load_model(model_path)
+  else:
+    model = model_path
+  dataset = Dataset('cifar10')
   pred = np.argmax(model.predict(dataset.x_test), axis=1)
   ori = np.argmax(dataset.y_test, axis=1)
+  acc = np.where(pred == ori)[0].shape[0] / float(ori.shape[0])
   from sklearn.metrics import confusion_matrix
   conf = confusion_matrix(ori, pred).astype(float)
-  return conf
+  return conf, acc
 
 
-def plot_mat(angles):
-  fig,ax=plt.subplots()
-  ax.matshow(angles)
-  ax.grid('off')
-  # ax.colorbar()
-  return fig,ax
-  
+def plot_mat(angles, ax=None):
+  if ax is None:
+    fig, ax = plt.subplots()
+    ax.matshow(angles)
+    ax.grid('off')
+    ax.axis('off')
+    # ax.colorbar()
+    return fig, ax
+  else:
+    ax.matshow(angles)
+    ax.axis('off')
+    ax.grid('off')
+    return ax
+
 
 def ortho(tt):
   # print tt.shape
@@ -108,7 +120,6 @@ def orthochnl(tensor, reduce=True):
     np.fill_diagonal(angles, np.nan)
     return np.nanmean(angles)
   else:
-    
     return angles
 
 
@@ -194,17 +205,27 @@ def exchange_col(weight, ind1, ind2):
   return weight2
 
 
-def custom_sort(tensor, y):
-  comb = zip(tensor, y)
-  res = sorted(comb, key=lambda x: x[1])
-  t = np.array(res)
-  t = t[:, 0]
-  tt = [tensor_.tolist() for tensor_ in t]
-  return np.array(tt)
+def softmax(x):
+  # return np.exp(x) / np.sum(np.exp(x), axis=1).reshape(-1, 1)
+  ex = np.exp(x - x.max(axis=1).reshape(-1,1))
+  print ex.shape
+  return ex / ex.sum(axis=1).reshape(-1,1)
 
 
-def gen_fake():
-  fake = np.arange(20).reshape(5, 4)
+def cosort(tensor, y):
+  # comb = zip(tensor, y)
+  # res = sorted(comb, key=lambda x: x[1])
+  # t = np.array(res)
+  # t = t[:, 0]
+  # tt = [tensor_.tolist() for tensor_ in t]
+  # return np.array(tt)
+  comb = np.array(zip(tensor,y),dtype= [ ('tensor',np.ndarray),('y',float)] )
+  comb.sort(order='y')
+  return np.array(zip(*comb)[0])
+  
+
+def gen_fake(shape=(4, 3)):
+  fake = np.arange(np.prod(shape)).reshape(*shape)
   return fake
 
 
@@ -228,5 +249,40 @@ def hasnan(t):
   return np.isnan(t).any()
 
 
+def str_in_strlist(str, l):
+  judge = [str in l_ for l_ in l]
+  return np.array(judge).any()
+
+
+def strlist_in_str(l, str):
+  '''
+  :usage :
+  strlist_in_str([u'resnet10', u'20', u'cifar10', u'_lr_0.01_name_sgd', u'mse', u'Layer10/fc/kernel_1'],
+                       'resnet10_20_cifar10__lr_0.01_name_sgd_mse_Layer10/fc/kernel_1')
+  :param l: list
+  :param str: string
+  :return: bool
+  '''
+  
+  judge = [l_ in str for l_ in l]
+  return np.array(judge).all()
+
+
+def gc_collect():
+  import gc
+  gc.collect()
+
+
 if __name__ == '__main__':
-  tensor = np.random.rand(272, 5)
+  from vis_utils import *
+  
+  vis = Visualizer(paranet_folder='all')
+  df = vis.tensor.copy()
+  
+  for ind, (name_l, series) in enumerate(df.iteritems()):
+    if str_in_strlist('kernel', name_l):
+      for name_s in vis.name2ind.keys():
+        if strlist_in_str(name_l[:-1], name_s):
+          print 'ok'
+          # print name_l, name_s
+      break
