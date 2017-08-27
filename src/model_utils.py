@@ -78,18 +78,24 @@ def conf_mat(model_path):
   return conf, acc
 
 
-def plot_mat(angles, ax=None):
+def matshow(angles, ax=None,fill=False):
+  if fill:
+    np.fill_diagonal(angles, np.nan)
   if ax is None:
     fig, ax = plt.subplots()
-    ax.matshow(angles)
+    cax=ax.matshow(angles)
     ax.grid('off')
     ax.axis('off')
-    # ax.colorbar()
+    fig.colorbar(cax)
     return fig, ax
   else:
-    ax.matshow(angles)
+    im=ax.matshow(angles)
     ax.axis('off')
     ax.grid('off')
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="20%", pad=.1)
+    cbar=plt.colorbar(im,cax=cax)
     return ax
 
 
@@ -102,6 +108,26 @@ def ortho(tt):
   return np.nanmax(angles, axis=1).sum() / tt.shape[0]
 
 
+def unit_vector(vector):
+  """ Returns the unit vector of the vector.  """
+  return vector / np.linalg.norm(vector)
+
+
+def angle_between(v1, v2):
+  """ Returns the angle in radians between vectors 'v1' and 'v2'::
+
+          >>> angle_between((1, 0, 0), (0, 1, 0))
+          1.5707963267948966
+          >>> angle_between((1, 0, 0), (1, 0, 0))
+          0.0
+          >>> angle_between((1, 0, 0), (-1, 0, 0))
+          3.141592653589793
+  """
+  v1_u = unit_vector(v1)
+  v2_u = unit_vector(v2)
+  return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
+
+
 # def series2tensor(t, flatten=False):
 #   if flatten:
 #     return np.array(t.values.tolist()).squeeze()
@@ -110,9 +136,25 @@ def ortho(tt):
 
 
 def orthochnl(tensor, reduce=True):
+  '''
+
+  :param tensor:
+  :param reduce:
+  :return:
+  Note  tensor=gen_fake()
+        tensor = tensor.reshape(-1, tensor.shape[-1])
+        tensor = tensor.T
+        
+        tensor=gen_fake()
+        axis=-1
+        tensor = tensor.reshape(tensor.shape[axis], -1)
+
+  '''
+  
   tensor = tensor.reshape(-1, tensor.shape[-1])
-  shape1, shape2 = tensor.shape
   tensor = tensor.T
+  # Attaintion!
+  
   tensor = tensor / np.linalg.norm(tensor, axis=1)[:, np.newaxis]
   angles = np.dot(tensor, tensor.T)
   logger.debug('angles matrix is {}'.format(angles.shape))
@@ -123,14 +165,20 @@ def orthochnl(tensor, reduce=True):
     return angles
 
 
-def orthosmpl(tensor, single=True):
+def corr(tensor, axis=0):
+  tensor = tensor.reshape(tensor.shape[axis], -1)
+  tensor = tensor / np.linalg.norm(tensor, axis=1).reshape(-1, 1)
+  angles = np.dot(tensor, tensor.T)
+  np.fill_diagonal(angles, np.nan)
+  return np.nanmean(angles)
+
+
+def orthosmpl(tensor, reduce=True):
   tensor = tensor.reshape(tensor.shape[0], -1)
-  shape1, shape2 = tensor.shape
-  # print tensor.shape
   tensor = tensor / np.linalg.norm(tensor, axis=1)[:, np.newaxis]
   angles = np.dot(tensor, tensor.T)
   logger.debug('angles matrix is {}'.format(angles.shape))
-  if single:
+  if reduce:
     np.fill_diagonal(angles, np.nan)
     return np.nanmean(angles)
   else:
@@ -207,9 +255,10 @@ def exchange_col(weight, ind1, ind2):
 
 def softmax(x):
   # return np.exp(x) / np.sum(np.exp(x), axis=1).reshape(-1, 1)
-  ex = np.exp(x - x.max(axis=1).reshape(-1,1))
-  print ex.shape
-  return ex / ex.sum(axis=1).reshape(-1,1)
+  x=np.array(x)
+  ex = np.exp(x - x.max(axis=1).reshape(-1, 1))
+  # print ex.shape
+  return ex / ex.sum(axis=1).reshape(-1, 1)
 
 
 def cosort(tensor, y, return_y=False):
@@ -219,13 +268,13 @@ def cosort(tensor, y, return_y=False):
   # t = t[:, 0]
   # tt = [tensor_.tolist() for tensor_ in t]
   # return np.array(tt)
-  comb = np.array(zip(tensor,y),dtype= [ ('tensor',np.ndarray),('y',float)] )
+  comb = np.array(zip(tensor, y), dtype=[('tensor', np.ndarray), ('y', float)])
   comb.sort(order='y')
   if not return_y:
     return np.array(zip(*comb)[0])
   else:
     return np.array(zip(*comb)[0]), np.array(zip(*comb)[1])
-  
+
 
 def gen_fake(shape=(4, 3)):
   fake = np.arange(np.prod(shape)).reshape(*shape)

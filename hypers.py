@@ -19,7 +19,7 @@ hyper = {
     "sub_sample"     : [5, 20, ],  # epoch
     "sub_sample_rate": [20, 2, .5],
     "grids"          : {'dataset'   : ['cifar10', ],
-                        'model_type': ['vgg6',], # 'vgg10', 'resnet10'
+                        'model_type': ['vgg10', ],  # 'vgg10', 'resnet10'
                         'optimizer' : [
                           # {'name'       : 'sgd',
                           #  'lr'         : 0.01,
@@ -29,12 +29,12 @@ hyper = {
                           #  'lr'         : 0.01,
                           #  'decay_epoch': [25, ],
                           #  'decay'      : [10, ], },
-                          {'name': 'adam',
-                           'lr'  : 0.001, },
+                          {'name': 'sgd',
+                           'lr'  : 0.01, },
                         ],
-                        'hiddens'   : [3 ],
+                        'hiddens'   : [512],
                         'loss'      : ['softmax'],
-                        'classes'   : [3, ],
+                        'classes'   : [10, ],
                         }
   },
   # mnist ok

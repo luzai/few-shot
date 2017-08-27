@@ -13,6 +13,12 @@ root_path = osp.normpath(
     osp.join(osp.abspath(osp.dirname(__file__)), "..")
 )
 
+def cpu_priority():
+  from multiprocessing import Pool, cpu_count
+  import psutil
+  p = psutil.Process(os.getpid())
+  # p.nice(19)
+  
 
 def init_dev(n=0):
   import os
@@ -51,7 +57,7 @@ def get_dev(n=1, ok=(0, 1, 2, 3)):
   devs = _limit(devs, ok)
   if len(devs) >= 1:
     logger.info('available {}'.format(devs))
-    GPUtil.showUtilization()
+    # GPUtil.showUtilization()
     return devs[0] if n == 1 else devs
   while len(devs) == 0:
     devs = GPUtil.getAvailable(order='random', maxLoad=0.98, maxMemory=0.5, limit=n)
