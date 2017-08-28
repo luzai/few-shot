@@ -13,12 +13,13 @@ root_path = osp.normpath(
     osp.join(osp.abspath(osp.dirname(__file__)), "..")
 )
 
+
 def cpu_priority():
   from multiprocessing import Pool, cpu_count
   import psutil
   p = psutil.Process(os.getpid())
   # p.nice(19)
-  
+
 
 def init_dev(n=0):
   import os
@@ -42,6 +43,17 @@ def allow_growth():
   sess = tf.Session(config=_sess_config, graph=tf_graph)
   import keras.backend as K
   K.set_session(sess)
+
+
+def get_session():
+  init_dev(get_dev())
+  import tensorflow as tf
+  tf_graph = tf.get_default_graph()
+  _sess_config = tf.ConfigProto(allow_soft_placement=True)
+  _sess_config.gpu_options.allow_growth = True
+  sess = tf.Session(config=_sess_config, graph=tf_graph)
+  
+  return sess
 
 
 def get_dev(n=1, ok=(0, 1, 2, 3)):
@@ -157,6 +169,7 @@ def static_vars(**kwargs):
   
   return decorate
 
+
 def dict2df(my_dict):
   tensor_d = {}
   for k, v in my_dict.iteritems():
@@ -244,7 +257,7 @@ def read_df(path):
 def mkdir_p(path, delete=False):
   assert path != ''
   from logs import logger
-  logger.debug('mkdir -p  '+ path)
+  logger.debug('mkdir -p  ' + path)
   if delete:
     rm(path)
   if not osp.exists(path):
@@ -254,16 +267,19 @@ def mkdir_p(path, delete=False):
 def rm(path):
   subprocess.call(('rm -rf ' + path).split())
 
+
 def show_img(path):
   from IPython.display import Image
   
   fig = Image(filename=(path))
   return fig
 
+
 def show_pdf(path):
   from IPython.display import IFrame
-  path=osp.relpath(path)
+  path = osp.relpath(path)
   return IFrame(path, width=600, height=300)
+
 
 def i_vis_model(model):
   from keras.utils import vis_utils
@@ -463,6 +479,7 @@ def clean_name(name):
   name = re.findall('([a-zA-Z0-9/-]+)(?:_\d+)?', name)[0]
   return name
 
+
 def dict2str(others):
   name = ''
   for key, val in others.iteritems():
@@ -476,12 +493,14 @@ def dict2str(others):
       name += '_' + str(val)
   return name
 
+
 def list2str(li):
   name = ''
   for name_ in li:
-    name+=str(name_)
-    
+    name += str(name_)
+  
   return name
+
 
 def check_md5sum():
   for parant_folder in ['stat301', 'stat101', 'stat101_10', 'stat301_10']:

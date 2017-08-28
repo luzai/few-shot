@@ -8,16 +8,17 @@ import plotly.plotly as py
 import numpy as np
 
 
-def scatter(x, y, c, static=False):
+def scatter(x, y, c):
   
   x = x.flatten()
   y = y.flatten()
   c = np.array(c)
   c = c.flatten()
-  layout = go.Layout(title='', width=600, height=600)
+ 
   trace1 = go.Scatter(
       x=x,
       y=y,
+      name='scatter',
       mode='markers',
       marker=dict(
           size='5',
@@ -27,14 +28,36 @@ def scatter(x, y, c, static=False):
       )
   )
   data = [trace1]
+  return data
+  
+
+def plot(data,static=True):
+  layout = go.Layout(title='', width=600, height=600)
   if not static:
-    res = py.iplot(data, filename='scatter-plot-with-colorscale')
+    res = py.iplot(dict(data=data,layout=layout), filename='scatter-plot-with-colorscale')
   else:
     fig = go.Figure(data=data, layout=layout)
     py.image.ishow(fig)
     res = None
   return res
 
+def line(x,y,c=None,name=''):
+  data=[go.Scatter(x=x,y=y,
+                   name=name,
+                   mode='maker+line',
+                   marker=dict(
+                       size='10',
+                       color=c
+                       # colorscale='Viridis',
+                       # showscale=False
+                   ),
+                   line=dict(
+                       color=c,
+                       # colorscale='Viridis',
+                       # showlegend=False
+                   ))
+        ]
+  return data
 
 def gen_disk(smpls=(10, 10)):
   r = np.linspace(0.1, 2, smpls[0])
@@ -61,7 +84,10 @@ def hinge_loss(pred_in, true_in):
 
 
 def mse_loss(pred, true):
-  true = to_categorical(true)
+  # true = to_categorical(true)
   loss = np.square(pred - true)
-  loss = loss.sum(axis=1).mean()
+  if len(loss.shape)==2:
+    loss = loss.sum(axis=1).mean()
+  else:
+    loss =loss.sum()
   return loss
