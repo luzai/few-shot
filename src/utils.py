@@ -46,13 +46,12 @@ def allow_growth():
 
 
 def get_session():
-  init_dev(get_dev())
   import tensorflow as tf
+  init_dev(get_dev())
   tf_graph = tf.get_default_graph()
   _sess_config = tf.ConfigProto(allow_soft_placement=True)
   _sess_config.gpu_options.allow_growth = True
   sess = tf.Session(config=_sess_config, graph=tf_graph)
-  
   return sess
 
 
