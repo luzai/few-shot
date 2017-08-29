@@ -9,84 +9,61 @@ import logs, datasets, vis_utils, loader
 
 logger.setLevel(logs.WARN)
 matplotlib.style.use('ggplot')
+import tensorflow as tf
+import tensorlayer as tl
 
-# utils.init_dev(utils.get_dev(ok=()))
-# utils.allow_growth()
-import uuid
+sess = tf.InteractiveSession()
 
-import keras
-from keras.datasets import mnist
-from keras.models import Sequential
-from keras.layers import Dense, Dropout
-from keras.optimizers import RMSprop
+# prepare data
+X_train, y_train, X_val, y_val, X_test, y_test = \
+  tl.files.load_mnist_dataset(shape=(-1, 784))
 
-batch_size = 128
-num_classes = 10
-epochs = 20
+# define placeholder
+x = tf.placeholder(tf.float32, shape=[None, 784], name='x')
+y_ = tf.placeholder(tf.int64, shape=[None, ], name='y_')
 
-# the data, shuffled and split between train and test sets
-(x_train, y_train), (x_test, y_test) = mnist.load_data()
+# define the network
+network = tl.layers.InputLayer(x, name='input_layer')
+network = tl.layers.DropoutLayer(network, keep=0.8, name='drop1')
+network = tl.layers.DenseLayer(network, n_units=800,
+                               act=tf.nn.relu, name='relu1')
+network = tl.layers.DropoutLayer(network, keep=0.5, name='drop2')
+network = tl.layers.DenseLayer(network, n_units=800,
+                               act=tf.nn.relu, name='relu2')
+network = tl.layers.DropoutLayer(network, keep=0.5, name='drop3')
+# the softmax is implemented internally in tl.cost.cross_entropy(y, y_, 'cost') to
+# speed up computation, so we use identity here.
+# see tf.nn.sparse_softmax_cross_entropy_with_logits()
+network = tl.layers.DenseLayer(network, n_units=10,
+                               act=tf.identity,
+                               name='output_layer')
+# define cost function and metric.
+y = network.outputs
+cost = tl.cost.cross_entropy(y, y_, 'cost')
+correct_prediction = tf.equal(tf.argmax(y, 1), y_)
+acc = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+y_op = tf.argmax(tf.nn.softmax(y), 1)
 
-x_train = x_train.reshape(60000, 784)
-x_test = x_test.reshape(10000, 784)
-x_train = x_train.astype('float32')
-x_test = x_test.astype('float32')
-x_train /= 255
-x_test /= 255
-print(x_train.shape, 'train samples')
-print(x_test.shape, 'test samples')
+# define the optimizer
+train_params = network.all_params
+train_op = tf.train.AdamOptimizer(learning_rate=0.0001, beta1=0.9, beta2=0.999,
+                                  epsilon=1e-08, use_locking=False).minimize(cost, var_list=train_params)
 
-# convert class vectors to binary class matrices
-y_train = keras.utils.to_categorical(y_train, num_classes)
-y_test = keras.utils.to_categorical(y_test, num_classes)
+# initialize all variables in the session
+tl.layers.initialize_global_variables(sess)
 
+# print network information
+network.print_params()
+network.print_layers()
 
-def get_iter(x_train, y_train):
-  batch_size = 128
-  ind = 0
-  while True:
-    yield x_train[ind:ind + batch_size], y_train[ind:ind + batch_size]
-    ind += batch_size
-    if (ind + batch_size) >= x_train.shape[0]:
-      ind %= x_train.shape[0]
+# train the network
+tl.utils.fit(sess, network, train_op, cost, X_train, y_train, x, y_,
+             acc=acc, batch_size=500, n_epoch=500, print_freq=5,
+             X_val=X_val, y_val=y_val, eval_train=False)
 
+# evaluation
+tl.utils.test(sess, network, acc, X_test, y_test, x, y_, batch_size=None, cost=cost)
 
-def svd(tensor):
-  _, s, _ = np.linalg.svd(tensor, full_matrices=True)
-  return s.sum()
-
-
-data = get_iter(x_train, y_train)
-
-tf.reset_default_graph()
-x = tf.placeholder(shape=[None, 784], dtype=tf.float32)
-nn = tf.layers.dense(x, 512, activation=tf.nn.relu)
-nn = tf.layers.dense(nn, 512, activation=tf.nn.relu)
-nn = tf.layers.dense(nn, 10)
-
-y = tf.placeholder(shape=[None, 10], dtype=tf.float32)
-cost = tf.losses.softmax_cross_entropy(
-    onehot_labels=y, logits=nn) + tf.py_func(svd, [nn], tf.float32)
-
-optimizer = tf.train.GradientDescentOptimizer(0.001).minimize(loss=cost)
-
-init = tf.global_variables_initializer()
-
-tf.summary.scalar("cost", cost)
-merged_summary_op = tf.summary.merge_all()
-
-with utils.get_session() as sess:
-  sess.run(init)
-  uniq_id = "../tfevents/" + uuid.uuid1().__str__()[:6]
-  print os.getcwd(), uniq_id
-  summary_writer = tf.summary.FileWriter(uniq_id, graph=tf.get_default_graph())
-  
-  for step in range(10000):
-    x_, y_ = data.next()
-    # print x_.shape,y_.shape
-    _, val, summary = sess.run([optimizer, cost, merged_summary_op],
-                               feed_dict={x: x_, y: y_})
-    if step % 50 == 0:
-      summary_writer.add_summary(summary, step)
-    if step % 500 == 0:
-      print step, val
+# save the network to .npz file
+tl.files.save_npz(network.all_params, name='model.npz')
+sess.close()
