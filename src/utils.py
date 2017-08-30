@@ -19,7 +19,8 @@ def cpu_priority():
   import psutil
   p = psutil.Process(os.getpid())
   # p.nice(19)
-
+def to_int(x):
+    return np.around(x).astype(int)
 
 def init_dev(n=0):
   import os

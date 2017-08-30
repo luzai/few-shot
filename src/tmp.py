@@ -1,69 +1,117 @@
 from loader import *
 from datasets import *
 from vis_utils import *
-from plt_utils import *
 from utils import *
 from stats import *
+from model_utils import *
+from plt_utils import *
 from logs import logger
 import logs, datasets, vis_utils, loader
 
-logger.setLevel(logs.WARN)
-matplotlib.style.use('ggplot')
-import tensorflow as tf
-import tensorlayer as tl
+utils.init_dev(utils.get_dev())
+utils.allow_growth()
 
-sess = tf.InteractiveSession()
+def matrix_symmetric(x):
+    return (x + tf.transpose(x, [0, 2, 1])) / 2
 
-# prepare data
-X_train, y_train, X_val, y_val, X_test, y_test = \
-  tl.files.load_mnist_dataset(shape=(-1, 784))
+def get_eigen_K(x, square=False):
+    """
+    Get K = 1 / (sigma_i - sigma_j) for i != j, 0 otherwise
 
-# define placeholder
-x = tf.placeholder(tf.float32, shape=[None, 784], name='x')
-y_ = tf.placeholder(tf.int64, shape=[None, ], name='y_')
+    Parameters
+    ----------
+    x : tf.Tensor with shape as [..., dim,]
 
-# define the network
-network = tl.layers.InputLayer(x, name='input_layer')
-network = tl.layers.DropoutLayer(network, keep=0.8, name='drop1')
-network = tl.layers.DenseLayer(network, n_units=800,
-                               act=tf.nn.relu, name='relu1')
-network = tl.layers.DropoutLayer(network, keep=0.5, name='drop2')
-network = tl.layers.DenseLayer(network, n_units=800,
-                               act=tf.nn.relu, name='relu2')
-network = tl.layers.DropoutLayer(network, keep=0.5, name='drop3')
-# the softmax is implemented internally in tl.cost.cross_entropy(y, y_, 'cost') to
-# speed up computation, so we use identity here.
-# see tf.nn.sparse_softmax_cross_entropy_with_logits()
-network = tl.layers.DenseLayer(network, n_units=10,
-                               act=tf.identity,
-                               name='output_layer')
-# define cost function and metric.
-y = network.outputs
-cost = tl.cost.cross_entropy(y, y_, 'cost')
-correct_prediction = tf.equal(tf.argmax(y, 1), y_)
-acc = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-y_op = tf.argmax(tf.nn.softmax(y), 1)
+    Returns
+    -------
 
-# define the optimizer
-train_params = network.all_params
-train_op = tf.train.AdamOptimizer(learning_rate=0.0001, beta1=0.9, beta2=0.999,
-                                  epsilon=1e-08, use_locking=False).minimize(cost, var_list=train_params)
+    """
+    if square:
+        x = tf.square(x)
+    res = tf.expand_dims(x, 1) - tf.expand_dims(x, 2)
+    res += tf.eye(tf.shape(res)[1])
+    res = 1 / res
+    res -= tf.eye(tf.shape(res)[1])
+    
+    # Keep the results clean
+    res = tf.where(tf.is_nan(res), tf.zeros_like(res), res)
+    res = tf.where(tf.is_inf(res), tf.zeros_like(res), res)
+    return res
 
-# initialize all variables in the session
-tl.layers.initialize_global_variables(sess)
+@tf.RegisterGradient('Svd')
+def gradient_svd(op, grad_s, grad_u, grad_v):
+    """
+    Define the gradient for SVD
+    References
+        Ionescu, C., et al, Matrix Backpropagation for Deep Networks with Structured Layers
 
-# print network information
-network.print_params()
-network.print_layers()
+    Parameters
+    ----------
+    op
+    grad_s
+    grad_u
+    grad_v
 
-# train the network
-tl.utils.fit(sess, network, train_op, cost, X_train, y_train, x, y_,
-             acc=acc, batch_size=500, n_epoch=500, print_freq=5,
-             X_val=X_val, y_val=y_val, eval_train=False)
+    Returns
+    -------
+    """
+    s, u, v = op.outputs
+    v_t = tf.transpose(v, [0, 2, 1])
+    
+    with tf.name_scope('K'):
+        K = get_eigen_K(s, True)
+    inner = matrix_symmetric(K * tf.matmul(v_t, grad_v))
+    
+    # Create the shape accordingly.
+    u_shape = u.get_shape()[1].value
+    v_shape = v.get_shape()[1].value
+    
+    # Recover the complete S matrices and its gradient
+    eye_mat = tf.eye(v_shape, u_shape)
+    realS = tf.matmul(tf.reshape(tf.matrix_diag(s), [-1, v_shape]), eye_mat)
+    realS = tf.transpose(tf.reshape(realS, [-1, v_shape, u_shape]), [0, 2, 1])
+    
+    real_grad_S = tf.matmul(tf.reshape(tf.matrix_diag(grad_s), [-1, v_shape]), eye_mat)
+    real_grad_S = tf.transpose(tf.reshape(real_grad_S, [-1, v_shape, u_shape]), [0, 2, 1])
+    
+    dxdz = tf.matmul(u, tf.matmul(2 * tf.matmul(realS, inner) + real_grad_S, v_t))
+    return dxdz
 
-# evaluation
-tl.utils.test(sess, network, acc, X_test, y_test, x, y_, batch_size=None, cost=cost)
+def Svd(x):
+    s, u, v = tf.svd(x, full_matrices=True)
+    return s, u, v
 
-# save the network to .npz file
-tl.files.save_npz(network.all_params, name='model.npz')
-sess.close()
+def get_s(fake):
+    fake = fake.squeeze()
+    u, s, v = np.linalg.svd(fake, full_matrices=True)
+    return to_int(s)
+
+fake = gen_fake()
+print get_s(fake)
+
+with tf.Session() as sess:
+    x = tf.placeholder(np.float32, shape=fake.shape)
+    shape_x = x.get_shape().as_list()
+    x_reshaped = tf.reshape(x, (np.prod(shape_x[:-1]), shape_x[-1]))
+    x_reshaped = tf.expand_dims(x_reshaped, axis=0)
+    s, u, v = Svd(x_reshaped)
+    summ=tf.summary.histogram('single_value',s)
+    s_min = tf.reduce_min(s)
+    s = s - s_min
+    loss = tf.reduce_sum(tf.square(s)) + tf.reduce_sum(0. * u) + tf.reduce_sum(0. * v)
+    
+    # print tf.gradients([s], [x])[0].eval()
+    grad = tf.gradients([loss], [x])[0]
+    # print tf.gradients([v], [x])[0].eval()
+    
+    tf.global_variables_initializer().run()
+    graph = tf.get_default_graph()
+    writer=tf.summary.FileWriter('./tf', graph=graph)
+
+    for i in range(150):
+        grad_np,summ_str = sess.run([grad,summ], {x: fake})
+        fake -= grad_np * 1e-2
+        print get_s(fake)
+        writer.add_summary(summ_str,i)
+writer.flush()
+writer.close()

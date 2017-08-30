@@ -4,7 +4,8 @@ from keras.layers import Activation, BatchNormalization, Conv2D, Dense, Dropout,
     MaxPooling2D
 from keras.models import Model
 
-from .regularizers import l2
+from .regularizers import ortho_reg_l2
+from keras.regularizers import l2
 from .models import BaseModel
 
 class VGG(BaseModel):
@@ -28,6 +29,10 @@ class VGG(BaseModel):
                 [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 256, 'M', 512, 512, 512, 512, 'M', 512,
                  512, 512, 512,
                  'M'], [512, 512, self.classes]],
+            'vgg21': [
+                [64, 64, 'M', 128, 128, 128,128, 'M', 256, 256, 256, 256, 'M', 512, 512, 512, 512,
+                 'M',
+                 512, 512, 512, 512, 'M'], [1024, 512, self.classes]],
             'vgg4' : [[8, 'M', ], [256, 3, self.classes]],
             'vgg10': [[32, 'M', 64, 64, 'M', 128, 128, 'M', 256, 256, 'M'],
                       [1024, self.hiddens, self.classes]],
@@ -49,11 +54,12 @@ class VGG(BaseModel):
             if config[0] == 'conv2d':
                 if not self.with_bn:
                     x = Conv2D(config[1], (3, 3), padding='same', name='layer{}/conv'.format(depth),
-                               kernel_regularizer=l2(1.e-4))(x)
+                               kernel_regularizer=ortho_reg_l2( ))(x)
                     x = Activation('relu')(x)
                 else:
                     x = Conv2D(config[1], (3, 3), padding='same', name='layer{}/conv'.format(depth),
-                               kernel_regularizer=l2(1.e-4))(x)
+                               kernel_regularizer= ortho_reg_l2(),
+                               )(x)
                     x = BatchNormalization(axis=-1)(
                         x)  # , name='layer{}/batchnormalization'.format(depth)
                     x = Activation('relu')(x)
@@ -65,14 +71,14 @@ class VGG(BaseModel):
             elif config[0] == 'flatten':
                 x = Flatten()(x)
             elif config[0] == 'dense' and ind <= len(self.arch) - 2:
-                x = Dense(config[1], name='layer{}/dense'.format(depth))(x)
+                x = Dense(config[1], name='layer{}/dense'.format(depth),kernel_regularizer=ortho_reg_l2())(x)
                 x = Activation('relu')(x)
                 depth += 1
                 if self.with_dp:
                     x = Dropout(.5)(x)
             else:
                 assert config[1] == self.classes, 'should be end'
-                x = Dense(config[1], name='Layer{}/dense'.format(depth), use_bias=False)(x)
+                x = Dense(config[1], name='Layer{}/dense'.format(depth), use_bias=False,kernel_regularizer=ortho_reg_l2())(x)
                 if last_act_layer == 'softmax':
                     x = Activation('softmax', name='Layer{}/softmax'.format(depth))(x)
         
