@@ -1,8 +1,10 @@
 import os, csv, time, cPickle, \
     random, os.path as osp, \
     subprocess, json, matplotlib, \
-    numpy as np, GPUtil, pandas as pd, \
+    numpy as np, pandas as pd, \
     glob, re
+
+import networkx as nx
 
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
@@ -91,6 +93,13 @@ def grid_iter(tmp):
     np.random.shuffle(res)
     for res_ in res:
         yield dict(zip(tmp.keys(), res_))
+
+
+def shuffle_iter(iter):
+    iter = list(iter)
+    np.random.shuffle(iter)
+    for iter_ in iter:
+        yield iter_
 
 
 def cartesian(arrays, out=None):
@@ -267,6 +276,44 @@ def mkdir_p(path, delete=False):
         subprocess.call(('mkdir -p ' + path).split())
 
 
+def shell(cmd):
+    subprocess.call(cmd.split())
+
+def ln(path,to_path):
+    if not osp.exists(to_path):
+        print 'error! exist' + to_path
+        rm(to_path)
+    path = osp.abspath(path)
+    cmd = "ln -s "+ path + " "+ to_path
+    proc = subprocess.Popen(cmd, shell=True,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE)
+    # if not osp.exists(to_path):
+    #     cmd = "ln -s "+ path + " "+ to_path
+    #     shell(cmd)
+    # else:
+    #     pass
+        # raise ValueError('exist'+ to_path)
+
+def tar(path, to_path=None):
+    if not osp.exists(path):
+        return
+    if os.path.exists(to_path) and not len(os.listdir(to_path))==0:
+        rm(path)
+        return
+    if to_path is not None:
+        cmd = "tar xf " + path + " -C " + to_path
+        print cmd
+    else:
+        cmd = "tar xf " + path
+    shell(cmd)
+    if os.path.exists(path):
+        rm(path)
+
+def rmdir(path):
+    cmd = "rmdir "+path
+    shell(cmd)
+
 def rm(path):
     subprocess.call(('rm -rf ' + path).split())
 
@@ -389,7 +436,7 @@ def chdir_to_root(fn):
 
 
 @chdir_to_root
-def vis_graph(graph, name='net2net', show=False):
+def vis_nx(graph, name='default', show=False):
     from logs import logger
     import networkx as nx
     path = osp.dirname(name)
@@ -397,17 +444,15 @@ def vis_graph(graph, name='net2net', show=False):
     if path == '':
         path = name
     mkdir_p(osp.join(root_path, "output", path), delete=False)
-    with open(name + "_graph.json", "w") as f:
-        f.write(graph.to_json())
     try:
         plt.close('all')
         nx.draw(graph, with_labels=True)
         if show:
             plt.show()
         plt.savefig('graph.png')
-        # plt.close('all')
+        print ' nx plot success', path
     except Exception as inst:
-        logger.warning(inst)
+        print 'error', inst
 
 
 @chdir_to_root
@@ -497,10 +542,10 @@ def dict2str(others):
     return name
 
 
-def list2str(li):
+def list2str(li, delimier=''):
     name = ''
     for name_ in li:
-        name += str(name_)
+        name += (str(name_) + delimier)
 
     return name
 
