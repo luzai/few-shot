@@ -74,9 +74,9 @@ from metadata import *
 if __name__ == "__main__":
     i = 0
 
-    for node in shuffle_iter(nx.dfs_preorder_nodes(tree, 'fall11')):
+    for node in shuffle_iter(nx.dfs_preorder_nodes(ori_tree, 'fall11')):
         # for node in nx.dfs_preorder_nodes(tree, 'fall11'):
-        if len(tree.successors(node)) > 0:
+        if len(ori_tree.successors(node)) > 0:
             continue
         i += 1
         wnid = node

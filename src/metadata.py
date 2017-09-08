@@ -100,9 +100,6 @@ def construct_path():
             # print path, imagepath.strip('.tar')
 
 
-# construct_path()
-
-
 @chdir_to_root
 def construct_path_from(tree_, res):
     os.chdir('./data')
@@ -169,12 +166,6 @@ def slim_tree(tree_):
 
     return new_tree
 
-
-tree = tag_tree(tree)
-tree = slim_tree(tree)
-tree = tag_tree(tree)
-
-
 @chdir_to_root
 def vis_tree(tree_):
     all_nodes = ['fall11', ]
@@ -201,6 +192,12 @@ def dir2tree():
             #     break
     # tree_
     return tree_
+
+construct_path()
+
+ori_tree = tag_tree(tree)
+slim_tree = slim_tree(ori_tree)
+slim_tree = tag_tree(slim_tree)
 
 
 os.chdir(restore_path)
