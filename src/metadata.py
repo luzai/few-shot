@@ -13,6 +13,7 @@ os.chdir(root_path)
 os.chdir('./src')
 
 
+@chdir_to_root
 def _read(file, delimiter=None):
     os.chdir(root_path)
     os.chdir('./data')
@@ -30,6 +31,16 @@ def _read(file, delimiter=None):
 
 is_a = _read('../data/wordnet.is_a.txt')
 id2word = _read('../data/words.txt', delimiter='\t')
+
+
+@chdir_to_root
+def _read_list(file):
+    os.chdir('data')
+    lines = np.genfromtxt(file, dtype='str')
+    return lines
+
+
+imagenet10k = _read_list('../data/imagenet10k.txt')
 
 
 class _Class():
@@ -64,9 +75,6 @@ with file(config.structure_released, "r") as fp:
     print graph
 
 tree = nx.bfs_tree(graph, 'fall11')
-# tree = nx.bfs_tree(graph, 'fall11', reverse=True)
-
-os.chdir(root_path)
 
 
 @chdir_to_root
@@ -91,104 +99,95 @@ def construct_path():
             # ln(imagepath.strip('.tar'), path.strip('/'))
             # print path, imagepath.strip('.tar')
 
-    os.chdir(root_path)
-
 
 # construct_path()
 
+
 @chdir_to_root
-def construct_path_from(tree, res):
-    os.chdir(root_path)
+def construct_path_from(tree_, res):
     os.chdir('./data')
     path = 'train'
     mkdir_p(path)
     os.chdir(path)
     for node in res:
-        if tree.node[node]['nchild'] == 0:
+        if tree_.node[node]['nchild'] == 0:
             nodes = [node]
         else:
-            nodes = [node_ for node_ in nx.dfs_preorder_nodes(tree, node) if tree.node[node_]['nchild'] == 0]
+            nodes = [node_ for node_ in nx.dfs_preorder_nodes(tree_, node) if tree_.node[node_]['nchild'] == 0]
         for node_ in nodes:
             imagepath = get_imagepath(node_).strip('.tar')
             mkdir_p(node)
             ln(imagepath + '/*', node)
-    os.chdir(root_path)
 
 
 @chdir_to_root
-def nimg_per_class(tree):
+def nimg_per_class(tree_):
     all_nimg = []
-    for node in nx.dfs_preorder_nodes(tree, 'fall11'):
+    for node in nx.dfs_preorder_nodes(tree_, 'fall11'):
         imagepath = get_imagepath(node).strip('.tar')
-        if osp.exists(imagepath) and tree.node[node]['nchild'] == 0:
+        if osp.exists(imagepath) and tree_.node[node]['nchild'] == 0:
             nimg = len(os.listdir(imagepath))
             all_nimg.append(nimg)
             if nimg == 0:
                 print node
-    return np.sort(all_nimg)
+    return np.sort(all_nimg)[::-1]
 
 
 @chdir_to_root
-def tag_tree(tree):
+def tag_tree(tree_):
     max_depth = 0
     all_depth = []
     all_nchild = []
     # all_nimg = []
-    for node in nx.dfs_preorder_nodes(tree, 'fall11'):
-        depth = nx.shortest_path_length(tree, "fall11", node)
+    for node in nx.dfs_preorder_nodes(tree_, 'fall11'):
+        depth = nx.shortest_path_length(tree_, "fall11", node)
         max_depth = max(depth, max_depth)
         all_depth.append(depth)
-        nchild = len(tree.successors(node))
+        nchild = len(tree_.successors(node))
         all_nchild.append(nchild)
         # if not nchild == 0:
-        tree.add_node(node, depth=depth, nchild=nchild)
-    tree.max_depth = max_depth
-    tree.all_depth = all_depth
-    tree.all_nchild = all_nchild
-    return tree
-
-
-tree = tag_tree(tree)
+        tree_.add_node(node, depth=depth, nchild=nchild)
+    tree_.max_depth = max_depth
+    tree_.all_depth = all_depth
+    tree_.all_nchild = all_nchild
+    return tree_
 
 
 @chdir_to_root
-def slim_tree(tree):
-    os.chdir(root_path)
+def slim_tree(tree_):
     os.chdir('data')
 
     new_tree = nx.DiGraph()
 
-    for node in nx.dfs_preorder_nodes(tree, 'fall11'):
-        hist = nx.shortest_path(tree, "fall11", node)
+    for node in nx.dfs_preorder_nodes(tree_, 'fall11'):
+        hist = nx.shortest_path(tree_, "fall11", node)
         #     path = list2str(hist,delimier='/')
         imagepath = get_imagepath(node)
         imagepath = imagepath.strip('.tar')
-        if osp.exists(imagepath) and tree.node[node]['nchild'] == 0:
+        if osp.exists(imagepath) and tree_.node[node]['nchild'] == 0 and node in imagenet10k:  # todo
             new_tree.add_path(hist)
 
-    os.chdir(root_path)
-    return tree
+    return new_tree
 
 
+tree = tag_tree(tree)
 tree = slim_tree(tree)
 tree = tag_tree(tree)
 
 
 @chdir_to_root
-def vis_tree(tree):
+def vis_tree(tree_):
     all_nodes = ['fall11', ]
-    for t_ in nx.algorithms.bfs_successors(tree, 'fall11').values():
+    for t_ in nx.algorithms.bfs_successors(tree_, 'fall11').values():
         all_nodes.extend(t_)
     all_nodes = np.unique(all_nodes)
 
     nodes = all_nodes[:14]
-    vis_nx(nx.subgraph(tree, nodes))
+    vis_nx(nx.subgraph(tree_, nodes))
 
 
 @chdir_to_root
 def dir2tree():
-    # def dir2tree():
-    os.chdir(root_path)
     os.chdir('./data')
     tree_ = nx.DiGraph()
     i = 0
@@ -201,7 +200,6 @@ def dir2tree():
             # if i > 3:
             #     break
     # tree_
-    os.chdir(root_path)
     return tree_
 
 

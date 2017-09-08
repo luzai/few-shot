@@ -280,11 +280,11 @@ def shell(cmd):
     subprocess.call(cmd.split())
 
 def ln(path,to_path):
-    if not osp.exists(to_path):
-        print 'error! exist' + to_path
-        rm(to_path)
+    if osp.exists(to_path):
+        pass
+        # print 'error! exist ' + to_path
     path = osp.abspath(path)
-    cmd = "ln -s "+ path + " "+ to_path
+    cmd = "ln -sf "+ path + " "+ to_path
     proc = subprocess.Popen(cmd, shell=True,
                             stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE)

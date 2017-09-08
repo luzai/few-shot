@@ -44,7 +44,6 @@ def download_file(url, dst, params={}, debug=True):
         print response.url, "done.\n"
 
 
-
 def find_path(folder):
     import os
     res = []
@@ -69,13 +68,14 @@ def travel_tree():
                 continue
             yield child
 
+
 from metadata import *
 
 if __name__ == "__main__":
     i = 0
 
     for node in shuffle_iter(nx.dfs_preorder_nodes(tree, 'fall11')):
-    # for node in nx.dfs_preorder_nodes(tree, 'fall11'):
+        # for node in nx.dfs_preorder_nodes(tree, 'fall11'):
         if len(tree.successors(node)) > 0:
             continue
         i += 1
@@ -83,13 +83,19 @@ if __name__ == "__main__":
 
         imagepath = get_imagepath(wnid)
         print imagepath
-        if not os.path.exists(imagepath.strip('.tar')) or os.path.getsize(imagepath) == 0:
-            params = {
-                "wnid": wnid,
-                "username": config.username,
-                "accesskey": config.accesskey,
-                "release": "latest",
-                "src": "stanford"
-            }
-            download_file(config.synset_url, imagepath, params)
+        if not node in imagenet10k:
+            print node, 'not in imagenet10k'
+            continue
+        if osp.exists(imagepath) and osp.getsize(imagepath) != 0:
+            continue
+        if osp.exists(imagepath.strip('.tar')) and len(os.listdir(imagepath.strip('.tar'))) != 0:
+            continue
+        params = {
+            "wnid": wnid,
+            "username": config.username,
+            "accesskey": config.accesskey,
+            "release": "latest",
+            "src": "stanford"
+        }
+        download_file(config.synset_url, imagepath, params)
     print i
