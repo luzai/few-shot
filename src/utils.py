@@ -276,15 +276,21 @@ def mkdir_p(path, delete=False):
         subprocess.call(('mkdir -p ' + path).split())
 
 
-def shell(cmd):
-    subprocess.call(cmd.split())
+def shell(cmd, block=True):
+    if block:
+        subprocess.call(cmd.split())
+    else:
+        subprocess.Popen(cmd, shell=True,
+                         stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE)
 
-def ln(path,to_path):
+
+def ln(path, to_path):
     if osp.exists(to_path):
         pass
         # print 'error! exist ' + to_path
     path = osp.abspath(path)
-    cmd = "ln -sf "+ path + " "+ to_path
+    cmd = "ln -sf " + path + " " + to_path
     proc = subprocess.Popen(cmd, shell=True,
                             stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE)
@@ -293,12 +299,15 @@ def ln(path,to_path):
     #     shell(cmd)
     # else:
     #     pass
-        # raise ValueError('exist'+ to_path)
+    # raise ValueError('exist'+ to_path)
+
 
 def tar(path, to_path=None):
     if not osp.exists(path):
         return
-    if os.path.exists(to_path) and not len(os.listdir(to_path))==0:
+    if not osp.exists(to_path):
+        mkdir_p(to_path)
+    if os.path.exists(to_path) and not len(os.listdir(to_path)) == 0:
         rm(path)
         return
     if to_path is not None:
@@ -306,16 +315,22 @@ def tar(path, to_path=None):
         print cmd
     else:
         cmd = "tar xf " + path
-    shell(cmd)
+    shell(cmd, block=False)
     if os.path.exists(path):
         rm(path)
 
+
 def rmdir(path):
-    cmd = "rmdir "+path
+    cmd = "rmdir " + path
     shell(cmd)
 
-def rm(path):
-    subprocess.call(('rm -rf ' + path).split())
+
+def rm(path, block=True):
+    cmd = 'rm -rf ' + path
+    if block:
+        shell(cmd)
+    else:
+        shell(cmd, block=block)
 
 
 def show_img(path):
@@ -475,16 +490,22 @@ def to_single_dir(dir='tfevents'):
             continue
         for ind, fn in enumerate(filenames):
             mkdir_p(parent + '/' + str(ind), False)
-            move(parent + '/' + fn, parent + '/' + str(ind) + '/')
+            mv(parent + '/' + fn, parent + '/' + str(ind) + '/')
         print parent, filenames
 
 
-def copy(from_path, to):
-    subprocess.call(('cp ' + from_path + ' ' + to).split())
+def cp(from_path, to):
+    subprocess.call(('cp -r ' + from_path + ' ' + to).split())
 
 
-def move(from_path, to):
-    subprocess.call(('mv ' + from_path + ' ' + to).split())
+def mv(from_path, to):
+    if not osp.exists(to):
+        mkdir_p(to)
+    if not isinstance(from_path, list):
+        subprocess.call(('mv ' + from_path + ' ' + to).split())
+    else:
+        for from_ in from_path:
+            subprocess.call(('mv ' + from_ + ' ' + to).split())
 
 
 def dict_concat(d_l):
@@ -502,7 +523,7 @@ def merge_dir(dir_l):
                 continue
             mkdir_p('/'.join(['_res'] + parent.split('/')[1:]), delete=False)
             if not osp.exists('/'.join(['_res'] + parent.split('/')[1:]) + '/' + filenames[0]):
-                copy(parent + '/' + filenames[0], '/'.join(['_res'] + parent.split('/')[1:]))
+                cp(parent + '/' + filenames[0], '/'.join(['_res'] + parent.split('/')[1:]))
             else:
                 print parent
 
@@ -587,10 +608,70 @@ def merge_pdf(names):
         , "wb"))
 
 
-if __name__ == '__main__':
-    # to_single_dir()
-    # merge_dir(['loss', 'tfevents'])
-    # print np.array( parse_dir_name())
-    # print np.array(parse_dir_name('tfevents_loss'))
+@chdir_to_root
+def clean_imagenet():
+    from metadata import imagenet10k
+    assert len(imagenet10k) > 10000, 'classes more thn 10k'
+    os.chdir('data')
+    for node in os.listdir('images'):
+        if '.tar' in node: continue
+        if node not in imagenet10k:
+            # cp('images/' + node, 'images-xr')
+            rm('images/' + node, block=True)
 
+
+@chdir_to_root
+def tar_imagenet():
+    os.chdir('data/images')
+    files = glob.glob('*.tar')
+
+    for file in files:
+        mkdir_p(file.strip('.tar'))
+        tar(file, file.strip('.tar'))
+        rm(file)
+
+
+@chdir_to_root
+def clean_imagenet10k_label():
+    from metadata import imagenet10k
+    all = [node for node in os.listdir('./data/images/') if node in imagenet10k]
+    os.chdir('data')
+    write_list('imagenet10k.txt', all)
+    write_list('imagenet10k.bak.txt', imagenet10k)
+    return np.sort(all)
+
+
+def write_list(file, l):
+    l = np.sort(l)
+    with open(file, 'w') as f:
+        for l_ in l:
+            f.write(str(l_) + '\n')
+            f.flush()
+
+
+@chdir_to_root
+def split_train_val():
+    os.chdir('data')
+    for node in os.listdir('images'):
+        files = glob.glob('images/' + node+'/*')
+        if not osp.exists('images-val/'+node):
+            mv(files[:len(files)//2],'images-val/'+node)
+@chdir_to_root
+def verify_split():
+    val=os.listdir('data/images-val')
+    val=np.sort(val)
+    train=os.listdir('data/images')
+    train=np.sort(train)
+    print 'ok'
+
+@chdir_to_root
+def sort_save():
+    pass
+
+if __name__ == '__main__':
+    # tar_imagenet()
+    # clean_imagenet()
+    clean_imagenet10k_label()
+    # split_train_val()
+    # verify_split()
     pass

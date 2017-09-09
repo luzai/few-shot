@@ -12,11 +12,11 @@ import threading
 import numpy as np
 import tensorflow as tf
 
-tf.app.flags.DEFINE_string('train_directory', '/tmp/',
+tf.app.flags.DEFINE_string('train_directory', '../data/images/',
                            'Training data directory')
-tf.app.flags.DEFINE_string('validation_directory', '/tmp/',
+tf.app.flags.DEFINE_string('validation_directory', '../data/images-val',
                            'Validation data directory')
-tf.app.flags.DEFINE_string('output_directory', '/tmp/',
+tf.app.flags.DEFINE_string('output_directory', '../data/imagenet10k/',
                            'Output data directory')
 
 tf.app.flags.DEFINE_integer('train_shards', 1024,
@@ -49,7 +49,8 @@ tf.app.flags.DEFINE_string('labels_file',
 # where each line corresponds to a unique mapping. Note that each line is
 # formatted as <synset>\t<human readable label>.
 tf.app.flags.DEFINE_string('imagenet_metadata_file',
-                           '../data/imagenet_metadata.txt',
+                           # '../data/imagenet_metadata.txt',
+                           '../data/words.txt',
                            'ImageNet metadata file')
 
 # This file is the output of process_bounding_box.py
@@ -91,7 +92,7 @@ def _bytes_feature(value):
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
 
 
-def _convert_to_example(filename, image_buffer, label, synset, human, bbox,
+def _convert_to_example(filename, image_buffer, label, synset, human,
                         height, width):
     """Build an Example proto for an example.
 
@@ -109,15 +110,6 @@ def _convert_to_example(filename, image_buffer, label, synset, human, bbox,
     Returns:
       Example proto
     """
-    xmin = []
-    ymin = []
-    xmax = []
-    ymax = []
-    for b in bbox:
-        assert len(b) == 4
-        # pylint: disable=expression-not-assigned
-        [l.append(point) for l, point in zip([xmin, ymin, xmax, ymax], b)]
-        # pylint: enable=expression-not-assigned
 
     colorspace = 'RGB'
     channels = 3
@@ -131,11 +123,6 @@ def _convert_to_example(filename, image_buffer, label, synset, human, bbox,
         'image/class/label': _int64_feature(label),
         'image/class/synset': _bytes_feature(synset),
         'image/class/text': _bytes_feature(human),
-        'image/object/bbox/xmin': _float_feature(xmin),
-        'image/object/bbox/xmax': _float_feature(xmax),
-        'image/object/bbox/ymin': _float_feature(ymin),
-        'image/object/bbox/ymax': _float_feature(ymax),
-        'image/object/bbox/label': _int64_feature([label] * len(xmin)),
         'image/format': _bytes_feature(image_format),
         'image/filename': _bytes_feature(os.path.basename(filename)),
         'image/encoded': _bytes_feature(image_buffer)}))
@@ -147,7 +134,9 @@ class ImageCoder(object):
 
     def __init__(self):
         # Create a single Session to run all image coding calls.
-        self._sess = tf.Session()
+        _sess_config = tf.ConfigProto(allow_soft_placement=True)
+        _sess_config.gpu_options.allow_growth = True
+        self._sess = tf.Session(config=_sess_config)
 
         # Initializes function that converts PNG to JPEG data.
         self._png_data = tf.placeholder(dtype=tf.string)
@@ -255,7 +244,7 @@ def _process_image(filename, coder):
 
 
 def _process_image_files_batch(coder, thread_index, ranges, name, filenames,
-                               synsets, labels, humans, bboxes, num_shards):
+                               synsets, labels, humans, num_shards):
     """Processes and saves list of images as TFRecord in 1 thread.
 
     Args:
@@ -300,12 +289,11 @@ def _process_image_files_batch(coder, thread_index, ranges, name, filenames,
             label = labels[i]
             synset = synsets[i]
             human = humans[i]
-            bbox = bboxes[i]
 
             image_buffer, height, width = _process_image(filename, coder)
 
             example = _convert_to_example(filename, image_buffer, label,
-                                          synset, human, bbox,
+                                          synset, human,
                                           height, width)
             writer.write(example.SerializeToString())
             shard_counter += 1
@@ -327,7 +315,7 @@ def _process_image_files_batch(coder, thread_index, ranges, name, filenames,
 
 
 def _process_image_files(name, filenames, synsets, labels, humans,
-                         bboxes, num_shards):
+                         num_shards):
     """Process and save list of images as TFRecord of Example protos.
 
     Args:
@@ -344,7 +332,6 @@ def _process_image_files(name, filenames, synsets, labels, humans,
     assert len(filenames) == len(synsets)
     assert len(filenames) == len(labels)
     assert len(filenames) == len(humans)
-    assert len(filenames) == len(bboxes)
 
     # Break all images into batches with a [ranges[i][0], ranges[i][1]].
     spacing = np.linspace(0, len(filenames), FLAGS.num_threads + 1).astype(np.int)
@@ -366,7 +353,7 @@ def _process_image_files(name, filenames, synsets, labels, humans,
     threads = []
     for thread_index in xrange(len(ranges)):
         args = (coder, thread_index, ranges, name, filenames,
-                synsets, labels, humans, bboxes, num_shards)
+                synsets, labels, humans, num_shards)
         t = threading.Thread(target=_process_image_files_batch, args=args)
         t.start()
         threads.append(t)
@@ -471,34 +458,8 @@ def _find_human_readable_labels(synsets, synset_to_human):
     return humans
 
 
-def _find_image_bounding_boxes(filenames, image_to_bboxes):
-    """Find the bounding boxes for a given image file.
-
-    Args:
-      filenames: list of strings; each string is a path to an image file.
-      image_to_bboxes: dictionary mapping image file names to a list of
-        bounding boxes. This list contains 0+ bounding boxes.
-    Returns:
-      List of bounding boxes for each image. Note that each entry in this
-      list might contain from 0+ entries corresponding to the number of bounding
-      box annotations for the image.
-    """
-    num_image_bbox = 0
-    bboxes = []
-    for f in filenames:
-        basename = os.path.basename(f)
-        if basename in image_to_bboxes:
-            bboxes.append(image_to_bboxes[basename])
-            num_image_bbox += 1
-        else:
-            bboxes.append([])
-    print('Found %d images with bboxes out of %d images' % (
-        num_image_bbox, len(filenames)))
-    return bboxes
-
-
 def _process_dataset(name, directory, num_shards, synset_to_human,
-                     image_to_bboxes):
+                     ):
     """Process a complete data set and save it as a TFRecord.
 
     Args:
@@ -512,9 +473,9 @@ def _process_dataset(name, directory, num_shards, synset_to_human,
     """
     filenames, synsets, labels = _find_image_files(directory, FLAGS.labels_file)
     humans = _find_human_readable_labels(synsets, synset_to_human)
-    bboxes = _find_image_bounding_boxes(filenames, image_to_bboxes)
+
     _process_image_files(name, filenames, synsets, labels,
-                         humans, bboxes, num_shards)
+                         humans,  num_shards)
 
 
 def _build_synset_lookup(imagenet_metadata_file):
@@ -549,54 +510,6 @@ def _build_synset_lookup(imagenet_metadata_file):
     return synset_to_human
 
 
-def _build_bounding_box_lookup(bounding_box_file):
-    """Build a lookup from image file to bounding boxes.
-
-    Args:
-      bounding_box_file: string, path to file with bounding boxes annotations.
-
-        Assumes each line of the file looks like:
-
-          n00007846_64193.JPEG,0.0060,0.2620,0.7545,0.9940
-
-        where each line corresponds to one bounding box annotation associated
-        with an image. Each line can be parsed as:
-
-          <JPEG file name>, <xmin>, <ymin>, <xmax>, <ymax>
-
-        Note that there might exist mulitple bounding box annotations associated
-        with an image file. This file is the output of process_bounding_boxes.py.
-
-    Returns:
-      Dictionary mapping image file names to a list of bounding boxes. This list
-      contains 0+ bounding boxes.
-    """
-    lines = tf.gfile.FastGFile(bounding_box_file, 'r').readlines()
-    images_to_bboxes = {}
-    num_bbox = 0
-    num_image = 0
-    for l in lines:
-        if l:
-            parts = l.split(',')
-            assert len(parts) == 5, ('Failed to parse: %s' % l)
-            filename = parts[0]
-            xmin = float(parts[1])
-            ymin = float(parts[2])
-            xmax = float(parts[3])
-            ymax = float(parts[4])
-            box = [xmin, ymin, xmax, ymax]
-
-            if filename not in images_to_bboxes:
-                images_to_bboxes[filename] = []
-                num_image += 1
-            images_to_bboxes[filename].append(box)
-            num_bbox += 1
-
-    print('Successfully read %d bounding boxes '
-          'across %d images.' % (num_bbox, num_image))
-    return images_to_bboxes
-
-
 def main(unused_argv):
     assert not FLAGS.train_shards % FLAGS.num_threads, (
         'Please make the FLAGS.num_threads commensurate with FLAGS.train_shards')
@@ -607,13 +520,11 @@ def main(unused_argv):
 
     # Build a map from synset to human-readable label.
     synset_to_human = _build_synset_lookup(FLAGS.imagenet_metadata_file)
-    image_to_bboxes = _build_bounding_box_lookup(FLAGS.bounding_box_file)
-
     # Run it!
-    _process_dataset('validation', FLAGS.validation_directory,
-                     FLAGS.validation_shards, synset_to_human, image_to_bboxes)
     _process_dataset('train', FLAGS.train_directory, FLAGS.train_shards,
-                     synset_to_human, image_to_bboxes)
+                     synset_to_human)
+    _process_dataset('validation', FLAGS.validation_directory,
+                     FLAGS.validation_shards, synset_to_human)
 
 
 if __name__ == '__main__':

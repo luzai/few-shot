@@ -40,7 +40,7 @@ def _read_list(file):
     return lines
 
 
-imagenet10k = _read_list('../data/imagenet10k.txt')
+imagenet10k = _read_list('../data/imagenet10k.bak.txt')
 
 
 class _Class():
@@ -92,8 +92,8 @@ def construct_path():
         path = list2str(hist, delimier='/')
         imagepath = get_imagepath(node)
         if os.path.exists(imagepath) and os.path.getsize(imagepath) != 0:
-            mkdir_p(path)
-            mkdir_p(imagepath.strip('.tar'))
+            # mkdir_p(path)
+            # mkdir_p(imagepath.strip('.tar'))
             tar(imagepath, imagepath.strip('.tar'))
             # rm(path)
             # ln(imagepath.strip('.tar'), path.strip('/'))
@@ -193,11 +193,15 @@ def dir2tree():
     # tree_
     return tree_
 
-construct_path()
+# construct_path()
 
 ori_tree = tag_tree(tree)
 slim_tree = slim_tree(ori_tree)
 slim_tree = tag_tree(slim_tree)
 
+@chdir_to_root
+def clean():
+    pass
 
 os.chdir(restore_path)
+
