@@ -6,136 +6,136 @@ import utils
 
 
 def load_cifar10(classes):
-  (x_train, y_train), (x_test, y_test) = cifar10.load_data()
-  from model_utils import cosort
-  y_train_ori = y_train.copy()
-  x_train, y_train = cosort(x_train, y_train_ori, return_y=True)
-  
-  y_test_ori = y_test.copy()
-  x_test, y_test = cosort(x_test, y_test_ori, return_y=True)
-  
-  x_train, y_train = map(lambda x: limit_data(x, n=5000 * classes), [x_train, y_train])
-  x_test, y_test = map(lambda x: limit_data(x, n=1000 * classes), [x_test, y_test])
-  
-  ind = np.random.permutation(x_train.shape[0])
-  x_train = x_train[ind]
-  y_train = y_train[ind]
-  
-  return (x_train, y_train), (x_test, y_test)
+    (x_train, y_train), (x_test, y_test) = cifar10.load_data()
+    from model_utils import cosort
+    y_train_ori = y_train.copy()
+    x_train, y_train = cosort(x_train, y_train_ori, return_y=True)
+
+    y_test_ori = y_test.copy()
+    x_test, y_test = cosort(x_test, y_test_ori, return_y=True)
+
+    x_train, y_train = map(lambda x: limit_data(x, n=5000 * classes), [x_train, y_train])
+    x_test, y_test = map(lambda x: limit_data(x, n=1000 * classes), [x_test, y_test])
+
+    ind = np.random.permutation(x_train.shape[0])
+    x_train = x_train[ind]
+    y_train = y_train[ind]
+
+    return (x_train, y_train), (x_test, y_test)
 
 
 class Dataset(object):
-  dataset_type = ['cifar10', 'cifar100', 'imagenet']
-  
-  def __init__(self, name='cifar10', debug=False, limit_val=True, classes=10):
-    if name == 'cifar10':
-      self.input_shape = (32, 32, 3)
-      self.classes = classes
-      (x_train, y_train), (x_test, y_test) = load_cifar10(classes)
-    elif name == 'cifar100':
-      self.input_shape = (32, 32, 3)
-      self.classes = 100
-      (x_train, y_train), (x_test, y_test) = cifar100.load_data()
-    elif name == 'imagenet':
-      raise ValueError('Not Implement')
-    elif name == 'svhn':
-      self.input_shape = (32, 32, 3)
-      self.classes = 10
-      (x_train, y_train), (x_test, y_test) = load_data_svhn()
-    elif name == 'mnist':
-      self.input_shape = (28, 28, 1)
-      self.classes = 10
-      (x_train, y_train), (x_test, y_test) = mnist.load_data()
-      x_train = x_train[..., np.newaxis]
-      x_test = x_test[..., np.newaxis]
-    
-    # logger.info(str( x_train.shape))
-    
-    y_train = keras.utils.to_categorical(y_train, self.classes)
-    y_test = keras.utils.to_categorical(y_test, self.classes)
-    x_train = x_train.astype('float32')
-    x_test = x_test.astype('float32')
-    assert x_test.max() > 1.1
-    
-    x_train /= 255.
-    x_test /= 255.
-    
-    mean_img = x_train.mean(axis=0)
-    x_train -= mean_img
-    # print x_test.mean()
-    x_test -= mean_img
-    # print x_test.mean()
-    
-    self.x_train, self.y_train, self.x_test, self.y_test = x_train, y_train, x_test, y_test
-    if limit_val:
-      self.x_test_ref, self.y_test_ref = map(sample_data, [self.x_test, self.y_test])
-      # if debug:
-      #   self.x_train, self.y_train, self.x_test, self.y_test = map(limit_data,
-      #                                                              [self.x_train, self.y_train,
-      #                                                               self.x_test, self.y_test])
+    dataset_type = ['cifar10', 'cifar100', 'imagenet']
+
+    def __init__(self, name='cifar10', debug=False, limit_val=True, classes=10):
+        if name == 'cifar10':
+            self.input_shape = (32, 32, 3)
+            self.classes = classes
+            (x_train, y_train), (x_test, y_test) = load_cifar10(classes)
+        elif name == 'cifar100':
+            self.input_shape = (32, 32, 3)
+            self.classes = 100
+            (x_train, y_train), (x_test, y_test) = cifar100.load_data()
+        elif name == 'imagenet':
+            raise ValueError('Not Implement')
+        elif name == 'svhn':
+            self.input_shape = (32, 32, 3)
+            self.classes = 10
+            (x_train, y_train), (x_test, y_test) = load_data_svhn()
+        elif name == 'mnist':
+            self.input_shape = (28, 28, 1)
+            self.classes = 10
+            (x_train, y_train), (x_test, y_test) = mnist.load_data()
+            x_train = x_train[..., np.newaxis]
+            x_test = x_test[..., np.newaxis]
+
+        # logger.info(str( x_train.shape))
+
+        y_train = keras.utils.to_categorical(y_train, self.classes)
+        y_test = keras.utils.to_categorical(y_test, self.classes)
+        x_train = x_train.astype('float32')
+        x_test = x_test.astype('float32')
+        assert x_test.max() > 1.1
+
+        x_train /= 255.
+        x_test /= 255.
+
+        mean_img = x_train.mean(axis=0)
+        x_train -= mean_img
+        # print x_test.mean()
+        x_test -= mean_img
+        # print x_test.mean()
+
+        self.x_train, self.y_train, self.x_test, self.y_test = x_train, y_train, x_test, y_test
+        if limit_val:
+            self.x_test_ref, self.y_test_ref = map(sample_data, [self.x_test, self.y_test])
+            # if debug:
+            #   self.x_train, self.y_train, self.x_test, self.y_test = map(limit_data,
+            #                                                              [self.x_train, self.y_train,
+            #                                                               self.x_test, self.y_test])
 
 
 @utils.static_vars(ind=None)
 def sample_data(data, n=4500):
-  # todo
-  np.random.seed(1)
-  if sample_data.ind is None:
-    sample_data.ind = np.random.permutation(data.shape[0])[:n]
-  return data[sample_data.ind]
+    # todo
+    np.random.seed(1)
+    if sample_data.ind is None:
+        sample_data.ind = np.random.permutation(data.shape[0])[:n]
+    return data[sample_data.ind]
 
 
 def limit_data(data, n=256 * 4):
-  return data[:n]
+    return data[:n]
 
 
 def load_data_svhn():
-  import scipy.io as sio
-  import commands, os
-  import numpy as np
-  import os.path as osp
-  if not os.path.isdir(osp.join(Config.root_path, 'data/SVHN')):
-    os.mkdir(osp.join(Config.root_path, 'data/SVHN'))
-  
-  data_set = []
-  if not os.path.isfile(osp.join(Config.root_path, 'data/SVHN/train_32x32.mat')):
-    data_set.append("train")
-  if not os.path.isfile(osp.join(Config.root_path, 'data/SVHN/test_32x32.mat')):
-    data_set.append("test")
-  
-  try:
-    import requests
-    from tqdm import tqdm
-  except:
-    # use pip to install these packages:
-    # pip install tqdm
-    # pip install requests
-    print('please install requests and tqdm package first.')
-  
-  for set in data_set:
-    print ('download SVHN ' + set + ' data, Please wait.')
-    url = "http://ufldl.stanford.edu/housenumbers/" + set + "_32x32.mat"
-    response = requests.get(url, stream=True)
-    with open("data/SVHN/" + set + "_32x32.mat", "wb") as handle:
-      for data in tqdm(response.iter_content()):
-        handle.write(data)
-  
-  train_data = sio.loadmat(Config.root_path + '/data/SVHN/train_32x32.mat')
-  train_x = train_data['X']
-  train_y = train_data['y']
-  
-  test_data = sio.loadmat(Config.root_path + '/data/SVHN/test_32x32.mat')
-  test_x = test_data['X']
-  test_y = test_data['y']
-  
-  # 1 - 10 to 0 - 9
-  train_y = train_y - 1
-  test_y = test_y - 1
-  
-  train_x = np.transpose(train_x, (3, 0, 1, 2))
-  test_x = np.transpose(test_x, (3, 0, 1, 2))
-  
-  return (train_x, train_y), (test_x, test_y)
+    import scipy.io as sio
+    import commands, os
+    import numpy as np
+    import os.path as osp
+    if not os.path.isdir(osp.join(Config.root_path, 'data/SVHN')):
+        os.mkdir(osp.join(Config.root_path, 'data/SVHN'))
+
+    data_set = []
+    if not os.path.isfile(osp.join(Config.root_path, 'data/SVHN/train_32x32.mat')):
+        data_set.append("train")
+    if not os.path.isfile(osp.join(Config.root_path, 'data/SVHN/test_32x32.mat')):
+        data_set.append("test")
+
+    try:
+        import requests
+        from tqdm import tqdm
+    except:
+        # use pip to install these packages:
+        # pip install tqdm
+        # pip install requests
+        print('please install requests and tqdm package first.')
+
+    for set in data_set:
+        print ('download SVHN ' + set + ' data, Please wait.')
+        url = "http://ufldl.stanford.edu/housenumbers/" + set + "_32x32.mat"
+        response = requests.get(url, stream=True)
+        with open("data/SVHN/" + set + "_32x32.mat", "wb") as handle:
+            for data in tqdm(response.iter_content()):
+                handle.write(data)
+
+    train_data = sio.loadmat(Config.root_path + '/data/SVHN/train_32x32.mat')
+    train_x = train_data['X']
+    train_y = train_data['y']
+
+    test_data = sio.loadmat(Config.root_path + '/data/SVHN/test_32x32.mat')
+    test_x = test_data['X']
+    test_y = test_data['y']
+
+    # 1 - 10 to 0 - 9
+    train_y = train_y - 1
+    test_y = test_y - 1
+
+    train_x = np.transpose(train_x, (3, 0, 1, 2))
+    test_x = np.transpose(test_x, (3, 0, 1, 2))
+
+    return (train_x, train_y), (test_x, test_y)
 
 
 if __name__ == '__main__':
-  data = Dataset('cifar10', classes=3)
+    data = Dataset('cifar10', classes=3)

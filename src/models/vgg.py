@@ -46,17 +46,17 @@ class VGG(BaseModel):
                      cfg[type][0]]
         self.arch += [['flatten']]
         self.arch += [['dense', _config] for _config in cfg[type][1]]
-        self.model = self.build(name=config.name, ortho_l2=ortho_l2,last_act_layer=last_act_layer)
+        self.model = self.build(name=config.name, ortho_l2=ortho_l2, last_act_layer=last_act_layer)
         self.vis()
 
-    def build(self, name, ortho_l2 ,last_act_layer='softmax'):
+    def build(self, name, ortho_l2, last_act_layer='softmax'):
         x = input = Input(self.input_shape, name='layer0/input')  # layer --stat Layer --tensor
         depth = 1
         for ind, config in enumerate(self.arch):
             if config[0] == 'conv2d':
                 if not self.with_bn:
                     x = Conv2D(config[1], (3, 3), padding='same', name='layer{}/conv'.format(depth),
-                               kernel_regularizer=ortho_l2_reg(*ortho_l2 ))(x)
+                               kernel_regularizer=ortho_l2_reg(*ortho_l2))(x)
                     x = Activation('relu')(x)
                 else:
                     x = Conv2D(config[1], (3, 3), padding='same', name='layer{}/conv'.format(depth),

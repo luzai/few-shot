@@ -3,7 +3,7 @@ def run(model_type='vgg6', limit_val=True,
         with_bn=True, optimizer={'name': 'sgd'},
         hiddens=512, with_dp=False,
         loss='softmax',
-        classes=10,ortho_l2=(0.,1e-4)):
+        classes=10, ortho_l2=(0., 1e-4)):
     import utils
     import warnings
     warnings.filterwarnings("ignore")
@@ -23,11 +23,11 @@ def run(model_type='vgg6', limit_val=True,
     from logs import logger
     import utils, configs
 
-
     def str2list(s):
         ls = s.split()
         return [float(l) for l in ls]
-    ortho_l2=str2list(ortho_l2)
+
+    ortho_l2 = str2list(ortho_l2)
 
     config = Config(epochs=utils.get_config('epochs'),
                     batch_size=256, verbose=2,
@@ -38,11 +38,11 @@ def run(model_type='vgg6', limit_val=True,
                         # 'runtime'  : runtime,
                         # 'with_bn'  : with_bn,
                         'optimizer': optimizer,
-                         'hiddens': hiddens,
+                        'hiddens': hiddens,
                         # 'with_dp'  : with_dp,
                         # 'loss'     : loss,
                         'classes': classes,
-                        'ortho_l2':ortho_l2,
+                        'ortho_l2': ortho_l2,
                     }, )
     # if len(glob.glob(config.model_tfevents_path + '/*tfevents*')) >= 1:
     #   logger.info('exist ' + config.model_tfevents_path)
@@ -105,7 +105,8 @@ def run(model_type='vgg6', limit_val=True,
     model.model.fit(dataset.x_train, dataset.y_train, batch_size=config.batch_size, epochs=config.epochs,
                     verbose=config.verbose,
                     validation_data=(dataset.x_test, dataset.y_test),
-                    callbacks=callback_l)
+                    callbacks=callback_l
+                    )
     model.save()
 
     Loader(path=config.model_tfevents_path, stat_only=True).load(stat_only=True)
@@ -118,7 +119,7 @@ import logs, os.path as osp
 import numpy as np
 import utils, os
 
-# utils.rm(utils.root_path + '/tfevents  ' + utils.root_path + '/output')
+utils.rm(utils.root_path + '/tfevents  ' + utils.root_path + '/output')
 tasks = []
 
 queue = mp.Queue()

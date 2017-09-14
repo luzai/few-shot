@@ -18,22 +18,22 @@ hyper = {
     "gpu": [0, 1, 2, 3],
     "use": "cifar",
     "logger_level": "info",
-    "dbg": True,
+    "dbg": False,
     "priority": 19,  # 11
     "log_stat": True,
     # we need 2 mode : log all stat
     # stat and tensor for only Layer
     "log_tensor": False,
     "last_only": True,
-    "curve_only": False,
+    "curve_only": True,
 
     "cifar": {
         "epochs": 81,
         "sample_rate": 1.,  # epoch^-1
         "sub_sample": [5, 20, ],  # epoch
         "sub_sample_rate": [20, 2, .5],
-        "grids": {'dataset': ['cifar10', ],
-                  'model_type': ['vgg10', ],  # 'vgg10', 'resnet10'
+        "grids": {'dataset': ['cifar100', ],
+                  'model_type': ['resnet101'],  # , 'vgg10', 'resnet10',
                   'optimizer': [
                       # {'name'       : 'sgd',
                       #  'lr'         : 0.01,
@@ -44,16 +44,16 @@ hyper = {
                       #  'decay_epoch': [25, ],
                       #  'decay'      : [10, ], },
                       {'name': 'sgd',
-                       'lr': 0.01, },
+                       'lr': 0.001},
                   ],
-                  'hiddens': [2, ],
+                  # 'hiddens': [2, ],
                   'loss': ['softmax', ],
-                  'classes': [10, ],
+                  # 'classes': [10, ],
                   'ortho_l2': [
                       list2str([0.0, 1e-4]),
-                      list2str([1e-4, 0.0]),
-                      list2str([1e-4, 1e-4])
-                               ],
+                      # list2str([1e-4, 0.0]),
+                      # list2str([1e-4, 1e-4])
+                  ],
                   }
     },
     # # mnist ok

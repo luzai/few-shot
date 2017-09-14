@@ -17,10 +17,9 @@ root_path = osp.normpath(
 
 
 def cpu_priority():
-    from multiprocessing import Pool, cpu_count
     import psutil
     p = psutil.Process(os.getpid())
-    # p.nice(19)
+    p.nice(19)
 
 
 def to_int(x):
@@ -158,7 +157,6 @@ def optional_arg_decorator(fn):
     def wrapped_decorator(*args):
         if len(args) == 1 and callable(args[0]):
             return fn(args[0])
-
         else:
             def real_decorator(decoratee):
                 return fn(decoratee, *args)
@@ -277,12 +275,17 @@ def mkdir_p(path, delete=False):
 
 
 def shell(cmd, block=True):
+    my_env = os.environ.copy()
     if block:
         subprocess.call(cmd.split())
     else:
-        subprocess.Popen(cmd, shell=True,
-                         stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE)
+        print 'Non-block!'
+        task = subprocess.Popen(cmd,
+                                shell=True,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE,
+                                env=my_env)
+        return task
 
 
 def ln(path, to_path):
@@ -294,12 +297,6 @@ def ln(path, to_path):
     proc = subprocess.Popen(cmd, shell=True,
                             stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE)
-    # if not osp.exists(to_path):
-    #     cmd = "ln -s "+ path + " "+ to_path
-    #     shell(cmd)
-    # else:
-    #     pass
-    # raise ValueError('exist'+ to_path)
 
 
 def tar(path, to_path=None):
@@ -369,18 +366,8 @@ def vis_model(model, name='model', show_shapes=True):
         logger.error("cannot keras.plot_model {}".format(inst))
 
 
-def count_weight(model):
-    import keras.backend as K
-    trainable_count = np.sum([K.count_params(p) for p in set(model.trainable_weights)]) * 4. / 1024. / 1024.
-    # convert to MB
-    non_trainable_count = np.sum([K.count_params(p) for p in set(model.non_trainable_weights)]) * 4. / 1024. / 1024.
-
-    return trainable_count, non_trainable_count
-
-
 def print_graph_info():
     import tensorflow as tf
-    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
     graph = tf.get_default_graph()
     graph.get_tensor_by_name("Placeholder:0")
     layers = [op.name for op in graph.get_operations() if op.type == "Placeholder"]
@@ -448,6 +435,13 @@ def chdir_to_root(fn):
         return res
 
     return wrapped_fn
+
+
+def scp(src, dest, dry_run=False):
+    cmd = ('scp -r ' + src + ' ' + dest)
+    print cmd
+    if dry_run: return
+    return shell(cmd, block=False)
 
 
 @chdir_to_root
@@ -608,39 +602,6 @@ def merge_pdf(names):
         , "wb"))
 
 
-@chdir_to_root
-def clean_imagenet():
-    from metadata import imagenet10k
-    assert len(imagenet10k) > 10000, 'classes more thn 10k'
-    os.chdir('data')
-    for node in os.listdir('images'):
-        if '.tar' in node: continue
-        if node not in imagenet10k:
-            # cp('images/' + node, 'images-xr')
-            rm('images/' + node, block=True)
-
-
-@chdir_to_root
-def tar_imagenet():
-    os.chdir('data/images')
-    files = glob.glob('*.tar')
-
-    for file in files:
-        mkdir_p(file.strip('.tar'))
-        tar(file, file.strip('.tar'))
-        rm(file)
-
-
-@chdir_to_root
-def clean_imagenet10k_label():
-    from metadata import imagenet10k
-    all = [node for node in os.listdir('./data/images/') if node in imagenet10k]
-    os.chdir('data')
-    write_list('imagenet10k.txt', all)
-    write_list('imagenet10k.bak.txt', imagenet10k)
-    return np.sort(all)
-
-
 def write_list(file, l):
     l = np.sort(l)
     with open(file, 'w') as f:
@@ -649,29 +610,11 @@ def write_list(file, l):
             f.flush()
 
 
-@chdir_to_root
-def split_train_val():
-    os.chdir('data')
-    for node in os.listdir('images'):
-        files = glob.glob('images/' + node+'/*')
-        if not osp.exists('images-val/'+node):
-            mv(files[:len(files)//2],'images-val/'+node)
-@chdir_to_root
-def verify_split():
-    val=os.listdir('data/images-val')
-    val=np.sort(val)
-    train=os.listdir('data/images')
-    train=np.sort(train)
-    print 'ok'
+def rsync(from_, to):
+    cmd = ('rsync -avzP ' + from_ + ' ' + to)
+    print cmd
+    return shell(cmd, block=False)
 
-@chdir_to_root
-def sort_save():
-    pass
 
 if __name__ == '__main__':
-    # tar_imagenet()
-    # clean_imagenet()
-    clean_imagenet10k_label()
-    # split_train_val()
-    # verify_split()
     pass

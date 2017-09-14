@@ -114,7 +114,7 @@ def _shortcut(input, residual):
     return add([shortcut, residual], name='layer{}/add'.format(layer))
 
 
-def _residual_block(block_function, filters, repetitions, is_first_layer=False, obs=None):
+def _residual_block(block_function, filters, repetitions, is_first_layer=False):
     """Builds a residual block with repeating bottleneck blocks.
     """
 
@@ -126,14 +126,14 @@ def _residual_block(block_function, filters, repetitions, is_first_layer=False, 
                 init_strides = (2, 2)
             input = block_function(filters=filters, init_strides=init_strides,
                                    is_first_block_of_first_layer=(is_first_layer and i == 0),
-                                   obs=obs)(input)
+                                   )(input)
 
         return input
 
     return f
 
 
-def basic_block(filters, init_strides=(1, 1), is_first_block_of_first_layer=False, obs=None):
+def basic_block(filters, init_strides=(1, 1), is_first_block_of_first_layer=False ):
     """Basic 3 X 3 convolution blocks for use on resnets with layers <= 34.
     Follows improved proposed scheme in http://arxiv.org/pdf/1603.05027v2.pdf
     """
@@ -169,19 +169,25 @@ def bottleneck(filters, init_strides=(1, 1), is_first_block_of_first_layer=False
     """
 
     def f(input):
+
         global layer, ortho_l2_reg
         if is_first_block_of_first_layer:
+
             # don't repeat bn->relu since we just did bn->relu->maxpool
             conv_1_1 = Conv2D(filters=filters, kernel_size=(1, 1),
                               strides=init_strides,
                               padding="same",
                               kernel_initializer="he_normal",
                               kernel_regularizer=ortho_l2_reg(*ortho_l2_glb))(input)
+            layer += 1
         else:
             conv_1_1 = _bn_relu_conv(filters=filters, kernel_size=(1, 1),
                                      strides=init_strides)(input)
+            layer += 1
         conv_3_3 = _bn_relu_conv(filters=filters, kernel_size=(3, 3))(conv_1_1)
+        layer += 1
         residual = _bn_relu_conv(filters=filters * 4, kernel_size=(1, 1))(conv_3_3)
+        layer += 1
         res = _shortcut(input, residual)
         layer += 1
         return res
@@ -290,25 +296,25 @@ class ResnetBuilder(object):
         model = Model(inputs=input, outputs=dense, name=name)
         return model
 
-    # @staticmethod
-    # def build_resnet_18(input_shape, num_outputs):
-    #     return ResnetBuilder.build(input_shape, num_outputs, basic_block, [2, 2, 2, 2])
-    #
-    # @staticmethod
-    # def build_resnet_34(input_shape, num_outputs):
-    #     return ResnetBuilder.build(input_shape, num_outputs, basic_block, [3, 4, 6, 3])
-    #
-    # @staticmethod
-    # def build_resnet_50(input_shape, num_outputs):
-    #     return ResnetBuilder.build(input_shape, num_outputs, bottleneck, [3, 4, 6, 3])
-    #
-    # @staticmethod
-    # def build_resnet_101(input_shape, num_outputs):
-    #     return ResnetBuilder.build(input_shape, num_outputs, bottleneck, [3, 4, 23, 3])
-    #
-    # @staticmethod
-    # def build_resnet_152(input_shape, num_outputs):
-    #     return ResnetBuilder.build(input_shape, num_outputs, bottleneck, [3, 8, 36, 3])
+        # @staticmethod
+        # def build_resnet_18(input_shape, num_outputs):
+        #     return ResnetBuilder.build(input_shape, num_outputs, basic_block, [2, 2, 2, 2])
+        #
+        # @staticmethod
+        # def build_resnet_34(input_shape, num_outputs):
+        #     return ResnetBuilder.build(input_shape, num_outputs, basic_block, [3, 4, 6, 3])
+        #
+        # @staticmethod
+        # def build_resnet_50(input_shape, num_outputs):
+        #     return ResnetBuilder.build(input_shape, num_outputs, bottleneck, [3, 4, 6, 3])
+        #
+        # @staticmethod
+        # def build_resnet_101(input_shape, num_outputs):
+        #     return ResnetBuilder.build(input_shape, num_outputs, bottleneck, [3, 4, 23, 3])
+        #
+        # @staticmethod
+        # def build_resnet_152(input_shape, num_outputs):
+        #     return ResnetBuilder.build(input_shape, num_outputs, bottleneck, [3, 8, 36, 3])
 
 
 from models import BaseModel
@@ -332,10 +338,13 @@ class ResNet(BaseModel):
             'resnet12': [1, 2, 1, 1],
             'resnet18': [2, 2, 2, 2],
             'resnet34': [3, 4, 6, 3],
+            'resnet101': [3, 4, 23, 3],
         }
 
-        self.model = ResnetBuilder.build(input_shape, classes,
-                                         basic_block, cfg[type],
+        self.model = ResnetBuilder.build(input_shape,
+                                         classes,
+                                         basic_block if type != 'resnet101' else bottleneck,
+                                         cfg[type],
                                          ortho_l2,
                                          name=config.name,
                                          hiddens=self.hiddens,
