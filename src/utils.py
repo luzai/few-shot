@@ -501,12 +501,11 @@ def list2str(li, delimier=''):
     return name
 
 
-def write_list(file, l):
-    l = np.sort(l)
-    with open(file, 'w') as f:
-        for l_ in l:
-            f.write(str(l_) + '\n')
-            f.flush()
+def write_list(file, l,sort=True):
+    l=np.array(l)
+    if sort:
+        l = np.sort(l,axis=0)
+    np.savetxt(file,l,delimiter=' ')
 
 
 def rsync(from_, to):
@@ -565,7 +564,8 @@ def check_jpeg():
 
 
 if __name__ == '__main__':
-    # cpu_priority(19)
+    exit(1)
+
     import multiprocessing as mp
 
     result = []
