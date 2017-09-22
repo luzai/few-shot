@@ -1,0 +1,588 @@
+name: "ResNet56"
+inputs:
+  - { id: data , spec: "Float32(32, 32, 3, _)" }
+  - { id: label, spec: "Uint32(1, _)" }
+params:
+  - { id: conv1.w      , spec: "Float32(3, 3, 3, 16)" , learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: a0.conv1.w   , spec: "Float32(3, 3, 16, 16)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: a0.bn1.s     , spec: "Float32(16)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: a0.bn1.b     , spec: "Float32(16)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: a0.bn1.h     , spec: "Float32(32)"          , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: a0.conv2.w   , spec: "Float32(3, 3, 16, 16)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: a0.bn2.s     , spec: "Float32(16)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: a0.bn2.b     , spec: "Float32(16)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: a0.bn2.h     , spec: "Float32(32)"          , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: a1.conv1.w   , spec: "Float32(3, 3, 16, 16)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: a1.bn1.s     , spec: "Float32(16)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: a1.bn1.b     , spec: "Float32(16)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: a1.bn1.h     , spec: "Float32(32)"          , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: a1.conv2.w   , spec: "Float32(3, 3, 16, 16)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: a1.bn2.s     , spec: "Float32(16)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: a1.bn2.b     , spec: "Float32(16)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: a1.bn2.h     , spec: "Float32(32)"          , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: a2.conv1.w   , spec: "Float32(3, 3, 16, 16)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: a2.bn1.s     , spec: "Float32(16)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: a2.bn1.b     , spec: "Float32(16)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: a2.bn1.h     , spec: "Float32(32)"          , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: a2.conv2.w   , spec: "Float32(3, 3, 16, 16)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: a2.bn2.s     , spec: "Float32(16)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: a2.bn2.b     , spec: "Float32(16)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: a2.bn2.h     , spec: "Float32(32)"          , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: a3.conv1.w   , spec: "Float32(3, 3, 16, 16)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: a3.bn1.s     , spec: "Float32(16)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: a3.bn1.b     , spec: "Float32(16)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: a3.bn1.h     , spec: "Float32(32)"          , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: a3.conv2.w   , spec: "Float32(3, 3, 16, 16)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: a3.bn2.s     , spec: "Float32(16)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: a3.bn2.b     , spec: "Float32(16)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: a3.bn2.h     , spec: "Float32(32)"          , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: a4.conv1.w   , spec: "Float32(3, 3, 16, 16)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: a4.bn1.s     , spec: "Float32(16)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: a4.bn1.b     , spec: "Float32(16)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: a4.bn1.h     , spec: "Float32(32)"          , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: a4.conv2.w   , spec: "Float32(3, 3, 16, 16)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: a4.bn2.s     , spec: "Float32(16)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: a4.bn2.b     , spec: "Float32(16)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: a4.bn2.h     , spec: "Float32(32)"          , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: a5.conv1.w   , spec: "Float32(3, 3, 16, 16)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: a5.bn1.s     , spec: "Float32(16)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: a5.bn1.b     , spec: "Float32(16)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: a5.bn1.h     , spec: "Float32(32)"          , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: a5.conv2.w   , spec: "Float32(3, 3, 16, 16)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: a5.bn2.s     , spec: "Float32(16)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: a5.bn2.b     , spec: "Float32(16)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: a5.bn2.h     , spec: "Float32(32)"          , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: a6.conv1.w   , spec: "Float32(3, 3, 16, 16)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: a6.bn1.s     , spec: "Float32(16)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: a6.bn1.b     , spec: "Float32(16)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: a6.bn1.h     , spec: "Float32(32)"          , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: a6.conv2.w   , spec: "Float32(3, 3, 16, 16)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: a6.bn2.s     , spec: "Float32(16)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: a6.bn2.b     , spec: "Float32(16)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: a6.bn2.h     , spec: "Float32(32)"          , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: a7.conv1.w   , spec: "Float32(3, 3, 16, 16)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: a7.bn1.s     , spec: "Float32(16)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: a7.bn1.b     , spec: "Float32(16)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: a7.bn1.h     , spec: "Float32(32)"          , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: a7.conv2.w   , spec: "Float32(3, 3, 16, 16)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: a7.bn2.s     , spec: "Float32(16)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: a7.bn2.b     , spec: "Float32(16)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: a7.bn2.h     , spec: "Float32(32)"          , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: a8.conv1.w   , spec: "Float32(3, 3, 16, 16)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: a8.bn1.s     , spec: "Float32(16)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: a8.bn1.b     , spec: "Float32(16)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: a8.bn1.h     , spec: "Float32(32)"          , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: a8.conv2.w   , spec: "Float32(3, 3, 16, 16)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: a8.bn2.s     , spec: "Float32(16)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: a8.bn2.b     , spec: "Float32(16)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: a8.bn2.h     , spec: "Float32(32)"          , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: b0.conv1.w   , spec: "Float32(3, 3, 16, 32)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: b0.bn1.s     , spec: "Float32(32)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: b0.bn1.b     , spec: "Float32(32)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: b0.bn1.h     , spec: "Float32(64)"          , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: b0.conv2.w   , spec: "Float32(3, 3, 32, 32)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: b0.bn2.s     , spec: "Float32(32)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: b0.bn2.b     , spec: "Float32(32)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: b0.bn2.h     , spec: "Float32(64)"          , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: b0.shrink.w  , spec: "Float32(1, 1, 16, 32)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: b0.shrink.b  , spec: "Float32(1, 1, 32, 1)" , learning-policy: { init: fill(0.2), lr_mult: 2, decay_mult: 0 } }
+  - { id: b0.shrinkbn.s, spec: "Float32(32)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: b0.shrinkbn.b, spec: "Float32(32)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: b0.shrinkbn.h, spec: "Float32(64)"          , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: b1.conv1.w   , spec: "Float32(3, 3, 32, 32)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: b1.bn1.s     , spec: "Float32(32)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: b1.bn1.b     , spec: "Float32(32)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: b1.bn1.h     , spec: "Float32(64)"          , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: b1.conv2.w   , spec: "Float32(3, 3, 32, 32)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: b1.bn2.s     , spec: "Float32(32)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: b1.bn2.b     , spec: "Float32(32)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: b1.bn2.h     , spec: "Float32(64)"          , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: b2.conv1.w   , spec: "Float32(3, 3, 32, 32)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: b2.bn1.s     , spec: "Float32(32)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: b2.bn1.b     , spec: "Float32(32)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: b2.bn1.h     , spec: "Float32(64)"          , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: b2.conv2.w   , spec: "Float32(3, 3, 32, 32)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: b2.bn2.s     , spec: "Float32(32)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: b2.bn2.b     , spec: "Float32(32)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: b2.bn2.h     , spec: "Float32(64)"          , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: b3.conv1.w   , spec: "Float32(3, 3, 32, 32)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: b3.bn1.s     , spec: "Float32(32)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: b3.bn1.b     , spec: "Float32(32)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: b3.bn1.h     , spec: "Float32(64)"          , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: b3.conv2.w   , spec: "Float32(3, 3, 32, 32)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: b3.bn2.s     , spec: "Float32(32)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: b3.bn2.b     , spec: "Float32(32)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: b3.bn2.h     , spec: "Float32(64)"          , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: b4.conv1.w   , spec: "Float32(3, 3, 32, 32)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: b4.bn1.s     , spec: "Float32(32)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: b4.bn1.b     , spec: "Float32(32)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: b4.bn1.h     , spec: "Float32(64)"          , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: b4.conv2.w   , spec: "Float32(3, 3, 32, 32)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: b4.bn2.s     , spec: "Float32(32)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: b4.bn2.b     , spec: "Float32(32)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: b4.bn2.h     , spec: "Float32(64)"          , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: b5.conv1.w   , spec: "Float32(3, 3, 32, 32)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: b5.bn1.s     , spec: "Float32(32)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: b5.bn1.b     , spec: "Float32(32)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: b5.bn1.h     , spec: "Float32(64)"          , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: b5.conv2.w   , spec: "Float32(3, 3, 32, 32)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: b5.bn2.s     , spec: "Float32(32)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: b5.bn2.b     , spec: "Float32(32)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: b5.bn2.h     , spec: "Float32(64)"          , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: b6.conv1.w   , spec: "Float32(3, 3, 32, 32)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: b6.bn1.s     , spec: "Float32(32)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: b6.bn1.b     , spec: "Float32(32)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: b6.bn1.h     , spec: "Float32(64)"          , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: b6.conv2.w   , spec: "Float32(3, 3, 32, 32)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: b6.bn2.s     , spec: "Float32(32)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: b6.bn2.b     , spec: "Float32(32)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: b6.bn2.h     , spec: "Float32(64)"          , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: b7.conv1.w   , spec: "Float32(3, 3, 32, 32)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: b7.bn1.s     , spec: "Float32(32)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: b7.bn1.b     , spec: "Float32(32)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: b7.bn1.h     , spec: "Float32(64)"          , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: b7.conv2.w   , spec: "Float32(3, 3, 32, 32)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: b7.bn2.s     , spec: "Float32(32)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: b7.bn2.b     , spec: "Float32(32)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: b7.bn2.h     , spec: "Float32(64)"          , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: b8.conv1.w   , spec: "Float32(3, 3, 32, 32)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: b8.bn1.s     , spec: "Float32(32)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: b8.bn1.b     , spec: "Float32(32)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: b8.bn1.h     , spec: "Float32(64)"          , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: b8.conv2.w   , spec: "Float32(3, 3, 32, 32)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: b8.bn2.s     , spec: "Float32(32)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: b8.bn2.b     , spec: "Float32(32)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: b8.bn2.h     , spec: "Float32(64)"          , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: c0.conv1.w   , spec: "Float32(3, 3, 32, 64)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: c0.bn1.s     , spec: "Float32(64)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: c0.bn1.b     , spec: "Float32(64)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: c0.bn1.h     , spec: "Float32(128)"         , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: c0.conv2.w   , spec: "Float32(3, 3, 64, 64)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: c0.bn2.s     , spec: "Float32(64)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: c0.bn2.b     , spec: "Float32(64)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: c0.bn2.h     , spec: "Float32(128)"         , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: c0.shrink.w  , spec: "Float32(1, 1, 32, 64)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: c0.shrink.b  , spec: "Float32(1, 1, 64, 1)" , learning-policy: { init: fill(0.2), lr_mult: 2, decay_mult: 0 } }
+  - { id: c0.shrinkbn.s, spec: "Float32(64)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: c0.shrinkbn.b, spec: "Float32(64)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: c0.shrinkbn.h, spec: "Float32(128)"         , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: c1.conv1.w   , spec: "Float32(3, 3, 64, 64)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: c1.bn1.s     , spec: "Float32(64)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: c1.bn1.b     , spec: "Float32(64)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: c1.bn1.h     , spec: "Float32(128)"         , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: c1.conv2.w   , spec: "Float32(3, 3, 64, 64)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: c1.bn2.s     , spec: "Float32(64)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: c1.bn2.b     , spec: "Float32(64)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: c1.bn2.h     , spec: "Float32(128)"         , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: c2.conv1.w   , spec: "Float32(3, 3, 64, 64)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: c2.bn1.s     , spec: "Float32(64)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: c2.bn1.b     , spec: "Float32(64)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: c2.bn1.h     , spec: "Float32(128)"         , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: c2.conv2.w   , spec: "Float32(3, 3, 64, 64)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: c2.bn2.s     , spec: "Float32(64)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: c2.bn2.b     , spec: "Float32(64)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: c2.bn2.h     , spec: "Float32(128)"         , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: c3.conv1.w   , spec: "Float32(3, 3, 64, 64)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: c3.bn1.s     , spec: "Float32(64)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: c3.bn1.b     , spec: "Float32(64)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: c3.bn1.h     , spec: "Float32(128)"         , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: c3.conv2.w   , spec: "Float32(3, 3, 64, 64)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: c3.bn2.s     , spec: "Float32(64)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: c3.bn2.b     , spec: "Float32(64)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: c3.bn2.h     , spec: "Float32(128)"         , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: c4.conv1.w   , spec: "Float32(3, 3, 64, 64)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: c4.bn1.s     , spec: "Float32(64)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: c4.bn1.b     , spec: "Float32(64)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: c4.bn1.h     , spec: "Float32(128)"         , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: c4.conv2.w   , spec: "Float32(3, 3, 64, 64)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: c4.bn2.s     , spec: "Float32(64)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: c4.bn2.b     , spec: "Float32(64)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: c4.bn2.h     , spec: "Float32(128)"         , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: c5.conv1.w   , spec: "Float32(3, 3, 64, 64)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: c5.bn1.s     , spec: "Float32(64)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: c5.bn1.b     , spec: "Float32(64)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: c5.bn1.h     , spec: "Float32(128)"         , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: c5.conv2.w   , spec: "Float32(3, 3, 64, 64)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: c5.bn2.s     , spec: "Float32(64)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: c5.bn2.b     , spec: "Float32(64)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: c5.bn2.h     , spec: "Float32(128)"         , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: c6.conv1.w   , spec: "Float32(3, 3, 64, 64)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: c6.bn1.s     , spec: "Float32(64)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: c6.bn1.b     , spec: "Float32(64)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: c6.bn1.h     , spec: "Float32(128)"         , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: c6.conv2.w   , spec: "Float32(3, 3, 64, 64)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: c6.bn2.s     , spec: "Float32(64)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: c6.bn2.b     , spec: "Float32(64)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: c6.bn2.h     , spec: "Float32(128)"         , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: c7.conv1.w   , spec: "Float32(3, 3, 64, 64)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: c7.bn1.s     , spec: "Float32(64)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: c7.bn1.b     , spec: "Float32(64)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: c7.bn1.h     , spec: "Float32(128)"         , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: c7.conv2.w   , spec: "Float32(3, 3, 64, 64)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: c7.bn2.s     , spec: "Float32(64)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: c7.bn2.b     , spec: "Float32(64)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: c7.bn2.h     , spec: "Float32(128)"         , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: c8.conv1.w   , spec: "Float32(3, 3, 64, 64)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: c8.bn1.s     , spec: "Float32(64)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: c8.bn1.b     , spec: "Float32(64)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: c8.bn1.h     , spec: "Float32(128)"         , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: c8.conv2.w   , spec: "Float32(3, 3, 64, 64)", learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: c8.bn2.s     , spec: "Float32(64)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: c8.bn2.b     , spec: "Float32(64)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: c8.bn2.h     , spec: "Float32(128)"         , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: last.s       , spec: "Float32(64)"          , learning-policy: { init: fill(1), lr_mult: 1, decay_mult: 0 } }
+  - { id: last.b       , spec: "Float32(64)"          , learning-policy: { init: fill(0), lr_mult: 1, decay_mult: 0 } }
+  - { id: last.h       , spec: "Float32(128)"         , learning-policy: { init: fill(0), lr_mult: 0, decay_mult: 0 } }
+  - { id: fc.w         , spec: "Float32(64, 100)"     , learning-policy: { init: xavier, lr_mult: 1, decay_mult: 1 } }
+  - { id: fc.b         , spec: "Float32(100, 1)"      , learning-policy: { init: fill(0.2), lr_mult: 2, decay_mult: 0 } }
+layers:
+  - { id: conv1, expr: "conv1 = Convolution(data, @conv1.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 16, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: a0.conv1, expr: "a0.conv1 = Convolution(conv1, @a0.conv1.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 16, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: a0.bn1, expr: "a0.bn1 = BN(a0.conv1, @a0.bn1.s, @a0.bn1.b, @a0.bn1.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: a0.relu1, expr: "a0.bn1 = ReLU(a0.bn1)" }
+  - { id: a0.conv2, expr: "a0.conv2 = Convolution(a0.bn1, @a0.conv2.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 16, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: a0.bn2, expr: "a0.bn2 = BN(a0.conv2, @a0.bn2.s, @a0.bn2.b, @a0.bn2.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: a0.sum, expr: "a0 = Sum(conv1, a0.bn2)",
+      attrs: {coef: [1, 1], prob: [1, 1]} }
+  - { id: a0.relu, expr: "a0 = ReLU(a0)" }
+  - { id: a1.conv1, expr: "a1.conv1 = Convolution(a0, @a1.conv1.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 16, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: a1.bn1, expr: "a1.bn1 = BN(a1.conv1, @a1.bn1.s, @a1.bn1.b, @a1.bn1.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: a1.relu1, expr: "a1.bn1 = ReLU(a1.bn1)" }
+  - { id: a1.conv2, expr: "a1.conv2 = Convolution(a1.bn1, @a1.conv2.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 16, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: a1.bn2, expr: "a1.bn2 = BN(a1.conv2, @a1.bn2.s, @a1.bn2.b, @a1.bn2.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: a1.sum, expr: "a1 = Sum(a0, a1.bn2)",
+      attrs: {coef: [1, 1], prob: [1, 1]} }
+  - { id: a1.relu, expr: "a1 = ReLU(a1)" }
+  - { id: a2.conv1, expr: "a2.conv1 = Convolution(a1, @a2.conv1.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 16, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: a2.bn1, expr: "a2.bn1 = BN(a2.conv1, @a2.bn1.s, @a2.bn1.b, @a2.bn1.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: a2.relu1, expr: "a2.bn1 = ReLU(a2.bn1)" }
+  - { id: a2.conv2, expr: "a2.conv2 = Convolution(a2.bn1, @a2.conv2.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 16, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: a2.bn2, expr: "a2.bn2 = BN(a2.conv2, @a2.bn2.s, @a2.bn2.b, @a2.bn2.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: a2.sum, expr: "a2 = Sum(a1, a2.bn2)",
+      attrs: {coef: [1, 1], prob: [1, 1]} }
+  - { id: a2.relu, expr: "a2 = ReLU(a2)" }
+  - { id: a3.conv1, expr: "a3.conv1 = Convolution(a2, @a3.conv1.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 16, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: a3.bn1, expr: "a3.bn1 = BN(a3.conv1, @a3.bn1.s, @a3.bn1.b, @a3.bn1.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: a3.relu1, expr: "a3.bn1 = ReLU(a3.bn1)" }
+  - { id: a3.conv2, expr: "a3.conv2 = Convolution(a3.bn1, @a3.conv2.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 16, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: a3.bn2, expr: "a3.bn2 = BN(a3.conv2, @a3.bn2.s, @a3.bn2.b, @a3.bn2.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: a3.sum, expr: "a3 = Sum(a2, a3.bn2)",
+      attrs: {coef: [1, 1], prob: [1, 1]} }
+  - { id: a3.relu, expr: "a3 = ReLU(a3)" }
+  - { id: a4.conv1, expr: "a4.conv1 = Convolution(a3, @a4.conv1.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 16, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: a4.bn1, expr: "a4.bn1 = BN(a4.conv1, @a4.bn1.s, @a4.bn1.b, @a4.bn1.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: a4.relu1, expr: "a4.bn1 = ReLU(a4.bn1)" }
+  - { id: a4.conv2, expr: "a4.conv2 = Convolution(a4.bn1, @a4.conv2.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 16, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: a4.bn2, expr: "a4.bn2 = BN(a4.conv2, @a4.bn2.s, @a4.bn2.b, @a4.bn2.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: a4.sum, expr: "a4 = Sum(a3, a4.bn2)",
+      attrs: {coef: [1, 1], prob: [1, 1]} }
+  - { id: a4.relu, expr: "a4 = ReLU(a4)" }
+  - { id: a5.conv1, expr: "a5.conv1 = Convolution(a4, @a5.conv1.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 16, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: a5.bn1, expr: "a5.bn1 = BN(a5.conv1, @a5.bn1.s, @a5.bn1.b, @a5.bn1.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: a5.relu1, expr: "a5.bn1 = ReLU(a5.bn1)" }
+  - { id: a5.conv2, expr: "a5.conv2 = Convolution(a5.bn1, @a5.conv2.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 16, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: a5.bn2, expr: "a5.bn2 = BN(a5.conv2, @a5.bn2.s, @a5.bn2.b, @a5.bn2.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: a5.sum, expr: "a5 = Sum(a4, a5.bn2)",
+      attrs: {coef: [1, 1], prob: [1, 1]} }
+  - { id: a5.relu, expr: "a5 = ReLU(a5)" }
+  - { id: a6.conv1, expr: "a6.conv1 = Convolution(a5, @a6.conv1.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 16, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: a6.bn1, expr: "a6.bn1 = BN(a6.conv1, @a6.bn1.s, @a6.bn1.b, @a6.bn1.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: a6.relu1, expr: "a6.bn1 = ReLU(a6.bn1)" }
+  - { id: a6.conv2, expr: "a6.conv2 = Convolution(a6.bn1, @a6.conv2.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 16, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: a6.bn2, expr: "a6.bn2 = BN(a6.conv2, @a6.bn2.s, @a6.bn2.b, @a6.bn2.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: a6.sum, expr: "a6 = Sum(a5, a6.bn2)",
+      attrs: {coef: [1, 1], prob: [1, 1]} }
+  - { id: a6.relu, expr: "a6 = ReLU(a6)" }
+  - { id: a7.conv1, expr: "a7.conv1 = Convolution(a6, @a7.conv1.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 16, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: a7.bn1, expr: "a7.bn1 = BN(a7.conv1, @a7.bn1.s, @a7.bn1.b, @a7.bn1.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: a7.relu1, expr: "a7.bn1 = ReLU(a7.bn1)" }
+  - { id: a7.conv2, expr: "a7.conv2 = Convolution(a7.bn1, @a7.conv2.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 16, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: a7.bn2, expr: "a7.bn2 = BN(a7.conv2, @a7.bn2.s, @a7.bn2.b, @a7.bn2.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: a7.sum, expr: "a7 = Sum(a6, a7.bn2)",
+      attrs: {coef: [1, 1], prob: [1, 1]} }
+  - { id: a7.relu, expr: "a7 = ReLU(a7)" }
+  - { id: a8.conv1, expr: "a8.conv1 = Convolution(a7, @a8.conv1.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 16, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: a8.bn1, expr: "a8.bn1 = BN(a8.conv1, @a8.bn1.s, @a8.bn1.b, @a8.bn1.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: a8.relu1, expr: "a8.bn1 = ReLU(a8.bn1)" }
+  - { id: a8.conv2, expr: "a8.conv2 = Convolution(a8.bn1, @a8.conv2.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 16, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: a8.bn2, expr: "a8.bn2 = BN(a8.conv2, @a8.bn2.s, @a8.bn2.b, @a8.bn2.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: a8.sum, expr: "a8 = Sum(a7, a8.bn2)",
+      attrs: {coef: [1, 1], prob: [1, 1]} }
+  - { id: a8.relu, expr: "a8 = ReLU(a8)" }
+  - { id: b0.conv1, expr: "b0.conv1 = Convolution(a8, @b0.conv1.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 32, stride_w: 2, stride_h: 2, pad_w: 1, kernel_h: 3} }
+  - { id: b0.bn1, expr: "b0.bn1 = BN(b0.conv1, @b0.bn1.s, @b0.bn1.b, @b0.bn1.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: b0.relu1, expr: "b0.bn1 = ReLU(b0.bn1)" }
+  - { id: b0.conv2, expr: "b0.conv2 = Convolution(b0.bn1, @b0.conv2.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 32, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: b0.bn2, expr: "b0.bn2 = BN(b0.conv2, @b0.bn2.s, @b0.bn2.b, @b0.bn2.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: b0.shrink, expr: "b0.shrink = Convolution(a8, @b0.shrink.w, @b0.shrink.b)",
+      attrs: {kernel_w: 1, pad_h: 0, hole_w: 1, hole_h: 1, num_output: 32, stride_w: 2, stride_h: 2, pad_w: 0, kernel_h: 1} }
+  - { id: b0.shrinkbn, expr: "b0.shrinkbn = BN(b0.shrink, @b0.shrinkbn.s, @b0.shrinkbn.b, @b0.shrinkbn.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: b0.sum, expr: "b0 = Sum(b0.shrinkbn, b0.bn2)",
+      attrs: {coef: [1, 1], prob: [1, 1]} }
+  - { id: b0.relu, expr: "b0 = ReLU(b0)" }
+  - { id: b1.conv1, expr: "b1.conv1 = Convolution(b0, @b1.conv1.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 32, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: b1.bn1, expr: "b1.bn1 = BN(b1.conv1, @b1.bn1.s, @b1.bn1.b, @b1.bn1.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: b1.relu1, expr: "b1.bn1 = ReLU(b1.bn1)" }
+  - { id: b1.conv2, expr: "b1.conv2 = Convolution(b1.bn1, @b1.conv2.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 32, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: b1.bn2, expr: "b1.bn2 = BN(b1.conv2, @b1.bn2.s, @b1.bn2.b, @b1.bn2.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: b1.sum, expr: "b1 = Sum(b0, b1.bn2)",
+      attrs: {coef: [1, 1], prob: [1, 1]} }
+  - { id: b1.relu, expr: "b1 = ReLU(b1)" }
+  - { id: b2.conv1, expr: "b2.conv1 = Convolution(b1, @b2.conv1.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 32, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: b2.bn1, expr: "b2.bn1 = BN(b2.conv1, @b2.bn1.s, @b2.bn1.b, @b2.bn1.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: b2.relu1, expr: "b2.bn1 = ReLU(b2.bn1)" }
+  - { id: b2.conv2, expr: "b2.conv2 = Convolution(b2.bn1, @b2.conv2.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 32, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: b2.bn2, expr: "b2.bn2 = BN(b2.conv2, @b2.bn2.s, @b2.bn2.b, @b2.bn2.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: b2.sum, expr: "b2 = Sum(b1, b2.bn2)",
+      attrs: {coef: [1, 1], prob: [1, 1]} }
+  - { id: b2.relu, expr: "b2 = ReLU(b2)" }
+  - { id: b3.conv1, expr: "b3.conv1 = Convolution(b2, @b3.conv1.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 32, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: b3.bn1, expr: "b3.bn1 = BN(b3.conv1, @b3.bn1.s, @b3.bn1.b, @b3.bn1.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: b3.relu1, expr: "b3.bn1 = ReLU(b3.bn1)" }
+  - { id: b3.conv2, expr: "b3.conv2 = Convolution(b3.bn1, @b3.conv2.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 32, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: b3.bn2, expr: "b3.bn2 = BN(b3.conv2, @b3.bn2.s, @b3.bn2.b, @b3.bn2.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: b3.sum, expr: "b3 = Sum(b2, b3.bn2)",
+      attrs: {coef: [1, 1], prob: [1, 1]} }
+  - { id: b3.relu, expr: "b3 = ReLU(b3)" }
+  - { id: b4.conv1, expr: "b4.conv1 = Convolution(b3, @b4.conv1.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 32, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: b4.bn1, expr: "b4.bn1 = BN(b4.conv1, @b4.bn1.s, @b4.bn1.b, @b4.bn1.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: b4.relu1, expr: "b4.bn1 = ReLU(b4.bn1)" }
+  - { id: b4.conv2, expr: "b4.conv2 = Convolution(b4.bn1, @b4.conv2.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 32, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: b4.bn2, expr: "b4.bn2 = BN(b4.conv2, @b4.bn2.s, @b4.bn2.b, @b4.bn2.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: b4.sum, expr: "b4 = Sum(b3, b4.bn2)",
+      attrs: {coef: [1, 1], prob: [1, 1]} }
+  - { id: b4.relu, expr: "b4 = ReLU(b4)" }
+  - { id: b5.conv1, expr: "b5.conv1 = Convolution(b4, @b5.conv1.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 32, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: b5.bn1, expr: "b5.bn1 = BN(b5.conv1, @b5.bn1.s, @b5.bn1.b, @b5.bn1.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: b5.relu1, expr: "b5.bn1 = ReLU(b5.bn1)" }
+  - { id: b5.conv2, expr: "b5.conv2 = Convolution(b5.bn1, @b5.conv2.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 32, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: b5.bn2, expr: "b5.bn2 = BN(b5.conv2, @b5.bn2.s, @b5.bn2.b, @b5.bn2.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: b5.sum, expr: "b5 = Sum(b4, b5.bn2)",
+      attrs: {coef: [1, 1], prob: [1, 1]} }
+  - { id: b5.relu, expr: "b5 = ReLU(b5)" }
+  - { id: b6.conv1, expr: "b6.conv1 = Convolution(b5, @b6.conv1.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 32, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: b6.bn1, expr: "b6.bn1 = BN(b6.conv1, @b6.bn1.s, @b6.bn1.b, @b6.bn1.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: b6.relu1, expr: "b6.bn1 = ReLU(b6.bn1)" }
+  - { id: b6.conv2, expr: "b6.conv2 = Convolution(b6.bn1, @b6.conv2.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 32, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: b6.bn2, expr: "b6.bn2 = BN(b6.conv2, @b6.bn2.s, @b6.bn2.b, @b6.bn2.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: b6.sum, expr: "b6 = Sum(b5, b6.bn2)",
+      attrs: {coef: [1, 1], prob: [1, 1]} }
+  - { id: b6.relu, expr: "b6 = ReLU(b6)" }
+  - { id: b7.conv1, expr: "b7.conv1 = Convolution(b6, @b7.conv1.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 32, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: b7.bn1, expr: "b7.bn1 = BN(b7.conv1, @b7.bn1.s, @b7.bn1.b, @b7.bn1.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: b7.relu1, expr: "b7.bn1 = ReLU(b7.bn1)" }
+  - { id: b7.conv2, expr: "b7.conv2 = Convolution(b7.bn1, @b7.conv2.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 32, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: b7.bn2, expr: "b7.bn2 = BN(b7.conv2, @b7.bn2.s, @b7.bn2.b, @b7.bn2.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: b7.sum, expr: "b7 = Sum(b6, b7.bn2)",
+      attrs: {coef: [1, 1], prob: [1, 1]} }
+  - { id: b7.relu, expr: "b7 = ReLU(b7)" }
+  - { id: b8.conv1, expr: "b8.conv1 = Convolution(b7, @b8.conv1.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 32, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: b8.bn1, expr: "b8.bn1 = BN(b8.conv1, @b8.bn1.s, @b8.bn1.b, @b8.bn1.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: b8.relu1, expr: "b8.bn1 = ReLU(b8.bn1)" }
+  - { id: b8.conv2, expr: "b8.conv2 = Convolution(b8.bn1, @b8.conv2.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 32, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: b8.bn2, expr: "b8.bn2 = BN(b8.conv2, @b8.bn2.s, @b8.bn2.b, @b8.bn2.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: b8.sum, expr: "b8 = Sum(b7, b8.bn2)",
+      attrs: {coef: [1, 1], prob: [1, 1]} }
+  - { id: b8.relu, expr: "b8 = ReLU(b8)" }
+  - { id: c0.conv1, expr: "c0.conv1 = Convolution(b8, @c0.conv1.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 64, stride_w: 2, stride_h: 2, pad_w: 1, kernel_h: 3} }
+  - { id: c0.bn1, expr: "c0.bn1 = BN(c0.conv1, @c0.bn1.s, @c0.bn1.b, @c0.bn1.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: c0.relu1, expr: "c0.bn1 = ReLU(c0.bn1)" }
+  - { id: c0.conv2, expr: "c0.conv2 = Convolution(c0.bn1, @c0.conv2.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 64, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: c0.bn2, expr: "c0.bn2 = BN(c0.conv2, @c0.bn2.s, @c0.bn2.b, @c0.bn2.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: c0.shrink, expr: "c0.shrink = Convolution(b8, @c0.shrink.w, @c0.shrink.b)",
+      attrs: {kernel_w: 1, pad_h: 0, hole_w: 1, hole_h: 1, num_output: 64, stride_w: 2, stride_h: 2, pad_w: 0, kernel_h: 1} }
+  - { id: c0.shrinkbn, expr: "c0.shrinkbn = BN(c0.shrink, @c0.shrinkbn.s, @c0.shrinkbn.b, @c0.shrinkbn.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: c0.sum, expr: "c0 = Sum(c0.shrinkbn, c0.bn2)",
+      attrs: {coef: [1, 1], prob: [1, 1]} }
+  - { id: c0.relu, expr: "c0 = ReLU(c0)" }
+  - { id: c1.conv1, expr: "c1.conv1 = Convolution(c0, @c1.conv1.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 64, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: c1.bn1, expr: "c1.bn1 = BN(c1.conv1, @c1.bn1.s, @c1.bn1.b, @c1.bn1.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: c1.relu1, expr: "c1.bn1 = ReLU(c1.bn1)" }
+  - { id: c1.conv2, expr: "c1.conv2 = Convolution(c1.bn1, @c1.conv2.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 64, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: c1.bn2, expr: "c1.bn2 = BN(c1.conv2, @c1.bn2.s, @c1.bn2.b, @c1.bn2.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: c1.sum, expr: "c1 = Sum(c0, c1.bn2)",
+      attrs: {coef: [1, 1], prob: [1, 1]} }
+  - { id: c1.relu, expr: "c1 = ReLU(c1)" }
+  - { id: c2.conv1, expr: "c2.conv1 = Convolution(c1, @c2.conv1.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 64, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: c2.bn1, expr: "c2.bn1 = BN(c2.conv1, @c2.bn1.s, @c2.bn1.b, @c2.bn1.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: c2.relu1, expr: "c2.bn1 = ReLU(c2.bn1)" }
+  - { id: c2.conv2, expr: "c2.conv2 = Convolution(c2.bn1, @c2.conv2.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 64, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: c2.bn2, expr: "c2.bn2 = BN(c2.conv2, @c2.bn2.s, @c2.bn2.b, @c2.bn2.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: c2.sum, expr: "c2 = Sum(c1, c2.bn2)",
+      attrs: {coef: [1, 1], prob: [1, 1]} }
+  - { id: c2.relu, expr: "c2 = ReLU(c2)" }
+  - { id: c3.conv1, expr: "c3.conv1 = Convolution(c2, @c3.conv1.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 64, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: c3.bn1, expr: "c3.bn1 = BN(c3.conv1, @c3.bn1.s, @c3.bn1.b, @c3.bn1.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: c3.relu1, expr: "c3.bn1 = ReLU(c3.bn1)" }
+  - { id: c3.conv2, expr: "c3.conv2 = Convolution(c3.bn1, @c3.conv2.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 64, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: c3.bn2, expr: "c3.bn2 = BN(c3.conv2, @c3.bn2.s, @c3.bn2.b, @c3.bn2.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: c3.sum, expr: "c3 = Sum(c2, c3.bn2)",
+      attrs: {coef: [1, 1], prob: [1, 1]} }
+  - { id: c3.relu, expr: "c3 = ReLU(c3)" }
+  - { id: c4.conv1, expr: "c4.conv1 = Convolution(c3, @c4.conv1.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 64, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: c4.bn1, expr: "c4.bn1 = BN(c4.conv1, @c4.bn1.s, @c4.bn1.b, @c4.bn1.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: c4.relu1, expr: "c4.bn1 = ReLU(c4.bn1)" }
+  - { id: c4.conv2, expr: "c4.conv2 = Convolution(c4.bn1, @c4.conv2.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 64, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: c4.bn2, expr: "c4.bn2 = BN(c4.conv2, @c4.bn2.s, @c4.bn2.b, @c4.bn2.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: c4.sum, expr: "c4 = Sum(c3, c4.bn2)",
+      attrs: {coef: [1, 1], prob: [1, 1]} }
+  - { id: c4.relu, expr: "c4 = ReLU(c4)" }
+  - { id: c5.conv1, expr: "c5.conv1 = Convolution(c4, @c5.conv1.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 64, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: c5.bn1, expr: "c5.bn1 = BN(c5.conv1, @c5.bn1.s, @c5.bn1.b, @c5.bn1.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: c5.relu1, expr: "c5.bn1 = ReLU(c5.bn1)" }
+  - { id: c5.conv2, expr: "c5.conv2 = Convolution(c5.bn1, @c5.conv2.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 64, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: c5.bn2, expr: "c5.bn2 = BN(c5.conv2, @c5.bn2.s, @c5.bn2.b, @c5.bn2.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: c5.sum, expr: "c5 = Sum(c4, c5.bn2)",
+      attrs: {coef: [1, 1], prob: [1, 1]} }
+  - { id: c5.relu, expr: "c5 = ReLU(c5)" }
+  - { id: c6.conv1, expr: "c6.conv1 = Convolution(c5, @c6.conv1.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 64, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: c6.bn1, expr: "c6.bn1 = BN(c6.conv1, @c6.bn1.s, @c6.bn1.b, @c6.bn1.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: c6.relu1, expr: "c6.bn1 = ReLU(c6.bn1)" }
+  - { id: c6.conv2, expr: "c6.conv2 = Convolution(c6.bn1, @c6.conv2.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 64, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: c6.bn2, expr: "c6.bn2 = BN(c6.conv2, @c6.bn2.s, @c6.bn2.b, @c6.bn2.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: c6.sum, expr: "c6 = Sum(c5, c6.bn2)",
+      attrs: {coef: [1, 1], prob: [1, 1]} }
+  - { id: c6.relu, expr: "c6 = ReLU(c6)" }
+  - { id: c7.conv1, expr: "c7.conv1 = Convolution(c6, @c7.conv1.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 64, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: c7.bn1, expr: "c7.bn1 = BN(c7.conv1, @c7.bn1.s, @c7.bn1.b, @c7.bn1.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: c7.relu1, expr: "c7.bn1 = ReLU(c7.bn1)" }
+  - { id: c7.conv2, expr: "c7.conv2 = Convolution(c7.bn1, @c7.conv2.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 64, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: c7.bn2, expr: "c7.bn2 = BN(c7.conv2, @c7.bn2.s, @c7.bn2.b, @c7.bn2.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: c7.sum, expr: "c7 = Sum(c6, c7.bn2)",
+      attrs: {coef: [1, 1], prob: [1, 1]} }
+  - { id: c7.relu, expr: "c7 = ReLU(c7)" }
+  - { id: c8.conv1, expr: "c8.conv1 = Convolution(c7, @c8.conv1.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 64, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: c8.bn1, expr: "c8.bn1 = BN(c8.conv1, @c8.bn1.s, @c8.bn1.b, @c8.bn1.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: c8.relu1, expr: "c8.bn1 = ReLU(c8.bn1)" }
+  - { id: c8.conv2, expr: "c8.conv2 = Convolution(c8.bn1, @c8.conv2.w)",
+      attrs: {kernel_w: 3, pad_h: 1, hole_w: 1, hole_h: 1, num_output: 64, stride_w: 1, stride_h: 1, pad_w: 1, kernel_h: 3} }
+  - { id: c8.bn2, expr: "c8.bn2 = BN(c8.conv2, @c8.bn2.s, @c8.bn2.b, @c8.bn2.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: c8.sum, expr: "c8 = Sum(c7, c8.bn2)",
+      attrs: {coef: [1, 1], prob: [1, 1]} }
+  - { id: c8.relu, expr: "c8 = ReLU(c8)" }
+  - { id: last, expr: "last = BN(c8, @last.s, @last.b, @last.h)",
+      attrs: {var_eps: 1e-05, decay: 0.1, moving_average: true, norm_dim: 2, frozen: false} }
+  - { id: relu, expr: "last = ReLU(last)" }
+  - { id: pool, expr: "pool = GlobalPooling(last)",
+      attrs: {mode: ave} }
+  - { id: dropout, expr: "dropout = Dropout(pool)",
+      attrs: {dropout_ratio: 0.5} }
+  - { id: fc, expr: "fc = FullyConnected(dropout, @fc.w, @fc.b)",
+      attrs: {slice_axis: -2, num_output: 100} }
+  - { id: loss, expr: "loss = SoftmaxWithLoss(fc, label)",
+      attrs: {axis: 0} }
+  - { id: accuracy_top1, expr: "accuracy_top1 = Accuracy(fc, label)",
+      attrs: {top_k: 1} }
+flows:
+  - { name: main, inputs: [data, label], outputs: [loss, accuracy_top1], losses: [loss * 1, accuracy_top1 * 1] }
+

@@ -1,10 +1,10 @@
 *.db
 *.zip
-models/
 *.tfrecord
 *.tar.gz
 cifar-100-python/
 .idea/
+parrots/
 
 ### TeX template
 

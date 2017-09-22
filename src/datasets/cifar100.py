@@ -85,9 +85,9 @@ fine_labels_human = np.array([['apple', 'aquarium_fish', 'baby', 'bear', 'beaver
                               ['train', 'trout', 'tulip', 'turtle', 'wardrobe'],
                               ['whale', 'willow_tree', 'wolf', 'woman', 'worm']]).flatten()
 
-b2a_map = unpickle(root_path+'/data/cifar100/b2a_map.pkl')
-c2f_map = unpickle(root_path+'/data/cifar100/c2f_map.pkl')
-a2b_map = {a:b for b,a in b2a_map.items()}
+# b2a_map = unpickle(root_path+'/data/cifar100/b2a_map.pkl')
+# c2f_map = unpickle(root_path+'/data/cifar100/c2f_map.pkl')
+# a2b_map = {a:b for b,a in b2a_map.items()}
 
 def get_split(split_name, dataset_dir, file_pattern=None, reader=None):
     """Gets a dataset tuple with instructions for reading cifar10.

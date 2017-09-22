@@ -1,0 +1,82 @@
+epoch:
+- args:
+    iter_num: 1000
+    log_interval: 200
+    log_vars: [loss, accuracy_top1, accuracy_top5]
+  flow: train
+  policy: iterate
+- args:
+    iter_num: 50
+    log_vars: [loss, accuracy_top1, accuracy_top5]
+  flow: val
+  policy: iterate
+extra:
+  custom_modules: []
+  custom_paths: []
+flows:
+- train:
+    batch_size: 200
+    devices: gpu(0:4)
+    feeder:
+      num_thread: 40
+      pipeline:
+      - attr: {source: "/home/imagenet/ilsvrc12_origsize_train_lmdb",
+                           shuffle: false,
+                           shuffle_first_epoch: false,
+                           shuffle_epoch_num: 10 }
+        expr: "data, label = caffe_lmdb()"
+      - {expr: data = decode(data)}
+      - attr: {area_ratios: '0.08:1', aspect_ratio_lb: 0.75, fix_corner: false, mode: multi_scale_area}
+        expr: data = crop(data)
+      - {expr: data = flip(data)}
+      - attr: {ratio: 0.5, rotate_lb: -10, rotate_ub: 10}
+        expr: data = rotate(data)
+      - attr: {size: 224}
+        expr: data = resize(data)
+      - attr:
+          offset: [104, 117, 123]
+        expr: data = scaleOffset(data)
+    learn:
+      lr: 0.0005
+      lr_policy: multistep(0.1, 100000)
+      min_lr: 1.0e-05
+      updater: {momentum: 0.9, type: sgd}
+      weight_decay: 0.0005
+    spec:
+      inputs: [data, label]
+      losses: [loss]
+      outputs: [loss, accuracy_top1, accuracy_top5]
+- val:
+    batch_size: 1000
+    devices: gpu(0:4)
+    feeder:
+      num_thread: 20
+      pipeline:
+      - attr: {source: "/home/imagenet/ilsvrc12_val_lmdb",
+                           shuffle: false,
+                           shuffle_first_epoch: false,
+                           shuffle_epoch_num: 10 }
+        expr: "data, label = caffe_lmdb()"
+      - {expr: data = decode(data)}
+      - attr: {size: 256}
+        expr: data = resize(data)
+      - attr: {crop_size: 224}
+        expr: data = crop(data)
+      - attr:
+          offset: [104, 117, 123]
+        expr: data = scaleOffset(data)
+    spec:
+      inputs: [data, label]
+      losses: [loss]
+      outputs: [loss, accuracy_top1, accuracy_top5]
+init_missing: false
+load_from: /mnt/gv7/16winter/16winter/ijcai/resnet101/model.parrots
+loggers:
+- {type: local}
+- args: {password: wxl123, url: 'http://pavi.parrotsdnn.org/log', username: luzai}
+  type: pavi
+max_iter: 160000
+model: {yaml: model.yaml}
+record_best: {factor: -1, field: accuracy_top5, val_flow: val}
+snapshot_interval: 5000
+work_dir: .

@@ -4,7 +4,7 @@ from tensorflow.contrib.slim.python.slim.nets import resnet_v2
 
 
 def resnet101(images, classes=10):
-    with slim.arg_scope(resnet_v2.resnet_arg_scope(weight_decay=1e-6)):
+    with slim.arg_scope(resnet_v2.resnet_arg_scope(weight_decay=0.)):
         logits, end_points = resnet_v2.resnet_v2_101(images, classes, is_training=True)
 
         logits = logits[:, 0, 0, :]
