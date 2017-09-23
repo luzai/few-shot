@@ -20,6 +20,17 @@ def test_url(url, dst, params={}):
         print 'ok', r.headers["content-type"]
 
 
+def download_file_simple(wind, dst='./tmp'):
+    params = {
+        "wnid": wind,
+        "username": config.username,
+        "accesskey": config.accesskey,
+        "release": "latest",
+        "src": "stanford"
+    }
+    download_file(config.synset_url, dst, params)
+
+
 def download_file(url, dst, params={}, debug=True):
     # if dst in read_list('./404.txt'):
     #     return

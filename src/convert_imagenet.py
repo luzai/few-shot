@@ -23,7 +23,7 @@ tf.app.flags.DEFINE_integer('train_shards', 1024,
 tf.app.flags.DEFINE_integer('validation_shards', 128,  # 128
                             'Number of shards in validation TFRecord files.')
 
-tf.app.flags.DEFINE_integer('num_threads', 64,
+tf.app.flags.DEFINE_integer('num_threads', 128,# 64
                             'Number of threads to preprocess the images.')
 
 # The labels file contains a list of valid labels are held in this file.
@@ -35,7 +35,7 @@ tf.app.flags.DEFINE_integer('num_threads', 64,
 # each synset contained in the file to an integer (based on the alphabetical
 # ordering). See below for details.
 tf.app.flags.DEFINE_string('labels_file',
-                           utils.root_path+'/data/imagenet600.txt',
+                           utils.root_path+'/data/imagenet22k.txt',
                            'Labels file')
 
 # This file containing mapping from synset to human-readable label.
@@ -536,13 +536,13 @@ def main(unused_argv):
     synset_to_human = _build_synset_lookup(FLAGS.imagenet_metadata_file)
     # Run it!
 
-    # utils.rm(FLAGS.output_directory + '/train*', block=True)
-    # _process_dataset('validation', FLAGS.validation_directory,
-    #                  FLAGS.validation_shards, synset_to_human)
+    utils.rm(FLAGS.output_directory + '/train*', block=True)
+    _process_dataset('validation', FLAGS.validation_directory,
+                     FLAGS.validation_shards, synset_to_human)
 
-    utils.rm(FLAGS.output_directory + '/validation*', block=True)
-    _process_dataset('train', FLAGS.train_directory, FLAGS.train_shards,
-                     synset_to_human)
+    # utils.rm(FLAGS.output_directory + '/validation*', block=True)
+    # _process_dataset('train', FLAGS.train_directory, FLAGS.train_shards,
+    #                  synset_to_human)
 
 
 if __name__ == '__main__':
