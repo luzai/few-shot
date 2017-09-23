@@ -21,8 +21,8 @@ def test_url(url, dst, params={}):
 
 
 def download_file(url, dst, params={}, debug=True):
-    if dst in read_list('./404.txt'):
-        return
+    # if dst in read_list('./404.txt'):
+    #     return
     if debug:
         print u"downloading {0}...".format(dst),
     # from IPython import embed;embed()
@@ -76,16 +76,16 @@ def travel_tree():
 
 
 if __name__ == "__main__":
-    print 'run download'
     pools = mp.Pool(processes=64)
     ttl_category = 0
     task_l = []
+    nodes = read_list('/home/wangxinglu/prj/few-shot/src/corrupt')
+    # nodes = np.unique(nodes)
     nodes = set()
     nodes = nodes.union(set(imagenet1k))
     nodes = nodes.union(set(imagenet7k))
     nodes = nodes.union(set(shuffle_iter(nx.dfs_preorder_nodes(ori_tree, 'fall11'))))
     for node in nodes:
-        # for node in nx.dfs_preorder_nodes(tree, 'fall11'):
         if len(ori_tree.successors(node)) > 0:
             continue
         ttl_category += 1
@@ -94,7 +94,6 @@ if __name__ == "__main__":
         # todo I cannot wait network, so put it to precious ssd space now
 
         imagepath_ssd = get_imagepath(wnid, ssd=True)
-        print imagepath_ssd
         imagepath = get_imagepath(wnid)
 
         if osp.exists(imagepath_ssd) and osp.getsize(imagepath_ssd) != 0:
@@ -105,6 +104,7 @@ if __name__ == "__main__":
             continue
         if osp.exists(imagepath.strip('.tar')) and len(os.listdir(imagepath.strip('.tar'))) != 0:
             continue
+
         params = {
             "wnid": wnid,
             "username": config.username,

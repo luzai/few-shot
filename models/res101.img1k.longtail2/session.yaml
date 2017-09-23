@@ -16,7 +16,7 @@ extra:
 flows:
 - train:
     batch_size: 32
-    devices: gpu(0:8)
+    devices: gpu(6:8)
     feeder:
       num_thread: 60
       num_preprocess: 64
@@ -50,8 +50,8 @@ flows:
       losses: [loss]
       outputs: [loss, accuracy_top1, accuracy_top5]
 - val:
-    batch_size: 1000
-    devices: gpu(0:8)
+    batch_size: 32
+    devices: gpu(6:8)
     feeder:
       num_thread: 20
       num_preprocess: 64
