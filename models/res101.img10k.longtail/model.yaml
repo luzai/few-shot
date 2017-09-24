@@ -790,7 +790,7 @@ layers:
 - attrs: {kernel_h: 7, kernel_w: 7, mode: ave, pad_h: 0, pad_w: 0, stride_h: 1, stride_w: 1}
   expr: caffe_Pooling_338 = Pooling(caffe_BN_336)
   id: caffe_Pooling_338
-- attrs: {num_output: 1000}
+- attrs: {num_output: 10000}
   expr: fc = InnerProduct(caffe_Pooling_338, @caffe_InnerProduct_340_0,@caffe_InnerProduct_340_1)
   id: caffe_InnerProduct_340
 - {expr: prob = Softmax(fc), id: prob}

@@ -41,3 +41,18 @@ list(f.output_ids())
 
 
 f.data('loss').value()
+
+
+# # write the model file to work dir
+# model_bak = os.path.join(self.runner.work_dir, 'model.yaml')
+# with open(model_bak, 'w') as fout:
+#     fout.write(self.runner.model.to_yaml_text())
+# # write the session config file to work dir
+# session_bak = os.path.join(self.runner.work_dir, 'session.yaml')
+# self.runner.config.dump(session_bak, model={'yaml': 'model.yaml'})
+# self.runner.setup()
+# # log model info
+# logging.info("model name: %s", self.runner.model.name)
+# logging.debug(self.runner.model.to_yaml_text())
+# # run!
+# self.runner.run()

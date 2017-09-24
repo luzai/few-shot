@@ -8,10 +8,12 @@ from metadata import *
 from utils import *
 
 np.random.seed(64)
-train_file = '/home/wangxinglu/prj/few-shot/data/imglst/img1k.train.txt'
-test_file = '/home/wangxinglu/prj/few-shot/data/imglst/img1k.test.txt'
+# train_file = '/home/wangxinglu/prj/few-shot/data/imglst/img1k.train.txt'
+# test_file = '/home/wangxinglu/prj/few-shot/data/imglst/img1k.test.txt'
+train_file = '/home/wangxinglu/prj/few-shot/data/imglst/img10k.train.txt'
+test_file = '/home/wangxinglu/prj/few-shot/data/imglst/img10k.test.txt'
 prefix = '/home/wangxinglu/prj/few-shot/data/imagenet-raw'
-num = 1000
+num = 10000
 
 os.chdir(prefix)
 
@@ -29,11 +31,16 @@ def find_child(tree_, node):
 
 
 leaves = {}
-
 for node in tf.gfile.ListDirectory(prefix):
     leaves[node] = len(tf.gfile.ListDirectory(prefix + '/' + node))
 
-# leaves = unpickle('nimgs.pkl')
+# pickle(leaves,'nimgs.1k.pkl')
+# leaves = unpickle('nimgs.1k.pkl')
+
+pickle(leaves,'nimgs.10k.pkl')
+leaves = unpickle('nimgs.10k.pkl')
+
+# exit(-1)
 names, nimgs = leaves.keys(), leaves.values()
 names, nimgs = cosort(names, nimgs, True)
 names = names[nimgs >= 10]

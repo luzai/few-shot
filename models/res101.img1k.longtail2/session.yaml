@@ -6,7 +6,7 @@ epoch:
   flow: train
   policy: iterate
 - args:
-    iter_num: 50
+    iter_num: 208
     log_vars: [loss, accuracy_top1, accuracy_top5]
   flow: val
   policy: iterate
@@ -24,13 +24,13 @@ flows:
       pipeline:
       - attr: {listfile: /home/wangxinglu/prj/few-shot/data/imglst/img1k.train.txt,
                prefix: /home/wangxinglu/prj/few-shot/data/imagenet-raw/,
-               shuffle: false,
+               shuffle: true,
                allow_io_fail: &allow true,
                thread_num: *num}
         expr: data, label = file_list()
       - {expr: data = decode(data)}
-      - attr: {area_ratios: '0.9:1', aspect_ratio_lb: 0.75, fix_corner: false, mode: multi_scale_area}
-        expr: data = crop(data)
+#      - attr: {area_ratios: '0.01:1', aspect_ratio_lb: 0.75, fix_corner: false, mode: multi_scale_area}
+#        expr: data = crop(data)
       - {expr: data = flip(data)}
       - attr: {ratio: 0.5, rotate_lb: -10, rotate_ub: 10}
         expr: data = rotate(data)
@@ -58,7 +58,7 @@ flows:
       buffer_size: 10240
       pipeline:
       - attr: {listfile: /home/wangxinglu/prj/few-shot/data/imglst/img1k.test.txt,
-          prefix: /home/wangxinglu/prj/few-shot/data/imagenet-raw/, shuffle: false,
+          prefix: /home/wangxinglu/prj/few-shot/data/imagenet-raw/, shuffle: true,
           allow_io_fail: *allow,
           thread_num: 60
           }

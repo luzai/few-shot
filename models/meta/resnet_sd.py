@@ -15,7 +15,7 @@ from pyparrots.dnn.layerprotos import Convolution, FullyConnected, GlobalPooling
 from pyparrots.dnn.layerprotos import BN, ReLU, Dropout, SoftmaxWithLoss, Accuracy
 print os.environ['LD_LIBRARY_PATH']
 
-exit(-1)
+# exit(-1)
 
 class BasicBlock(ModuleProto):
     def __init__(self, out, shrink=False):

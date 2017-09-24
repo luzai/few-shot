@@ -4,22 +4,42 @@
 import sys
 import h5py
 import yaml
-import re
+import re, os
 import argparse
 
 parser = argparse.ArgumentParser(description="Convert Parrots model to Caffe style")
-parser.add_argument("parrots_spec", default=None)
-parser.add_argument("caffe_spec", default=None)
+parser.add_argument("--parrots_spec", default='resnet56.imagenet1k/model.yaml')
+parser.add_argument("--caffe_spec", default=None)
 parser.add_argument("--parrots_weights", default=None)
 parser.add_argument("--caffe_weights", default=None)
-parser.add_argument("--caffe_root", default='.',
+parser.add_argument("--caffe_root", default='/home/wangxinglu/caffe/python',
                     help="path to the Caffe installation, Python interfaces must be enabled")
 
 args = parser.parse_args()
-
+root_path = os.getcwd()
+os.chdir(args.caffe_root)
 sys.path.append(args.caffe_root)
-import caffe
-from caffe import layers as L, params as P
+sys.path.append('/home/wangxinglu/parrots/parrots/python')
+
+
+def meta2inst(meta, templ):
+    import string
+    meta = string.Template(meta)
+    return meta.substitute(templ)
+
+
+# env_cp=os.environ.copy()
+# for key,val in env_cp.iteritems():
+#     os.environ[key] = meta2inst(val,env_cp)
+try:
+    import caffe
+    from caffe import layers as L, params as P
+except Exception as inst:
+    print inst, '...'
+
+import pyparrots
+
+exit(0)
 
 # This dictionary maps Parrots specific layer names to their Caffe counterparts
 name_mapping = {
