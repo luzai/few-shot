@@ -79,7 +79,7 @@ init_missing: false
 load_from: /mnt/gv7/16winter/16winter/ijcai/resnet101/model.parrots
 loggers:
 - {type: local}
-- args: {password: wxl123, url: 'http://pavi.parrotsdnn.org/log', username: luzai}
+- args: {password: wxl123, url: 'http://pavi.parrotsdnn.org/log', username: luzai, instance_id: resnet101.img1k.longtail}
   type: pavi
 max_iter: 160000
 model: {yaml: model.yaml}
