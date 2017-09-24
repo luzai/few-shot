@@ -15,9 +15,6 @@ test_file = '/home/wangxinglu/prj/few-shot/data/imglst/img10k.test.txt'
 prefix = '/home/wangxinglu/prj/few-shot/data/imagenet-raw'
 num = 10000
 
-os.chdir(prefix)
-
-
 def find_child(tree_, node):
     res = []
     try:
@@ -34,11 +31,12 @@ leaves = {}
 for node in tf.gfile.ListDirectory(prefix):
     leaves[node] = len(tf.gfile.ListDirectory(prefix + '/' + node))
 
-# pickle(leaves,'nimgs.1k.pkl')
-# leaves = unpickle('nimgs.1k.pkl')
+pickle(leaves,'nimgs.pkl')
+leaves = unpickle('nimgs.pkl')
 
-pickle(leaves,'nimgs.10k.pkl')
-leaves = unpickle('nimgs.10k.pkl')
+len(leaves)
+
+os.chdir(prefix)
 
 # exit(-1)
 names, nimgs = leaves.keys(), leaves.values()
@@ -46,6 +44,7 @@ names, nimgs = cosort(names, nimgs, True)
 names = names[nimgs >= 10]
 nimgs = nimgs[nimgs >= 10]
 comb = np.array([names, nimgs]).T
+
 res = np.random.choice(np.arange(comb.shape[0]), size=num, replace=False)
 res = np.sort(res)
 res = comb[res, :][:, 0]
@@ -53,7 +52,7 @@ res = comb[res, :][:, 0]
 imgs_train_l, imgs_test_l = [], []
 
 for ind, cls in enumerate(res):
-    imgs = glob.glob(cls + '/*.JPEG')
+    imgs = tf.gfile.Glob(cls + '/*.JPEG')
     imgs = np.array(imgs)
     imgs_train = imgs[:imgs.shape[0] * 9 // 10]
     imgs_test = imgs[imgs.shape[0] * 9 // 10:]
