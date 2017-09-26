@@ -16,7 +16,7 @@ extra:
 flows:
 - train:
     batch_size: &bs 140
-    devices: &gpu gpu(0:4)
+    devices: &gpu gpu(4:8)
     feeder:
       num_thread: 120
       num_preprocess: 64

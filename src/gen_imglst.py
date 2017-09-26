@@ -7,7 +7,6 @@ import tensorflow as tf
 from metadata import *
 from utils import *
 
-np.random.seed(64)
 # train_file = '/home/wangxinglu/prj/few-shot/data/imglst/img1k.train.txt'
 # test_file = '/home/wangxinglu/prj/few-shot/data/imglst/img1k.test.txt'
 train_file = '/home/wangxinglu/prj/few-shot/data/imglst/img10k.train.txt'
@@ -29,6 +28,7 @@ def find_child(tree_, node):
 
 
 def cls_sample(num):
+    np.random.seed(64)
     # leaves = {}
     # for node in tf.gfile.ListDirectory(prefix):
     #     leaves[node] = len(tf.gfile.ListDirectory(prefix + '/' + node))
@@ -75,3 +75,4 @@ def gen_imglst(names):
 
     np.savetxt(train_file, imgs_train, delimiter=' ', fmt='%s')
     np.savetxt(test_file, np.concatenate(imgs_test_l, axis=0), delimiter=' ', fmt='%s')
+
