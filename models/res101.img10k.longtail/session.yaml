@@ -26,7 +26,9 @@ flows:
                prefix: /home/wangxinglu/prj/few-shot/data/imagenet-raw/,
                shuffle: false,
                allow_io_fail: &allow true,
-               thread_num: 60}
+               thread_num: 60,
+               shuffle_epoch_num: 10
+               }
         expr: data, label = file_list()
       - {expr: data = decode(data)}
 #      - attr: {area_ratios: '0.01:1', aspect_ratio_lb: 0.75, fix_corner: false, mode: multi_scale_area}
@@ -60,7 +62,8 @@ flows:
       - attr: {listfile: /home/wangxinglu/prj/few-shot/data/imglst/img10k.test.txt,
           prefix: /home/wangxinglu/prj/few-shot/data/imagenet-raw/, shuffle: true,
           allow_io_fail: *allow,
-          thread_num: 60
+          thread_num: 60,
+          shuffle_epoch_num: 10
           }
         expr: data, label = file_list()
       - {expr: data = decode(data)}
@@ -74,12 +77,12 @@ flows:
     spec:
       inputs: [data, label]
       losses: [loss]
-      outputs: [loss, accuracy_top1, accuracy_top5]
+      outputs: [loss, accuracy_top1, accuracy_top5,data ,label, caffe_Pooling_338, fc, prob]
 init_missing: false
 load_from: /home/wangxinglu/prj/few-shot/models/resnet101/model.10k.parrots
 loggers:
 - {type: local}
-- args: {password: wxl123, url: 'http://pavi.parrotsdnn.org/log', username: luzai, instance_id: resnet101.ima10k.longtail}
+- args: {password: wxl123, url: 'http://pavi.parrotsdnn.org/log', username: luzai, instance_id: 41f4f59c7e5143c29095c4e30cc1dafa}
   type: pavi
 max_iter: 160000
 model: {yaml: model.yaml}

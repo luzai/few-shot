@@ -15,6 +15,7 @@ test_file = '/home/wangxinglu/prj/few-shot/data/imglst/img10k.test.txt'
 prefix = '/home/wangxinglu/prj/few-shot/data/imagenet-raw'
 num = 10000
 
+
 def find_child(tree_, node):
     res = []
     try:
@@ -27,47 +28,50 @@ def find_child(tree_, node):
     return res
 
 
-leaves = {}
-for node in tf.gfile.ListDirectory(prefix):
-    leaves[node] = len(tf.gfile.ListDirectory(prefix + '/' + node))
+def cls_sample(num):
+    # leaves = {}
+    # for node in tf.gfile.ListDirectory(prefix):
+    #     leaves[node] = len(tf.gfile.ListDirectory(prefix + '/' + node))
 
-pickle(leaves,'nimgs.pkl')
-leaves = unpickle('nimgs.pkl')
+    # pickle(leaves,'nimgs.pkl')
+    leaves = unpickle('nimgs.pkl')
 
-len(leaves)
+    len(leaves)
+    names, nimgs = leaves.keys(), leaves.values()
+    names, nimgs = cosort(names, nimgs, True)
+    names = names[nimgs >= 10]
+    nimgs = nimgs[nimgs >= 10]
+    comb = np.array([names, nimgs]).T
 
-os.chdir(prefix)
+    res = np.random.choice(np.arange(comb.shape[0]), size=num, replace=False)
+    res = np.sort(res)
+    res_nimgs = comb[res, :][:, 1]
+    res = comb[res, :][:, 0]
+    return res, res_nimgs
 
-# exit(-1)
-names, nimgs = leaves.keys(), leaves.values()
-names, nimgs = cosort(names, nimgs, True)
-names = names[nimgs >= 10]
-nimgs = nimgs[nimgs >= 10]
-comb = np.array([names, nimgs]).T
+@chdir_to_root
+def gen_imglst(names):
+    os.chdir(prefix)
 
-res = np.random.choice(np.arange(comb.shape[0]), size=num, replace=False)
-res = np.sort(res)
-res = comb[res, :][:, 0]
+    imgs_train_l, imgs_test_l = [], []
 
-imgs_train_l, imgs_test_l = [], []
+    for ind, cls in enumerate(names):
+        imgs = tf.gfile.Glob(cls + '/*.JPEG')
+        imgs = np.array(imgs)
+        imgs_train = imgs[:imgs.shape[0] * 9 // 10]
+        imgs_test = imgs[imgs.shape[0] * 9 // 10:]
 
-for ind, cls in enumerate(res):
-    imgs = tf.gfile.Glob(cls + '/*.JPEG')
-    imgs = np.array(imgs)
-    imgs_train = imgs[:imgs.shape[0] * 9 // 10]
-    imgs_test = imgs[imgs.shape[0] * 9 // 10:]
+        imgs_train_l.append(
+            np.stack((imgs_train, np.ones_like(imgs_train, dtype=int) * ind), axis=-1)
+        )
+        imgs_test_l.append(
+            np.stack((imgs_test, np.ones_like(imgs_test, dtype=int) * ind), axis=-1)
+        )
+        # if ind > 100:
+        #     break
 
-    imgs_train_l.append(
-        np.stack((imgs_train, np.ones_like(imgs_train, dtype=int) * ind), axis=-1)
-    )
-    imgs_test_l.append(
-        np.stack((imgs_test, np.ones_like(imgs_test, dtype=int) * ind), axis=-1)
-    )
-    # if ind > 100:
-    #     break
+    imgs_train = np.concatenate(imgs_train_l, axis=0)
+    np.random.shuffle(imgs_train)
 
-imgs_train = np.concatenate(imgs_train_l, axis=0)
-np.random.shuffle(imgs_train)
-
-np.savetxt(train_file, imgs_train, delimiter=' ', fmt='%s')
-np.savetxt(test_file, np.concatenate(imgs_test_l, axis=0), delimiter=' ', fmt='%s')
+    np.savetxt(train_file, imgs_train, delimiter=' ', fmt='%s')
+    np.savetxt(test_file, np.concatenate(imgs_test_l, axis=0), delimiter=' ', fmt='%s')

@@ -6,7 +6,7 @@ epoch:
   flow: train
   policy: iterate
 - args:
-    iter_num: 50
+    iter_num: 208
     log_vars: [loss, accuracy_top1, accuracy_top5]
   flow: val
   policy: iterate
@@ -15,19 +15,24 @@ extra:
   custom_paths: []
 flows:
 - train:
-    batch_size: 200
-    devices: gpu(0:4)
+    batch_size: &bs 140
+    devices: &gpu gpu(4:8)
     feeder:
-      num_thread: 40
+      num_thread: &num 120
+      num_preprocess: *num
+      buffer_size: 40960
       pipeline:
-      - attr: {source: "/home/imagenet/ilsvrc12_origsize_train_lmdb",
-                           shuffle: false,
-                           shuffle_first_epoch: false,
-                           shuffle_epoch_num: 10 }
-        expr: "data, label = caffe_lmdb()"
+      - attr: {listfile: /home/wangxinglu/prj/few-shot/data/imglst/img1k.train.txt,
+               prefix: /home/wangxinglu/prj/few-shot/data/imagenet-raw/,
+               shuffle: true,
+               allow_io_fail: &allow true,
+               thread_num: *num,
+               shuffle_epoch_num: 10
+               }
+        expr: data, label = file_list()
       - {expr: data = decode(data)}
-      - attr: {area_ratios: '0.08:1', aspect_ratio_lb: 0.75, fix_corner: false, mode: multi_scale_area}
-        expr: data = crop(data)
+#      - attr: {area_ratios: '0.01:1', aspect_ratio_lb: 0.75, fix_corner: false, mode: multi_scale_area}
+#        expr: data = crop(data)
       - {expr: data = flip(data)}
       - attr: {ratio: 0.5, rotate_lb: -10, rotate_ub: 10}
         expr: data = rotate(data)
@@ -47,16 +52,20 @@ flows:
       losses: [loss]
       outputs: [loss, accuracy_top1, accuracy_top5]
 - val:
-    batch_size: 1000
-    devices: gpu(0:4)
+    batch_size: *bs
+    devices: *gpu
     feeder:
-      num_thread: 20
+      num_thread: 40
+      num_preprocess: 64
+      buffer_size: 10240
       pipeline:
-      - attr: {source: "/home/imagenet/ilsvrc12_val_lmdb",
-                           shuffle: false,
-                           shuffle_first_epoch: false,
-                           shuffle_epoch_num: 10 }
-        expr: "data, label = caffe_lmdb()"
+      - attr: {listfile: /home/wangxinglu/prj/few-shot/data/imglst/img1k.test.txt,
+          prefix: /home/wangxinglu/prj/few-shot/data/imagenet-raw/, shuffle: true,
+          allow_io_fail: *allow,
+          thread_num: 60,
+          shuffle_epoch_num: 10
+          }
+        expr: data, label = file_list()
       - {expr: data = decode(data)}
       - attr: {size: 256}
         expr: data = resize(data)
@@ -68,12 +77,13 @@ flows:
     spec:
       inputs: [data, label]
       losses: [loss]
-      outputs: [loss, accuracy_top1, accuracy_top5]
+      outputs: [loss, accuracy_top1, accuracy_top5, data ,label, caffe_Pooling_338, fc, prob]
 init_missing: false
 load_from: /mnt/gv7/16winter/16winter/ijcai/resnet101/model.parrots
 loggers:
 - {type: local}
-- args: {password: wxl123, url: 'http://pavi.parrotsdnn.org/log', username: luzai}
+- args: {password: wxl123, url: 'http://pavi.parrotsdnn.org/log', username: luzai,  instance_id: 35f02beb91b24423b93ebf6f7902c722
+}
   type: pavi
 max_iter: 160000
 model: {yaml: model.yaml}

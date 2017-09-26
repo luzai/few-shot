@@ -146,20 +146,14 @@ def slim_tree(tree_, condition=None):
     os.chdir('data')
 
     new_tree = nx.DiGraph()
-    if condition == 'imagenet1k':
-        condition = imagenet1k
-    elif condition == 'imagenet7k':
-        condition = imagenet7k
-    elif condition == 'imagenet10k':
-        condition = imagenet10k
-    elif condition == 'imagenet22k':
-        pass  # todo
+    if isinstance(condition,basestring):
+        condition=eval(condition)
 
     for node in nx.dfs_preorder_nodes(tree_, 'fall11'):
         hist = nx.shortest_path(tree_, "fall11", node)
         imagepath = get_imagepath(node)
         imagepath = imagepath.strip('.tar')
-        if osp.exists(imagepath) and tree_.node[node]['nchild'] == 0:
+        if tree_.node[node]['nchild'] == 0:
             if condition is not None and node in condition:
                 new_tree.add_path(hist)
             elif condition is None:
