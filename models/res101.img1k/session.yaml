@@ -68,7 +68,7 @@ flows:
     spec:
       inputs: [data, label]
       losses: [loss]
-      outputs: [loss, accuracy_top1, accuracy_top5,data ,label, caffe_Pooling_338, fc, prob]
+      outputs: [loss, accuracy_top1, accuracy_top5,data ,label, cls, prob]
 init_missing: false
 load_from: /mnt/nfs1703/test/prj/few-shot/models/resnet101/model.1k.parrots
 loggers:

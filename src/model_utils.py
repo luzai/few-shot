@@ -107,15 +107,23 @@ def strip_dp(l):
 
 def get_param_mapping(beforef, afterf):
     spec1 = yaml.load(open(beforef, 'r'))
-    sepc2 = yaml.load(open(afterf, 'r'))
+    spec2 = yaml.load(open(afterf, 'r'))
     mapping = {}
-    layers1, layers2 = spec1['layers'], sepc2['layers']
-    layers1, layer2 = strip_dp(layers1), strip_dp(layers2)
-    assert len(layers1) == len(layers2), str(len(layers1)) + str(len(layers2))
-    for layer1, layer2 in zip(layers1, layers2):
-        params_b = parse_parrots_expr(layer1['expr'])[-1]
-        params_a = parse_parrots_expr(layer2['expr'])[-1]
-        assert len(params_b) == len(params_a), layer1['expr'] + layer2['expr']
-        for param_a, param_b in zip(params_a, params_b):
-            mapping[param_a] = param_b
+    layers1, layers2 = strip_dp(spec1['layers']), strip_dp(spec2['layers'])
+    assert len(layers1) == len(layers2), str(len(layers1)) + ' ' + str(len(layers2))
+    for l1, l2 in zip(layers1, layers2):
+        #         print l1,l2
+        #         break
+        params_b = parse_parrots_expr(l1['expr'])[-1]
+        params_a = parse_parrots_expr(l2['expr'])[-1]
+        assert len(params_b) == len(params_a), l1['expr'] + l2['expr']
+        for a, b in zip(params_a, params_b):
+            mapping[a] = b
     return mapping
+
+
+model_spec_file = root_path + '/models/meta/model.yaml'
+# root_path + '/models/res101.img1k/session.yaml'
+model_file = '/mnt/gv7/16winter/16winter/ijcai/resnet101/model.parrots'
+spec_f2 = root_path + '/models/meta/res1k.yaml'
+mapping = get_param_mapping(spec_f2, model_spec_file)
