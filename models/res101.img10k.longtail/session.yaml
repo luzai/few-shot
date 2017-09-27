@@ -15,7 +15,7 @@ extra:
   custom_paths: []
 flows:
 - train:
-    batch_size: &bs 140
+    batch_size: &bs 32
     devices: &gpu gpu(0:4)
     feeder:
       num_thread: 120
@@ -77,12 +77,12 @@ flows:
     spec:
       inputs: [data, label]
       losses: [loss]
-      outputs: [loss, accuracy_top1, accuracy_top5,data ,label, caffe_Pooling_338, fc, prob]
+      outputs: [loss, accuracy_top1, accuracy_top5,data ,label, cls, prob]
 init_missing: false
-load_from: /home/wangxinglu/prj/few-shot/models/resnet101/model.10k.flat.caffe.parrots
+#load_from: /home/wangxinglu/prj/few-shot/models/resnet101/model.10k.flat.caffe.parrots
 loggers:
 - {type: local}
-- args: {password: wxl123, url: 'http://pavi.parrotsdnn.org/log', username: luzai }
+- args: {password: wxl123, url: 'http://pavi.parrotsdnn.org/log', username: luzai}
   type: pavi
 max_iter: 160000
 model: {yaml: model.yaml}

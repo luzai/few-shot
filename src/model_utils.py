@@ -121,6 +121,14 @@ def get_param_mapping(beforef, afterf):
             mapping[a] = b
     return mapping
 
+def get_params(specf,modelf):
+    specf = yaml.load(open(specf),'r')
+    param_l = []
+
+    f=h5py.File(modelf)
+    params={k:v for k,v in f.iteritems()}
+    return params
+
 
 model_spec_file = root_path + '/models/meta/model.yaml'
 # root_path + '/models/res101.img1k/session.yaml'

@@ -106,6 +106,7 @@ def create_model(depth=101, input_size=224, num_classes=1000, name=None):
         34: (BasicBlock, [(3, 64), (4, 128), (6, 256), (3, 512)]),
         50: (Bottleneck, [(3, 64), (4, 128), (6, 256), (3, 512)]),
         101: (Bottleneck, [(3, 64), (4, 128), (23, 256), (3, 512)]),
+        '101_10k': (Bottleneck, [(3, 64), (4, 256), (23, 2048), (3, 4096)]),
         152: (Bottleneck, [(3, 64), (8, 128), (36, 256), (3, 512)]),
         200: (Bottleneck, [(3, 64), (24, 128), (36, 256), (3, 512)]),
     }
@@ -163,8 +164,10 @@ def create_model(depth=101, input_size=224, num_classes=1000, name=None):
 
 
 if __name__ == '__main__':
-    model = create_model(101)
+    # model = create_model(101)
+    # print(model.to_yaml_text())
+    # with open('res1k.yaml', 'w') as f:
+    model = create_model(depth='101_10k', num_classes=10000)
     print(model.to_yaml_text())
-    with open('res1k.yaml','w') as f:
+    with open('res10k.yaml', 'w') as f:
         print >> f, model.to_yaml_text()
-
