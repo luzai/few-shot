@@ -4,7 +4,8 @@ import os, csv, time, cPickle, \
     random, os.path as osp, \
     subprocess, json, matplotlib, \
     numpy as np, pandas as pd, \
-    glob, re, networkx as nx
+    glob, re, networkx as nx, \
+    h5py, yaml
 
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
@@ -207,7 +208,6 @@ def cosort(tensor, y, return_y=False):
                                                                         comb_sorted])
 
 
-
 class Timer(object):
     """A simple timer."""
 
@@ -263,7 +263,7 @@ def write_json(obj, file_path):
 
 def pickle(data, file_path):
     mkdir_p(osp.dirname(file_path), delete=False)
-    print 'pickle into',file_path
+    print 'pickle into', file_path
     with open(file_path, 'wb') as f:
         cPickle.dump(data, f, cPickle.HIGHEST_PROTOCOL)
 
@@ -501,11 +501,11 @@ def list2str(li, delimier=''):
     return name
 
 
-def write_list(file, l,sort=True):
-    l=np.array(l)
+def write_list(file, l, sort=True):
+    l = np.array(l)
     if sort:
-        l = np.sort(l,axis=0)
-    np.savetxt(file,l,delimiter=' ')
+        l = np.sort(l, axis=0)
+    np.savetxt(file, l, delimiter=' ')
 
 
 def rsync(from_, to):

@@ -16,7 +16,7 @@ extra:
 flows:
 - train:
     batch_size: &bs 140
-    devices: &gpu gpu(4:8)
+    devices: &gpu gpu(0:4)
     feeder:
       num_thread: 120
       num_preprocess: 64
@@ -31,8 +31,8 @@ flows:
                }
         expr: data, label = file_list()
       - {expr: data = decode(data)}
-#      - attr: {area_ratios: '0.01:1', aspect_ratio_lb: 0.75, fix_corner: false, mode: multi_scale_area}
-#        expr: data = crop(data)
+      - attr: {area_ratios: '0.0001:1', aspect_ratio_lb: 0.75, fix_corner: false, mode: multi_scale_area}
+        expr: data = crop(data)
       - {expr: data = flip(data)}
       - attr: {ratio: 0.5, rotate_lb: -10, rotate_ub: 10}
         expr: data = rotate(data)
@@ -43,7 +43,7 @@ flows:
         expr: data = scaleOffset(data)
     learn:
       lr: 0.0005
-      lr_policy: multistep(0.1, 100000)
+      lr_policy: multistep(0.1, 50000)
       min_lr: 1.0e-05
       updater: {momentum: 0.9, type: sgd}
       weight_decay: 0.0005
@@ -82,7 +82,7 @@ init_missing: false
 load_from: /home/wangxinglu/prj/few-shot/models/resnet101/model.10k.parrots
 loggers:
 - {type: local}
-- args: {password: wxl123, url: 'http://pavi.parrotsdnn.org/log', username: luzai, instance_id: 41f4f59c7e5143c29095c4e30cc1dafa}
+- args: {password: wxl123, url: 'http://pavi.parrotsdnn.org/log', username: luzai, instance_id: None}
   type: pavi
 max_iter: 160000
 model: {yaml: model.yaml}
