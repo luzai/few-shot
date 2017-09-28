@@ -6,7 +6,7 @@ import os, csv, time, cPickle, \
     numpy as np, pandas as pd, \
     glob, re, networkx as nx, \
     h5py, yaml, copy, multiprocessing as mp, \
-    pandas as pd
+    pandas as pd, yaml, collections
 
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
@@ -400,9 +400,9 @@ def scp(src, dest, dry_run=False):
     return shell(cmd, block=False)
 
 
-def read_list(file):
+def read_list(file,delimi=" "):
     if osp.exists(file):
-        lines = np.genfromtxt(file, dtype='str')
+        lines = np.genfromtxt(file, dtype='str',delimiter=delimi)
         return lines
     else:
         return []

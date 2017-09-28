@@ -14,6 +14,15 @@ def plt_per_cls_acc(lb, pred):
     # plt.plot(cnts*np.diag(conf)/cnts)
 
 
+
+def softmax(x):
+    # return np.exp(x) / np.sum(np.exp(x), axis=1).reshape(-1, 1)
+    x = np.array(x)
+    ex = np.exp(x - x.max(axis=1).reshape(-1, 1))
+    # print ex.shape
+    return ex / ex.sum(axis=1).reshape(-1, 1)
+
+
 def load_model():
     import pyparrots
     import string, os

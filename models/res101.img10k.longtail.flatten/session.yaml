@@ -15,7 +15,7 @@ extra:
   custom_paths: []
 flows:
 - train:
-    batch_size: &bs 140
+    batch_size: &bs 200
     devices: &gpu gpu(0:4)
     feeder:
       num_thread: &nthread 64
