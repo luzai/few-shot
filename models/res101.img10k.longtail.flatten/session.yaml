@@ -15,8 +15,8 @@ extra:
   custom_paths: []
 flows:
 - train:
-    batch_size: &bs 64
-    devices: &gpu gpu(0:8)
+    batch_size: &bs 140
+    devices: &gpu gpu(0:4)
     feeder:
       num_thread: &nthread 64
       num_preprocess: &npre 4096
@@ -77,15 +77,16 @@ flows:
     spec:
       inputs: [data, label]
       losses: [loss]
-      outputs: [loss, accuracy_top1, accuracy_top5,data ,label, cls, prob]
-init_missing: false
-load_from: /home/wangxinglu/prj/few-shot/models/resnet101/model.10k.parrots
+      outputs: [loss, accuracy_top1, accuracy_top5,data ,label, luzai.cls, prob]
+init_missing: true
+load_from: /home/wangxinglu/prj/few-shot/models/resnet101/model.1k.parrots
 loggers:
 - {type: local}
-- args: {password: wxl123, url: 'http://pavi.parrotsdnn.org/log', username: luzai, instance_id: c6c06e13a6f346009a0d08f957496124}
+- args: {password: wxl123, url: 'http://pavi.parrotsdnn.org/log', username: luzai, instance_id:  b0f0feecb0e84d69ae426fbb0cc39423
+}
   type: pavi
 max_iter: 160000
-model: {yaml: res10k.yaml}
+model: {yaml: res10k-flatten.yaml}
 record_best: {factor: -1, field: accuracy_top5, val_flow: val}
 snapshot_interval: 5000
 work_dir: .

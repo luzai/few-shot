@@ -121,17 +121,39 @@ def get_param_mapping(beforef, afterf):
             mapping[a] = b
     return mapping
 
-def get_params(specf,modelf):
-    specf = yaml.load(open(specf),'r')
-    param_l = []
 
-    f=h5py.File(modelf)
-    params={k:v for k,v in f.iteritems()}
+import collections
+
+
+def get_params(specf, modelf):
+    f = h5py.File(modelf)
+    params_ = {k: v for k, v in f.iteritems()}
+
+    spec = yaml.load(open(specf, 'r'))
+    params = collections.OrderedDict()
+    for l in spec['layers']:
+        for ll in parse_parrots_expr(l['expr'])[-1]:
+            if ll + '@value' in params_:
+                params[ll] = params_[ll + '@value'][...].copy()
+
     return params
 
 
-model_spec_file = root_path + '/models/meta/model.yaml'
+def params_to_shapes(params, return_str=False):
+    if not return_str:
+        return {k: v.shape for k, v in params.iteritems()}
+    else:
+        return {k: str(v.shape) for k, v in params.iteritems()}
+
+
+specf1 = root_path + '/models/meta/model.yaml'
 # root_path + '/models/res101.img1k/session.yaml'
-model_file = '/mnt/gv7/16winter/16winter/ijcai/resnet101/model.parrots'
-spec_f2 = root_path + '/models/meta/res1k.yaml'
-mapping = get_param_mapping(spec_f2, model_spec_file)
+modelf = '/mnt/gv7/16winter/16winter/ijcai/resnet101/model.parrots'
+
+specf2 = root_path + '/models/meta/res1k.yaml'
+modelf2 = root_path + '/models/resnet101/model.1k.parrots'
+specf3 = root_path + '/models/meta/res10k.yaml'
+modelf3 = root_path + '/models/resnet101/model.10k.parrots'
+
+t = get_params(specf2, modelf2)
+tt = get_params(specf3, modelf3)
