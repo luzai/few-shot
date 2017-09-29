@@ -11,8 +11,8 @@ epoch:
   flow: val
   policy: iterate
 extra:
-  custom_modules: []
-  custom_paths: []
+  custom_modules: [module]
+  custom_paths: [/home/wangxinglu/prj/few-shot/src]
 flows:
 - train:
     batch_size: &bs 64

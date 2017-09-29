@@ -11,25 +11,18 @@ epoch:
   flow: val
   policy: iterate
 extra:
-  custom_modules: []
-  custom_paths: []
+  custom_modules: [module]
+  custom_paths: [/home/wangxinglu/prj/few-shot/src]
 flows:
 - train:
-    batch_size: &bs 200
+    batch_size: &bs 208
     devices: &gpu gpu(0:4)
     feeder:
       num_thread: &nthread 64
       num_preprocess: &npre 4096
       buffer_size: &buffer_size 10240
       pipeline:
-      - attr: {listfile: /home/wangxinglu/prj/few-shot/data/imglst/img10k.train.txt,
-               prefix: /home/wangxinglu/prj/few-shot/data/imagenet-raw/,
-               shuffle: false,
-               allow_io_fail: &allow true,
-               thread_num: *nthread,
-               shuffle_epoch_num: 10
-               }
-        expr: data, label = file_list()
+      - expr: data, label = lz_reader()
       - {expr: data = decode(data)}
       - attr: {area_ratios: '0.08:1', aspect_ratio_lb: 0.75, fix_corner: false, mode: multi_scale_area}
         expr: data = crop(data)
@@ -59,13 +52,7 @@ flows:
       num_preprocess: 1000
       buffer_size: *buffer_size
       pipeline:
-      - attr: {listfile: /home/wangxinglu/prj/few-shot/data/imglst/img10k.test.txt,
-          prefix: /home/wangxinglu/prj/few-shot/data/imagenet-raw/, shuffle: true,
-          allow_io_fail: *allow,
-          thread_num: *nthread,
-          shuffle_epoch_num: 10
-          }
-        expr: data, label = file_list()
+      - expr: data, label = lz_reader()
       - {expr: data = decode(data)}
       - attr: {size: 256}
         expr: data = resize(data)
