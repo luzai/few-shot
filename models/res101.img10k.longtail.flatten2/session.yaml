@@ -16,7 +16,7 @@ extra:
 flows:
 - train:
     batch_size: &bs 216
-    devices: &gpu gpu(0:4)
+    devices: &gpu gpu(4:8)
     feeder:
       num_thread: &nthread 64
       num_preprocess: &npre 4096
@@ -24,8 +24,8 @@ flows:
       pipeline:
       - expr: data, label = lz_reader()
       - {expr: data = decode(data)}
-      - attr: {area_ratios: '0.1:1', aspect_ratio_lb: 0.75, fix_corner: false, mode: multi_scale_area}
-        expr: data = crop(data)
+      - attr: {size: 256}
+        expr: data = resize(data)
       - {expr: data = flip(data)}
       - attr: {ratio: 0.5, rotate_lb: -10, rotate_ub: 10}
         expr: data = rotate(data)
