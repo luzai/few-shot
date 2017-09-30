@@ -29,22 +29,32 @@ addr: 127.0.0.1:2333
 delim: " "     
 # shuffle: true,
 # allow_io_fail: true,
-# thread_num: 64,
+# thread_num: 128,
 # shuffle_epoch_num: 10
 '''
 
 tmpl = string.Template(default_conf)
-tmpl.substitute(default_conf,{'HOME':'/home/yxli'})
+default_conf= tmpl.substitute({'HOME':'/home/yxli'})
 default_conf = yaml.load(default_conf)
-use_pool = False
+use_pool = True
 
 def _gget(path):
+    try:
+        img_ = cv2.imread(path, cv2.CV_LOAD_IMAGE_COLOR)
+    except Exception as inst:
+        print inst, 'Pls rm this img!! After one train u can disable chk', path
+        rm(path, block=True)
+        return None
+    if img_.shape[0] <= 10 or img_.shape[1] <= 10 or img_.shape[2] <= 2:
+        cv2.imwrite(randomword(10) + '.png', img_)
+        print path, 'has shape: ', img_.shape, 'Pls rm!!!'
+        rm(path, block=True)
+        return None
     with open(path) as fd:
         return fd.read()
 
-
 class LzReader:
-    support_keys = ['addr', 'listfile', 'prefix', 'delim', 'shuffle_epoch_num', 'shuffle', 'bs']
+    support_keys = ['addr', 'listfile', 'prefix', 'delim', 'shuffle_epoch_num', 'shuffle', 'bs', 'thread_num']
 
     def _wrap(self, lb):
         return np.array([lb])
@@ -56,43 +66,33 @@ class LzReader:
                 self.queue.append(self.pool.apply_async(_gget, (path,)))
                 if self.queue[0].ready():
                     raw = self.queue[0].get()
-                    # print len(raw)
-                    img_ = cv2.imread(path, cv2.CV_LOAD_IMAGE_COLOR)
-                    if img_.shape[0] <= 10 or img_.shape[1] <= 10 or img_.shape[2] <= 2:
-                        cv2.imwrite(randomword(10) + '.png', img_)
-                        print path, 'has shape: ', img_.shape
-
-                    # if len(raw) < 20000:
-                        return None
-                    else:
-                        return raw
+                    return raw
                 else:
                     return None
             else:
                 raw = _gget(path)
-                img_ = cv2.imread(path, cv2.CV_LOAD_IMAGE_COLOR)
-                if img_.shape[0] <= 10 or img_.shape[1] <= 10 or img_.shape[2] <= 2:
-                    cv2.imwrite(randomword(10) + '.png', img_)
-                    print path, 'has shape: ', img_.shape
-                # if len(raw) < 20000:
-                    return None
-                else:
-                    return raw
+                return raw
 
-        except KeyboardInterrupt:
-            print 'interrupt'
+        except KeyboardInterrupt as inst:
+            print 'interrupt' ,inst
+            self.pool.close()
+            self.pool.join()
             exit(0)
         except Exception as inst:
             print inst, 'read {} fail'.format(path)
             self.fail_time += 1
+
+
 
     def _get_redis(self, key_in):
         key = self.prefix[1] + '/' + key_in
         try:
             assert self.rc.exists(key), 'radis should have {}'.format(key)
             return self.rc.get(key)
-        except KeyboardInterrupt:
-            print 'keyin'
+        except KeyboardInterrupt as inst :
+            print 'keyin',inst
+            self.pool.close()
+            self.pool.join()
             exit(0)
         except Exception as inst:
             print inst, 'fail'
@@ -103,9 +103,6 @@ class LzReader:
             print 'upload to imagenet/' + key_in
             self.fail_time += 1
 
-    def __init__(self):
-        if getattr(self, 'iter', None) is None:
-            self.config()
 
     def config(self, cfg=None):
         """
@@ -114,12 +111,8 @@ class LzReader:
         """
         if cfg is None:
             cfg=default_conf
-        else:
-            cfg_ =copy.deepcopy(default_conf)
-            for k,v in cfg:
-                cfg_[k]=v
-            cfg=cfg_
-
+            print 'debug mode!!'
+        print cfg
         self.fail_time = 0
         self.th = float(cfg.get('th', 50))
         self.addr = cfg['addr'].split(":")
@@ -133,8 +126,14 @@ class LzReader:
         self.startup_nodes = [{"host": self.addr[0], "port": self.addr[1]}]
         self.rc = StrictRedisCluster(startup_nodes=self.startup_nodes, decode_responses=False)
         if use_pool:
-            self.pool = mp.Pool(processes=64)
-        self.queue = collections.deque(maxlen=64)
+            try:
+                self.pool = mp.Pool(processes=128)
+            except KeyboardInterrupt as inst:
+                print inst
+                self.pool.close()
+                self.pool.join()
+
+        self.queue = collections.deque(maxlen=128)
 
     def read(self):
         """
@@ -147,10 +146,12 @@ class LzReader:
     def _read_iter(self):
         now_on_mem = 0
         lst = read_list(self.listfile[0])
+        assert len(lst)!=0
         lst = np.concatenate((np.full((lst.shape[0], 1), ON_DISK), lst, lst[:, :1]), axis=1)
-        lst_ = read_list(self.listfile[1])
-        lst_ = np.concatenate((np.full((lst_.shape[0], 1), REDIS), lst_, lst_[:, :1]), axis=1)
-        lst = np.concatenate((lst, lst_), axis=0)
+        if len(self.listfile)==2:
+            lst_ = read_list(self.listfile[1])
+            lst_ = np.concatenate((np.full((lst_.shape[0], 1), REDIS), lst_, lst_[:, :1]), axis=1)
+            lst = np.concatenate((lst, lst_), axis=0)
         lst = lst.tolist()
 
         while True:
@@ -178,6 +179,6 @@ reader.register_pyreader(LzReader, 'lz_reader')
 
 if __name__ == '__main__':
     lzreader = LzReader()
-    lzreader.config()
+    lzreader.config(cfg={'listfile':['/home/yxli/prj/few-shot/data/imglst/img10k.train.disk.txt']})
     for i in range(10):
         print lzreader.read()[1]

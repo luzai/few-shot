@@ -16,22 +16,20 @@ extra:
 flows:
 - train:
     batch_size: &bs 200
-    devices: &gpu gpu(0:4)
+    devices: &gpu gpu(4:8)
     feeder:
       num_thread: &nthread 64
       num_preprocess: &npre 4096
       buffer_size: &buffer_size 10240
       pipeline:
-      - expr: data, label = lz_reader()
-        attr:
-          listfile:
-            - $HOME/prj/few-shot/data/imglst/img10k.train.disk.txt
-            - $HOME/prj/few-shot/data/imglst/img10k.train.redis.txt
-          prefix:
-            - $HOME/prj/few-shot/data/imagenet-raw
-            - imagenet
-          addr: 127.0.0.1:2333
-          delim: " "
+      - attr: {listfile: $HOME/prj/few-shot/data/imglst/img10k.train.disk.txt,
+               prefix: $HOME/prj/few-shot/data/imagenet-raw/,
+               shuffle: false,
+               allow_io_fail: &allow true,
+               thread_num: *nthread,
+               shuffle_epoch_num: 10
+               }
+        expr: data, label = file_list()
       - {expr: data = decode(data)}
       - attr: {size: 256}
         expr: data = resize(data)
@@ -61,16 +59,14 @@ flows:
       num_preprocess: 1000
       buffer_size: *buffer_size
       pipeline:
-      - expr: data, label = lz_reader()
-        attr:
-          listfile:
-            - $HOME/prj/few-shot/data/imglst/img10k.test.disk.txt
-            - $HOME/prj/few-shot/data/imglst/img10k.test.redis.txt
-          prefix:
-            - $HOME/prj/few-shot/data/imagenet-raw
-            - imagenet
-          addr: 127.0.0.1:2333
-          delim: " "
+      - attr: {listfile: $HOME/prj/few-shot/data/imglst/img10k.test.disk.txt,
+               prefix: $HOME/prj/few-shot/data/imagenet-raw/,
+               shuffle: false,
+               allow_io_fail: *allow,
+               thread_num: *nthread,
+               shuffle_epoch_num: 10
+               }
+        expr: data, label = file_list()
       - {expr: data = decode(data)}
       - attr: {size: 256}
         expr: data = resize(data)
@@ -87,8 +83,7 @@ init_missing: true
 load_from: $HOME/prj/few-shot/models/resnet101/model.1k.parrots
 loggers:
 - {type: local}
-- args: {password: wxl123, url: 'http://pavi.parrotsdnn.org/log', username: luzai, instance_id:  b0f0feecb0e84d69ae426fbb0cc39423
-}
+- args: {password: wxl123, url: 'http://pavi.parrotsdnn.org/log', username: luzai}
   type: pavi
 max_iter: 160000
 model: {yaml: res10k-flatten.yaml}

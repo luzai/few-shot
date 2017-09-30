@@ -16,7 +16,7 @@ extra:
 flows:
 - train:
     batch_size: &bs 200
-    devices: &gpu gpu(0:4)
+    devices: &gpu gpu(4:8)
     feeder:
       num_thread: &nthread 64
       num_preprocess: &npre 4096
@@ -87,8 +87,7 @@ init_missing: true
 load_from: $HOME/prj/few-shot/models/resnet101/model.1k.parrots
 loggers:
 - {type: local}
-- args: {password: wxl123, url: 'http://pavi.parrotsdnn.org/log', username: luzai, instance_id:  b0f0feecb0e84d69ae426fbb0cc39423
-}
+- args: {password: wxl123, url: 'http://pavi.parrotsdnn.org/log', username: luzai}
   type: pavi
 max_iter: 160000
 model: {yaml: res10k-flatten.yaml}
