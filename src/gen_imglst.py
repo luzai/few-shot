@@ -7,15 +7,17 @@ import tensorflow as tf
 from metadata import *
 from utils import *
 
-# train_file = '/home/wangxinglu/prj/few-shot/data/imglst/img1k.train.txt'
-# test_file = '/home/wangxinglu/prj/few-shot/data/imglst/img1k.test.txt'
+HOME = os.environ['HOME'] or '/home/wangxinglu'
 
-train_file = '/home/wangxinglu/prj/few-shot/data/imglst/img10k.train.disk.txt'
-test_file = '/home/wangxinglu/prj/few-shot/data/imglst/img10k.test.disk.txt'
-prefix = '/home/wangxinglu/prj/few-shot/data/imagenet-raw'
+# train_file = HOME+'/prj/few-shot/data/imglst/img1k.train.txt'
+# test_file = HOME+'/prj/few-shot/data/imglst/img1k.test.txt'
 
-train_file2 = '/home/wangxinglu/prj/few-shot/data/imglst/img10k.train.redis.txt'
-test_file2 = '/home/wangxinglu/prj/few-shot/data/imglst/img10k.test.redis.txt'
+train_file = HOME+'/prj/few-shot/data/imglst/img10k.train.disk.txt'
+test_file = HOME+'/prj/few-shot/data/imglst/img10k.test.disk.txt'
+prefix = HOME+'/prj/few-shot/data/imagenet-raw'
+
+train_file2 = HOME+'/prj/few-shot/data/imglst/img10k.train.redis.txt'
+test_file2 = HOME+'/prj/few-shot/data/imglst/img10k.test.redis.txt'
 prefix2 = '/mnt/nfs1703/kchen/imagenet-raw-trans-to-redis'
 
 num = 10000
@@ -68,7 +70,10 @@ def gen_imglst(names, prefix, train_file, test_file):
     for ind, cls in enumerate(names):
         if not osp.exists(cls): continue
         imgs = tf.gfile.Glob(cls + '/*.JPEG')
-
+        if len(imgs)==0:
+            utils.rm(cls,True)
+            continue
+        if len(imgs)<=3: continue
         imgs = np.array(imgs)
         imgs_test = np.random.choice(imgs, max(3, imgs.shape[0] * 1 // 10), replace=False)
         imgs_train = np.setdiff1d(imgs, imgs_test)

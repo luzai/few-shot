@@ -10,7 +10,7 @@ from parrots.dnn import reader
 from rediscluster import StrictRedisCluster
 import random, re
 import numpy as np
-import sys
+import sys,string
 
 ON_DISK = "ondisk"
 ON_MEM = "onmem"
@@ -18,13 +18,12 @@ REDIS = "redis"
 MAX_ON_MEM = 6000000 * 10
 
 default_conf = '''
-
 listfile: 
-    - /home/wangxinglu/prj/few-shot/data/imglst/img10k.test.disk.txt
-    - /home/wangxinglu/prj/few-shot/data/imglst/img10k.test.redis.txt
+    - $HOME/prj/few-shot/data/imglst/img10k.test.disk.txt
+    # - $HOME/prj/few-shot/data/imglst/img10k.test.redis.txt
 prefix: 
-    - /home/wangxinglu/prj/few-shot/data/imagenet-raw
-    - imagenet
+    - $HOME/prj/few-shot/data/imagenet-raw
+    # - imagenet
     # /mnt/nfs1703/kchen/imagenet-raw-trans-to-redis
 addr: 127.0.0.1:2333
 delim: " "     
@@ -32,12 +31,12 @@ delim: " "
 # allow_io_fail: true,
 # thread_num: 64,
 # shuffle_epoch_num: 10
-
 '''
 
+tmpl = string.Template(default_conf)
+tmpl.substitute(default_conf,{'HOME':'/home/yxli'})
 default_conf = yaml.load(default_conf)
-use_pool = True
-
+use_pool = False
 
 def _gget(path):
     with open(path) as fd:
@@ -57,24 +56,25 @@ class LzReader:
                 self.queue.append(self.pool.apply_async(_gget, (path,)))
                 if self.queue[0].ready():
                     raw = self.queue[0].get()
-                    # img_ = cv2.imread(path, cv2.CV_LOAD_IMAGE_COLOR)
-                    # if img_.shape[0] <= 10 or img_.shape[1] <= 10 or img_.shape[2] <= 2:
-                    #     cv2.imwrite(randomword(10) + '.png', img_)
-                    #     print path, 'has shape: ', img_.shape
                     # print len(raw)
+                    img_ = cv2.imread(path, cv2.CV_LOAD_IMAGE_COLOR)
+                    if img_.shape[0] <= 10 or img_.shape[1] <= 10 or img_.shape[2] <= 2:
+                        cv2.imwrite(randomword(10) + '.png', img_)
+                        print path, 'has shape: ', img_.shape
+
                     # if len(raw) < 20000:
-                    #     return None
-                    # else:
-                    return raw
+                        return None
+                    else:
+                        return raw
                 else:
                     return None
             else:
                 raw = _gget(path)
-                # img_ = cv2.imread(path, cv2.CV_LOAD_IMAGE_COLOR)
-                # if img_.shape[0] <= 10 or img_.shape[1] <= 10 or img_.shape[2] <= 2:
-                #     cv2.imwrite(randomword(10) + '.png', img_)
-                #     print path, 'has shape: ', img_.shape
-                if len(raw) < 20000:
+                img_ = cv2.imread(path, cv2.CV_LOAD_IMAGE_COLOR)
+                if img_.shape[0] <= 10 or img_.shape[1] <= 10 or img_.shape[2] <= 2:
+                    cv2.imwrite(randomword(10) + '.png', img_)
+                    print path, 'has shape: ', img_.shape
+                # if len(raw) < 20000:
                     return None
                 else:
                     return raw
@@ -107,11 +107,19 @@ class LzReader:
         if getattr(self, 'iter', None) is None:
             self.config()
 
-    def config(self, cfg=default_conf):
+    def config(self, cfg=None):
         """
         The callback function for setting up the reader.
         New readers should implement this method.
         """
+        if cfg is None:
+            cfg=default_conf
+        else:
+            cfg_ =copy.deepcopy(default_conf)
+            for k,v in cfg:
+                cfg_[k]=v
+            cfg=cfg_
+
         self.fail_time = 0
         self.th = float(cfg.get('th', 50))
         self.addr = cfg['addr'].split(":")

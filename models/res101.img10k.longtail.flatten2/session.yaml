@@ -12,17 +12,18 @@ epoch:
   policy: iterate
 extra:
   custom_modules: [module]
-  custom_paths: [/home/wangxinglu/prj/few-shot/src]
+  custom_paths: [$HOME/prj/few-shot/src]
 flows:
 - train:
     batch_size: &bs 100
-    devices: &gpu gpu(0:2)
+    devices: &gpu gpu(0:4)
     feeder:
       num_thread: &nthread 64
       num_preprocess: &npre 4096
       buffer_size: &buffer_size 10240
       pipeline:
       - expr: data, label = lz_reader()
+        attr: {listfile: $HOME/prj/few-shot/data/imglst/img10k.train.disk.txt}
       - {expr: data = decode(data)}
       - attr: {size: 256}
         expr: data = resize(data)
@@ -53,6 +54,7 @@ flows:
       buffer_size: *buffer_size
       pipeline:
       - expr: data, label = lz_reader()
+        attr: {filelist: $HOME/prj/few-shot/data/imglst/img10k.test.disk.txt}
       - {expr: data = decode(data)}
       - attr: {size: 256}
         expr: data = resize(data)
