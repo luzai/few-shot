@@ -126,7 +126,7 @@ def tag_tree(tree_):
         depth = nx.shortest_path_length(tree_, "fall11", node)
         max_depth = max(depth, max_depth)
         all_depth.append(depth)
-        nchild = len(tree_.successors(node))
+        nchild = len(list((tree_.successors(node)) ) )
         all_nchild.append(nchild)
         # if not nchild == 0:
         tree_.add_node(node, depth=depth, nchild=nchild)

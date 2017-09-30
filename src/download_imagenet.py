@@ -52,10 +52,10 @@ def download_file(url, dst, params={}, debug=True):
             append_file(dst, './404.txt')
         print 'ok'
         print response.url, "done.\n"
-        # mkdir_p(dst.rstrip('.tar'), delete=True)
-        # tar(dst, dst.rstrip('.tar'))
-        # rm(dst, block=True)
-        # while os.path.exists(dst): pass
+        mkdir_p(dst.rstrip('.tar'), delete=True)
+        tar(dst, dst.rstrip('.tar'))
+        rm(dst, block=True)
+        while os.path.exists(dst): pass
         # if 'SSD' in dst:
         #     from metadata import config
         #     ln(dst.rstrip('.tar'), config.filepath+'/')
@@ -87,32 +87,32 @@ def travel_tree():
 
 
 if __name__ == "__main__":
-    pools = mp.Pool(processes=64)
+    pools = mp.Pool(processes=1024)
     ttl_category = 0
     task_l = []
-    nodes = read_list('/home/wangxinglu/prj/few-shot/src/corrupt')
+    # nodes = read_list('/home/wangxinglu/prj/few-shot/src/corrupt')
     # nodes = np.unique(nodes)
     nodes = set()
     nodes = nodes.union(set(imagenet1k))
     nodes = nodes.union(set(imagenet7k))
     nodes = nodes.union(set(shuffle_iter(nx.dfs_preorder_nodes(ori_tree, 'fall11'))))
     for node in nodes:
-        if len(ori_tree.successors(node)) > 0:
+        if len(list(ori_tree.successors(node)) )> 0:
             continue
         ttl_category += 1
         wnid = node
 
         # todo I cannot wait network, so put it to precious ssd space now
 
-        imagepath_ssd = get_imagepath(wnid, ssd=True)
+        # imagepath_ssd = get_imagepath(wnid, ssd=True)
         imagepath = get_imagepath(wnid)
 
-        if osp.exists(imagepath_ssd) and osp.getsize(imagepath_ssd) != 0:
-            continue
+        # if osp.exists(imagepath_ssd) and osp.getsize(imagepath_ssd) != 0:
+        #     continue
         if osp.exists(imagepath) and osp.getsize(imagepath) != 0:
             continue
-        if osp.exists(imagepath_ssd.strip('.tar')) and len(os.listdir(imagepath_ssd.strip('.tar'))) != 0:
-            continue
+        # if osp.exists(imagepath_ssd.strip('.tar')) and len(os.listdir(imagepath_ssd.strip('.tar'))) != 0:
+        #     continue
         if osp.exists(imagepath.strip('.tar')) and len(os.listdir(imagepath.strip('.tar'))) != 0:
             continue
 
@@ -124,7 +124,8 @@ if __name__ == "__main__":
             "src": "stanford"
         }
         try:
-            task_l.append(pools.apply_async(download_file, (config.synset_url, imagepath_ssd, params)))
+            # task_l.append(pools.apply_async(download_file, (config.synset_url, imagepath_ssd, params)))
+            task_l.append(pools.apply_async(download_file, (config.synset_url, imagepath, params)))
             # download_file(config.synset_url, imagepath_ssd, params)
         except Exception as inst:
             print inst

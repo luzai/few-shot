@@ -8,11 +8,11 @@ parrots_home = os.environ.get('PARROTS_HOME',None)
 if not parrots_home:
     raise EnvironmentError("The environment variable 'PARROTS_HOME' must be set.")
 sys.path.append(os.path.join(parrots_home, 'parrots', 'python'))
-from pyparrots import dnn
-from pyparrots.dnn.modules import ModuleProto, GModule
-from pyparrots.dnn import layerprotos
-from pyparrots.dnn.layerprotos import Convolution, FullyConnected, GlobalPooling, Pooling, Concat, Sum
-from pyparrots.dnn.layerprotos import BN, ReLU, Dropout, SoftmaxWithLoss, Accuracy
+from parrots import dnn
+from parrots.dnn.modules import ModuleProto, GModule
+from parrots.dnn import layerprotos
+from parrots.dnn.layerprotos import Convolution, FullyConnected, GlobalPooling, Pooling, Concat, Sum
+from parrots.dnn.layerprotos import BN, ReLU, Dropout, SoftmaxWithLoss, Accuracy
 print os.environ['LD_LIBRARY_PATH']
 
 # exit(-1)

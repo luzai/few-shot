@@ -24,10 +24,10 @@ def softmax(x):
 
 
 def load_model():
-    import pyparrots
+    import parrots
     import string, os
-    from pyparrots.env import Environ
-    import pyparrots.dnn as dnn
+    from parrots.env import Environ
+    import parrots.dnn as dnn
     import yaml
 
     os.chdir('/home/wangxinglu/prj/few-shot/models/res101.img1k.longtail3/')

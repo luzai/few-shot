@@ -1,7 +1,7 @@
-import pyparrots
+import parrots
 import string, os
-from pyparrots.env import Environ
-import pyparrots.dnn as dnn
+from parrots.env import Environ
+import parrots.dnn as dnn
 
 session_file = './session.yaml'
 model_file = "./model.yaml"

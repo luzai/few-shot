@@ -14,10 +14,10 @@ if os.environ.get('PARROTS_HOME') is None:
                                          Sum, Softmax, BN, ReLU, Dropout,
                                          SoftmaxWithLoss, Accuracy)
 else:
-    from pyparrots.dnn.modules import ModuleProto, GModule
-    from pyparrots.dnn.layerprotos import (Convolution, FullyConnected, Pooling,
-                                           Sum, Softmax, BN, ReLU, Dropout,
-                                           SoftmaxWithLoss, Accuracy)
+    from parrots.dnn.modules import ModuleProto, GModule
+    from parrots.dnn.layerprotos import (Convolution, FullyConnected, Pooling,
+                                         Sum, Softmax, BN, ReLU, Dropout,
+                                         SoftmaxWithLoss, Accuracy)
 
 
 class Bottleneck(ModuleProto):

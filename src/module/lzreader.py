@@ -6,7 +6,7 @@ the reader created by luzai
 from __future__ import absolute_import
 from utils import *
 import cv2
-from pyparrots.dnn import reader
+from parrots.dnn import reader
 from rediscluster import StrictRedisCluster
 import random, re
 import numpy as np
@@ -36,7 +36,7 @@ delim: " "
 '''
 
 default_conf = yaml.load(default_conf)
-use_pool = False
+use_pool = True
 
 
 def _gget(path):
@@ -57,21 +57,24 @@ class LzReader:
                 self.queue.append(self.pool.apply_async(_gget, (path,)))
                 if self.queue[0].ready():
                     raw = self.queue[0].get()
-                    img_ = cv2.imread(path, cv2.CV_LOAD_IMAGE_COLOR)
-                    if img_.shape[0] <= 10 or img_.shape[1] <= 10 or img_.shape[2] <= 2:
-                        cv2.imwrite(randomword(10) + '.png', img_)
-                        print path, 'has shape: ', img_.shape
-                        return None
-                    else:
-                        return raw
+                    # img_ = cv2.imread(path, cv2.CV_LOAD_IMAGE_COLOR)
+                    # if img_.shape[0] <= 10 or img_.shape[1] <= 10 or img_.shape[2] <= 2:
+                    #     cv2.imwrite(randomword(10) + '.png', img_)
+                    #     print path, 'has shape: ', img_.shape
+                    # print len(raw)
+                    # if len(raw) < 20000:
+                    #     return None
+                    # else:
+                    return raw
                 else:
                     return None
             else:
                 raw = _gget(path)
-                img_ = cv2.imread(path, cv2.CV_LOAD_IMAGE_COLOR)
-                if img_.shape[0] <= 10 or img_.shape[1] <= 10 or img_.shape[2] <= 2:
-                    cv2.imwrite(randomword(10) + '.png', img_)
-                    print path, 'has shape: ', img_.shape
+                # img_ = cv2.imread(path, cv2.CV_LOAD_IMAGE_COLOR)
+                # if img_.shape[0] <= 10 or img_.shape[1] <= 10 or img_.shape[2] <= 2:
+                #     cv2.imwrite(randomword(10) + '.png', img_)
+                #     print path, 'has shape: ', img_.shape
+                if len(raw) < 20000:
                     return None
                 else:
                     return raw
@@ -160,7 +163,7 @@ class LzReader:
                     img = self._get_redis(img)
                     if img is None: continue
                 lb = int(lb)
-                yield [img, np.array([lb]), imgf]
+                yield [img, np.array([lb])]
 
 
 reader.register_pyreader(LzReader, 'lz_reader')
