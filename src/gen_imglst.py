@@ -9,28 +9,16 @@ from utils import *
 
 HOME = os.environ['HOME'] or '/home/wangxinglu'
 
-# train_file = HOME+'/prj/few-shot/data/imglst/img1k.train.txt'
-# test_file = HOME+'/prj/few-shot/data/imglst/img1k.test.txt'
-
-train_file = HOME + '/prj/few-shot/data/imglst/img10k.train.disk.txt'
-test_file = HOME + '/prj/few-shot/data/imglst/img10k.test.disk.txt'
-prefix = HOME + '/prj/few-shot/data/imagenet-raw'
-
-train_file2 = HOME + '/prj/few-shot/data/imglst/img10k.train.redis.txt'
-test_file2 = HOME + '/prj/few-shot/data/imglst/img10k.test.redis.txt'
-prefix2 = '/mnt/nfs1703/kchen/imagenet-raw-trans-to-redis'
-
 num = 10000
 np.random.seed(64)
-# prob = [1.35, 0.7, 1.35]
-prob = [1.5,0.,1.5]
 
-def find_child(tree_, node,chk=True):
+
+def find_child(tree_, node, chk=True):
     res = []
     try:
         for node in nx.dfs_preorder_nodes(tree_, node):
             imagepath = get_imagepath(node).strip('.tar')
-            if tree_.node[node]['nchild']!=0:continue
+            if tree_.node[node]['nchild'] != 0: continue
             if chk and osp.exists(imagepath) and tree_.node[node]['nchild'] == 0:
                 res.append(node)
             elif not chk:
@@ -40,7 +28,7 @@ def find_child(tree_, node,chk=True):
     return res
 
 
-def cls_sample(num):
+def cls_sample(num, prob):
     # leaves = {}
     # for node in tf.gfile.ListDirectory(prefix):
     #     leaves[node] = len(tf.gfile.ListDirectory(prefix + '/' + node))
@@ -100,10 +88,28 @@ def gen_imglst(names, prefix, train_file, test_file):
 
 
 if __name__ == '__main__':
+    # prob = [1.35, 0.7, 1.35]
+    prob = [1.5, 0., 1.5]
 
-    names, nimgs = cls_sample(num)
-    # utils.write_list('/home/wangxinglu/prj/few-shot/data/imagenet10k.txt', names, delimiter=' ', fmt='%s')
-    utils.write_list('/home/wangxinglu/prj/few-shot/data/imagenet10k.no1k', names, delimiter=' ', fmt='%s')
+    # train_file = HOME + '/prj/few-shot/data/imglst/img10k.train.txt'
+    # test_file = HOME + '/prj/few-shot/data/imglst/img10k.test.txt'
+    # prefix = HOME + '/prj/few-shot/data/imagenet-raw'
+    train_file = HOME + '/prj/few-shot/data/imglst/img10k.train.no1k.txt'
+    test_file = HOME + '/prj/few-shot/data/imglst/img10k.test.no1k.txt'
+    prefix = HOME + '/prj/few-shot/data/imagenet-raw'
+
+    # train_file = HOME + '/prj/few-shot/data/imglst/img10k.train.disk.txt'
+    # test_file = HOME + '/prj/few-shot/data/imglst/img10k.test.disk.txt'
+    # prefix = HOME + '/prj/few-shot/data/imagenet-raw'
+
+    # train_file2 = HOME + '/prj/few-shot/data/imglst/img10k.train.redis.txt'
+    # test_file2 = HOME + '/prj/few-shot/data/imglst/img10k.test.redis.txt'
+    # prefix2 = '/mnt/nfs1703/kchen/imagenet-raw-trans-to-redis'
+
+
+    names, nimgs = cls_sample(num, prob)
+    # utils.write_list('/home/wangxinglu/prj/few-shot/data/imagenet10k.txt.chk', names, delimiter=' ', fmt='%s')
+    utils.write_list('/home/wangxinglu/prj/few-shot/data/imagenet10k.no1k.chk', names, delimiter=' ', fmt='%s')
 
     gen_imglst(names, prefix, train_file, test_file)
-    gen_imglst(names, prefix2, train_file2, test_file2)
+    # gen_imglst(names, prefix2, train_file2, test_file2)

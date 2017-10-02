@@ -31,10 +31,10 @@ flows:
                }
         expr: data, label = file_list()
       - {expr: data = decode(data)}
-#      - attr: {area_ratios: '0.08:1', aspect_ratio_lb: 0.75, fix_corner: false, mode: multi_scale_area}
-#        expr: data = crop(data)
-      - attr: {size: 256}
-        expr: data = resize(data)
+      - attr: {area_ratios: '0.08:1', aspect_ratio_lb: 0.75, fix_corner: false, mode: multi_scale_area}
+        expr: data = crop(data)
+#      - attr: {size: 256}
+#        expr: data = resize(data)
       - {expr: data = flip(data)}
       - attr: {ratio: 0.5, rotate_lb: -10, rotate_ub: 10}
         expr: data = rotate(data)

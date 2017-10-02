@@ -22,16 +22,24 @@ flows:
       num_preprocess: &npre 4096
       buffer_size: &buffer_size 10240
       pipeline:
-      - expr: data, label = lz_reader()
-        attr:
-          listfile:
-            - $HOME/prj/few-shot/data/imglst/img10k.train.disk.txt
-            - $HOME/prj/few-shot/data/imglst/img10k.train.redis.txt
-          prefix:
-            - $HOME/prj/few-shot/data/imagenet-raw
-            - imagenet
-          addr: 127.0.0.1:2333
-          delim: " "
+      - attr: {listfile: /home/wangxinglu/prj/few-shot/data/imglst/img10k.train.txt,
+               prefix: /home/wangxinglu/prj/few-shot/data/imagenet-raw/,
+               shuffle: false,
+               allow_io_fail: &allow true,
+               thread_num: *nthread,
+               shuffle_epoch_num: 10
+               }
+        expr: data, label = file_list()
+#      - expr: data, label = lz_reader()
+#        attr:
+#          listfile:
+#            - $HOME/prj/few-shot/data/imglst/img10k.train.disk.txt
+#            - $HOME/prj/few-shot/data/imglst/img10k.train.redis.txt
+#          prefix:
+#            - $HOME/prj/few-shot/data/imagenet-raw
+#            - imagenet
+#          addr: 127.0.0.1:2333
+#          delim: " "
       - {expr: data = decode(data)}
       - attr: {size: 256}
         expr: data = resize(data)
@@ -61,16 +69,24 @@ flows:
       num_preprocess: 1000
       buffer_size: *buffer_size
       pipeline:
-      - expr: data, label = lz_reader()
-        attr:
-          listfile:
-            - $HOME/prj/few-shot/data/imglst/img10k.test.disk.txt
-            - $HOME/prj/few-shot/data/imglst/img10k.test.redis.txt
-          prefix:
-            - $HOME/prj/few-shot/data/imagenet-raw
-            - imagenet
-          addr: 127.0.0.1:2333
-          delim: " "
+      - attr: {listfile: /home/wangxinglu/prj/few-shot/data/imglst/img10k.test.txt,
+               prefix: /home/wangxinglu/prj/few-shot/data/imagenet-raw/,
+               shuffle: false,
+               allow_io_fail: *allow,
+               thread_num: *nthread,
+               shuffle_epoch_num: 10
+               }
+        expr: data, label = file_list()
+#      - expr: data, label = lz_reader()
+#        attr:
+#          listfile:
+#            - $HOME/prj/few-shot/data/imglst/img10k.test.disk.txt
+#            - $HOME/prj/few-shot/data/imglst/img10k.test.redis.txt
+#          prefix:
+#            - $HOME/prj/few-shot/data/imagenet-raw
+#            - imagenet
+#          addr: 127.0.0.1:2333
+#          delim: " "
       - {expr: data = decode(data)}
       - attr: {size: 256}
         expr: data = resize(data)
