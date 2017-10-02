@@ -409,25 +409,6 @@ def read_list(file,delimi=" "):
 
 
 @chdir_to_root
-def vis_nx(graph, name='default', show=False):
-    import networkx as nx
-    path = osp.dirname(name)
-    name = osp.basename(name)
-    if path == '':
-        path = name
-    mkdir_p(osp.join(root_path, "output", path), delete=False)
-    try:
-        plt.close('all')
-        nx.draw(graph, with_labels=True)
-        if show:
-            plt.show()
-        plt.savefig('graph.png')
-        print ' nx plot success', path
-    except Exception as inst:
-        print 'error', inst
-
-
-@chdir_to_root
 def to_single_dir(dir='tfevents'):
     for parent, dirnames, filenames in os.walk(dir):
         filenames = sorted(filenames)
@@ -502,11 +483,11 @@ def list2str(li, delimier=''):
     return name
 
 
-def write_list(file, l, sort=True):
+def write_list(file, l, sort=True,delimiter=' ',fmt = '%.18e'):
     l = np.array(l)
     if sort:
         l = np.sort(l, axis=0)
-    np.savetxt(file, l, delimiter=' ')
+    np.savetxt(file, l, delimiter=delimiter,fmt=fmt)
 
 
 def rsync(from_, to):

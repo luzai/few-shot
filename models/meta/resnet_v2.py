@@ -170,7 +170,7 @@ def create_model(depth=101, input_size=224, num_classes=1000, name=None):
     return main.compile(inputs=inputs)
 
 
-def creat_flatten_model(depth=101, input_size=224, num_classes=1000, name=None):
+def creat_flatten_model(depth=101, input_size=224, num_classes=1000, name=None,trans_size=1200):
     cfg = {
         18: (BasicBlock, [(2, 64), (2, 128), (2, 256), (2, 512)]),
         34: (BasicBlock, [(3, 64), (4, 128), (6, 256), (3, 512)]),
@@ -211,7 +211,7 @@ def creat_flatten_model(depth=101, input_size=224, num_classes=1000, name=None):
     x = x.to(BN(), name='bn{}'.format(num_stages))
     x = x.to(ReLU(), inplace=True, name='relu{}'.format(num_stages))
 
-    x = x.to(Convolution(3, 1200, pad=0, bias=False, stride=2), name='luzai.conv')
+    x = x.to(Convolution(3,trans_size, pad=0, bias=False, stride=2), name='luzai.conv')
     x = x.to(BN(), name='luzai.bn')
     x = x.to(ReLU(), inplace=True, name='luzai.relu')
 
@@ -245,6 +245,11 @@ if __name__ == '__main__':
     with open('res1k.yaml', 'w') as f:
         print >> f, model.to_yaml_text()
 
+    model = create_model(depth=101,num_classes=10000)
+    print(model.to_yaml_text())
+    with open("res10k.undercomp.yaml","w") as f:
+        print >>f , model.to_yaml_text( )
+
     model = create_model(depth='101_10k', num_classes=10000)
     print(model.to_yaml_text())
     with open('res10k.yaml', 'w') as f:
@@ -254,3 +259,11 @@ if __name__ == '__main__':
     print(model.to_yaml_text())
     with open('res10k-flatten.yaml', 'w') as f:
         print >> f, model.to_yaml_text()
+
+    model = creat_flatten_model(depth=101, num_classes=10000,trans_size=2048)
+    print(model.to_yaml_text())
+    with open('res10k.flatten.2048.yaml', 'w') as f:
+        print >> f, model.to_yaml_text()
+
+
+

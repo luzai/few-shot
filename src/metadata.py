@@ -1,8 +1,6 @@
 from xml.etree import ElementTree
 from utils import *
 
-
-
 def _read(file, delimiter=None):
     mapping_ = np.genfromtxt(file, delimiter=delimiter, dtype='str')
     mapping = {}

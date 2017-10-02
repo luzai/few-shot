@@ -15,15 +15,15 @@ import sys,string
 ON_DISK = "ondisk"
 ON_MEM = "onmem"
 REDIS = "redis"
-MAX_ON_MEM = 6000000 * 10
+MAX_ON_MEM = 6000000 * 20
 
 default_conf = '''
 listfile: 
     - $HOME/prj/few-shot/data/imglst/img10k.test.disk.txt
-    # - $HOME/prj/few-shot/data/imglst/img10k.test.redis.txt
+    - $HOME/prj/few-shot/data/imglst/img10k.test.redis.txt
 prefix: 
     - $HOME/prj/few-shot/data/imagenet-raw
-    # - imagenet
+    - imagenet
     # /mnt/nfs1703/kchen/imagenet-raw-trans-to-redis
 addr: 127.0.0.1:2333
 delim: " "     
@@ -39,17 +39,18 @@ default_conf = yaml.load(default_conf)
 use_pool = True
 
 def _gget(path):
+    assert os.path.exists(path)
     try:
         img_ = cv2.imread(path, cv2.CV_LOAD_IMAGE_COLOR)
     except Exception as inst:
         print inst, 'Pls rm this img!! After one train u can disable chk', path
         rm(path, block=True)
         return None
-    if img_.shape[0] <= 10 or img_.shape[1] <= 10 or img_.shape[2] <= 2:
+    if img_.shape[0] <= 10 or img_.shape[1] <= 10 or img_.shape[2] <=0 or img_.shape[2]>=4:
         cv2.imwrite(randomword(10) + '.png', img_)
         print path, 'has shape: ', img_.shape, 'Pls rm!!!'
         rm(path, block=True)
-        return None
+        assert False
     with open(path) as fd:
         return fd.read()
 
@@ -72,13 +73,12 @@ class LzReader:
             else:
                 raw = _gget(path)
                 return raw
-
         except KeyboardInterrupt as inst:
-            print 'interrupt' ,inst
+            print 'interrupt',inst
             self.pool.close()
             self.pool.join()
             exit(0)
-        except Exception as inst:
+        except AssertionError as inst:
             print inst, 'read {} fail'.format(path)
             self.fail_time += 1
 
@@ -89,12 +89,12 @@ class LzReader:
         try:
             assert self.rc.exists(key), 'radis should have {}'.format(key)
             return self.rc.get(key)
-        except KeyboardInterrupt as inst :
+        except KeyboardInterrupt as inst:
             print 'keyin',inst
             self.pool.close()
             self.pool.join()
             exit(0)
-        except Exception as inst:
+        except AssertionError as inst:
             print inst, 'fail'
             uploadf = '/mnt/nfs1703/kchen/imagenet-raw-trans-to-redis/' + key_in
             with open(uploadf) as fd:

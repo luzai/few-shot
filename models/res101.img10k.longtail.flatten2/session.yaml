@@ -1,7 +1,7 @@
 epoch:
 - args:
     iter_num: 1000
-    log_interval: 200
+    log_interval: 10
     log_vars: [loss, accuracy_top1, accuracy_top5]
   flow: train
   policy: iterate
@@ -15,8 +15,8 @@ extra:
   custom_paths: [$HOME/prj/few-shot/src]
 flows:
 - train:
-    batch_size: &bs 200
-    devices: &gpu gpu(0:4)
+    batch_size: &bs 100
+    devices: &gpu gpu(6:8)
     feeder:
       num_thread: &nthread 64
       num_preprocess: &npre 4096
@@ -87,11 +87,10 @@ init_missing: true
 load_from: $HOME/prj/few-shot/models/resnet101/model.1k.parrots
 loggers:
 - {type: local}
-- args: {password: wxl123, url: 'http://pavi.parrotsdnn.org/log', username: luzai, instance_id:  b0f0feecb0e84d69ae426fbb0cc39423
-}
+- args: {password: wxl123, url: 'http://pavi.parrotsdnn.org/log', username: luzai}
   type: pavi
 max_iter: 160000
-model: {yaml: res10k-flatten.yaml}
+model: {yaml: ../meta/res10k.flatten.2048.yaml}
 record_best: {factor: -1, field: accuracy_top5, val_flow: val}
 snapshot_interval: 5000
 work_dir: .

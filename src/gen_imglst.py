@@ -12,23 +12,28 @@ HOME = os.environ['HOME'] or '/home/wangxinglu'
 # train_file = HOME+'/prj/few-shot/data/imglst/img1k.train.txt'
 # test_file = HOME+'/prj/few-shot/data/imglst/img1k.test.txt'
 
-train_file = HOME+'/prj/few-shot/data/imglst/img10k.train.disk.txt'
-test_file = HOME+'/prj/few-shot/data/imglst/img10k.test.disk.txt'
-prefix = HOME+'/prj/few-shot/data/imagenet-raw'
+train_file = HOME + '/prj/few-shot/data/imglst/img10k.train.disk.txt'
+test_file = HOME + '/prj/few-shot/data/imglst/img10k.test.disk.txt'
+prefix = HOME + '/prj/few-shot/data/imagenet-raw'
 
-train_file2 = HOME+'/prj/few-shot/data/imglst/img10k.train.redis.txt'
-test_file2 = HOME+'/prj/few-shot/data/imglst/img10k.test.redis.txt'
+train_file2 = HOME + '/prj/few-shot/data/imglst/img10k.train.redis.txt'
+test_file2 = HOME + '/prj/few-shot/data/imglst/img10k.test.redis.txt'
 prefix2 = '/mnt/nfs1703/kchen/imagenet-raw-trans-to-redis'
 
 num = 10000
+np.random.seed(64)
+# prob = [1.35, 0.7, 1.35]
+prob = [1.5,0.,1.5]
 
-
-def find_child(tree_, node):
+def find_child(tree_, node,chk=True):
     res = []
     try:
         for node in nx.dfs_preorder_nodes(tree_, node):
             imagepath = get_imagepath(node).strip('.tar')
-            if osp.exists(imagepath) and tree_.node[node]['nchild'] == 0:
+            if tree_.node[node]['nchild']!=0:continue
+            if chk and osp.exists(imagepath) and tree_.node[node]['nchild'] == 0:
+                res.append(node)
+            elif not chk:
                 res.append(node)
     except Exception as inst:
         print inst, 'wrong'
@@ -36,7 +41,6 @@ def find_child(tree_, node):
 
 
 def cls_sample(num):
-    np.random.seed(64)
     # leaves = {}
     # for node in tf.gfile.ListDirectory(prefix):
     #     leaves[node] = len(tf.gfile.ListDirectory(prefix + '/' + node))
@@ -52,7 +56,8 @@ def cls_sample(num):
     comb = np.array([names, nimgs]).T
     base_p = 1. / comb.shape[0]
 
-    p = np.concatenate((np.ones(11803) * 1.35 * base_p, np.ones(1835) * 0.7 * base_p, np.ones(717) * 1.35 * base_p))
+    p = np.concatenate(
+        (np.ones(11803) * prob[0] * base_p, np.ones(1835) * prob[1] * base_p, np.ones(717) * prob[2] * base_p))
     p = p / p.sum()
 
     res = np.random.choice(np.arange(comb.shape[0]), size=num, replace=False, p=p)
@@ -70,10 +75,10 @@ def gen_imglst(names, prefix, train_file, test_file):
     for ind, cls in enumerate(names):
         if not osp.exists(cls): continue
         imgs = tf.gfile.Glob(cls + '/*.JPEG')
-        if len(imgs)==0:
-            utils.rm(cls,True)
+        if len(imgs) == 0:
+            utils.rm(cls, True)
             continue
-        if len(imgs)<=3: continue
+        assert len(imgs) >= 10
         imgs = np.array(imgs)
         imgs_test = np.random.choice(imgs, max(3, imgs.shape[0] * 1 // 10), replace=False)
         imgs_train = np.setdiff1d(imgs, imgs_test)
@@ -94,6 +99,11 @@ def gen_imglst(names, prefix, train_file, test_file):
     np.savetxt(test_file, np.concatenate(imgs_test_l, axis=0), delimiter=' ', fmt='%s')
 
 
-names, nimgs = cls_sample(num)
-gen_imglst(names, prefix, train_file, test_file)
-gen_imglst(names, prefix2, train_file2, test_file2)
+if __name__ == '__main__':
+
+    names, nimgs = cls_sample(num)
+    # utils.write_list('/home/wangxinglu/prj/few-shot/data/imagenet10k.txt', names, delimiter=' ', fmt='%s')
+    utils.write_list('/home/wangxinglu/prj/few-shot/data/imagenet10k.no1k', names, delimiter=' ', fmt='%s')
+
+    gen_imglst(names, prefix, train_file, test_file)
+    gen_imglst(names, prefix2, train_file2, test_file2)

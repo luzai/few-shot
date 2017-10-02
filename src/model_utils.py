@@ -155,14 +155,20 @@ def params_to_shapes(params, return_str=False):
         return {k: str(v.shape) for k, v in params.iteritems()}
 
 
-specf1 = root_path + '/models/meta/model.yaml'
-# root_path + '/models/res101.img1k/session.yaml'
-modelf = '/mnt/gv7/16winter/16winter/ijcai/resnet101/model.parrots'
 
-specf2 = root_path + '/models/meta/res1k.yaml'
-modelf2 = root_path + '/models/resnet101/model.1k.parrots'
-specf3 = root_path + '/models/meta/res10k.yaml'
-modelf3 = root_path + '/models/resnet101/model.10k.parrots'
 
-t = get_params(specf2, modelf2)
-tt = get_params(specf3, modelf3)
+if __name__ == '__main__':
+
+
+    specf1 = root_path + '/models/meta/model.yaml'
+    # root_path + '/models/res101.img1k/session.yaml'
+    modelf = '/mnt/gv7/16winter/16winter/ijcai/resnet101/model.parrots'
+
+    specf2 = root_path + '/models/meta/res1k.yaml'
+    modelf2 = root_path + '/models/resnet101/model.1k.parrots'
+    specf3 = root_path + '/models/meta/res10k.yaml'
+    modelf3 = root_path + '/models/resnet101/model.10k.parrots'
+
+    t = get_params(specf2, modelf2)
+    tt = get_params(specf3, modelf3)
+
