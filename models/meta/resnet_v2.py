@@ -157,7 +157,8 @@ def create_model(depth=101, input_size=224, num_classes=1000, name=None):
         #           'decay_mult': '1',
         #           'lr_mult': '1'}
     ),
-        name='cls')
+    name='luzai.cls')
+
     x.to(Softmax(), name='prob')
     main.vars(x, 'label').to(SoftmaxWithLoss(), name='loss')
     main.vars(x, 'label').to(Accuracy(1), name='accuracy_top1')

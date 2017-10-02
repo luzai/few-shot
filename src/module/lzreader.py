@@ -15,7 +15,7 @@ import sys,string
 ON_DISK = "ondisk"
 ON_MEM = "onmem"
 REDIS = "redis"
-MAX_ON_MEM = 6000000 * 20
+MAX_ON_MEM = 6000000 * 1
 
 default_conf = '''
 listfile: 
@@ -153,6 +153,7 @@ class LzReader:
             lst_ = np.concatenate((np.full((lst_.shape[0], 1), REDIS), lst_, lst_[:, :1]), axis=1)
             lst = np.concatenate((lst, lst_), axis=0)
         lst = lst.tolist()
+        np.random.shuffle(lst)
 
         while True:
             order = range(len(lst)) * self.shuffle_epoch_num

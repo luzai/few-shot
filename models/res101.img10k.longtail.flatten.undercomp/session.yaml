@@ -6,7 +6,7 @@ epoch:
   flow: train
   policy: iterate
 - args:
-    iter_num: 208
+    iter_num: 220
     log_vars: [loss, accuracy_top1, accuracy_top5]
   flow: val
   policy: iterate
@@ -15,8 +15,8 @@ extra:
   custom_paths: [$HOME/prj/few-shot/src]
 flows:
 - train:
-    batch_size: &bs 100
-    devices: &gpu gpu(4:6)
+    batch_size: &bs 108
+    devices: &gpu gpu(2:4)
     feeder:
       num_thread: &nthread 64
       num_preprocess: &npre 4096
@@ -90,7 +90,7 @@ loggers:
 - args: {password: wxl123, url: 'http://pavi.parrotsdnn.org/log', username: luzai}
   type: pavi
 max_iter: 160000
-model: {yaml: ../meta/res10k-flatten.yaml}
+model: {yaml: ../meta/res10k.undercomp.yaml}
 record_best: {factor: -1, field: accuracy_top5, val_flow: val}
 snapshot_interval: 5000
 work_dir: .

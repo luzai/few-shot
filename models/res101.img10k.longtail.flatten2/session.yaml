@@ -87,7 +87,7 @@ init_missing: true
 load_from: $HOME/prj/few-shot/models/resnet101/model.1k.parrots
 loggers:
 - {type: local}
-- args: {password: wxl123, url: 'http://pavi.parrotsdnn.org/log', username: luzai}
+- args: {password: wxl123, url: 'http://pavi.parrotsdnn.org/log', username: luzai,instance_id: 54b6e9b01036443baffa506b38ba76a0}
   type: pavi
 max_iter: 160000
 model: {yaml: ../meta/res10k.flatten.2048.yaml}
