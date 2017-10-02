@@ -144,7 +144,6 @@ def get_params(specf, modelf):
         for ll in parse_parrots_expr(l['expr'])[-1]:
             if ll + '@value' in params_:
                 params[ll] = params_[ll + '@value'][...].copy()
-
     return params
 
 
