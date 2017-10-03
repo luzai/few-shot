@@ -15,7 +15,9 @@ tf.app.flags.DEFINE_string('train_directory', utils.root_path+'/data/imagenet-ra
                            'Training data directory')
 tf.app.flags.DEFINE_string('validation_directory', utils.root_path+'/data/imagenet-raw',
                            'Validation data directory')
-tf.app.flags.DEFINE_string('output_directory', utils.root_path+'/data/imagenet600',
+tf.app.flags.DEFINE_string('output_directory',
+                           '/home/wangxinglu/buf2',
+                           # utils.root_path+'/data/buf',
                            'Output data directory')
 
 tf.app.flags.DEFINE_integer('train_shards', 1024,
@@ -35,10 +37,11 @@ tf.app.flags.DEFINE_integer('num_threads', 128,# 64
 # each synset contained in the file to an integer (based on the alphabetical
 # ordering). See below for details.
 tf.app.flags.DEFINE_string('labels_file',
-                           utils.root_path+'/data/imagenet22k.txt',
+                           utils.root_path+'/data/imagenet10k.no1k',
                            'Labels file')
 
-# This file containing mapping from synset to human-readable label.
+# This file containing mapping from syn
+# set to human-readable label.
 # Assumes each line of the file looks like:
 #
 #   n02119247    black fox
@@ -129,7 +132,7 @@ class ImageCoder(object):
         image = tf.image.decode_jpeg(self._cmyk_data, channels=0)
         self._cmyk_to_rgb = tf.image.encode_jpeg(image, format='rgb', quality=100)
 
-        # Initializes function that decodes RGB JPEG data.
+        # Initializes function that decodes RGB JPEG data
         self._decode_jpeg_data = tf.placeholder(dtype=tf.string)
         self._decode_jpeg = tf.image.decode_jpeg(self._decode_jpeg_data, channels=3)
 
@@ -207,10 +210,14 @@ def _process_image(filename, coder):
 
         # Clean the dirty data.
         if _is_png(filename):
+            utils.rm(filename)
+            return
             # 1 image is a PNG.
             print('Converting PNG to JPEG for %s' % filename)
             image_data = coder.png_to_jpeg(image_data)
         elif _is_cmyk(filename):
+            utils.rm(filename)
+            return
             # 22 JPEG images are in CMYK colorspace.
             print('Converting CMYK to RGB for %s' % filename)
             image_data = coder.cmyk_to_rgb(image_data)
@@ -537,15 +544,14 @@ def main(unused_argv):
     # Run it!
 
     utils.rm(FLAGS.output_directory + '/train*', block=True)
-    _process_dataset('validation', FLAGS.validation_directory,
+    _process_dataset('train', FLAGS.validation_directory,
                      FLAGS.validation_shards, synset_to_human)
 
-    # utils.rm(FLAGS.output_directory + '/validation*', block=True)
-    # _process_dataset('train', FLAGS.train_directory, FLAGS.train_shards,
-    #                  synset_to_human)
+    utils.rm(FLAGS.output_directory + '/validation*', block=True)
+    _process_dataset('validation', FLAGS.train_directory, FLAGS.train_shards,
+                     synset_to_human)
 
 
 if __name__ == '__main__':
-
-    utils.init_dev(0)
+    utils.init_dev(4)
     tf.app.run()

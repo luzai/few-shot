@@ -6,7 +6,7 @@ epoch:
   flow: train
   policy: iterate
 - args:
-    iter_num: 5000
+    iter_num: 100
     log_vars: [loss, accuracy_top1, accuracy_top5]
   flow: val
   policy: iterate

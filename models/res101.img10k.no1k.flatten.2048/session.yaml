@@ -1,7 +1,7 @@
 epoch:
 - args:
     iter_num: 50000
-    log_interval: 200
+    log_interval: 10
     log_vars: [loss, accuracy_top1, accuracy_top5]
   flow: train
   policy: iterate
@@ -15,14 +15,14 @@ extra:
   custom_paths: [$HOME/prj/few-shot/src]
 flows:
 - train:
-    batch_size: &bs 208
-    devices: &gpu gpu(0:4)
+    batch_size: &bs 112
+    devices: &gpu gpu(2:4)
     feeder:
       num_thread: &nthread 64
       num_preprocess: &npre 4096
       buffer_size: &buffer_size 10240
       pipeline:
-      - attr: {listfile: /home/wangxinglu/prj/few-shot/data/imglst/img10k.train.txt,
+      - attr: {listfile: /home/wangxinglu/prj/few-shot/data/imglst/img10k.train.no1k.txt,
                prefix: /home/wangxinglu/prj/few-shot/data/imagenet-raw/,
                shuffle: true,
                allow_io_fail: &allow true,
@@ -71,10 +71,10 @@ flows:
       num_preprocess: 1000
       buffer_size: *buffer_size
       pipeline:
-      - attr: {listfile: /home/wangxinglu/prj/few-shot/data/imglst/img10k.test.smpl,
+      - attr: {listfile: /home/wangxinglu/prj/few-shot/data/imglst/img10k.test.no1k.txt,
                prefix: /home/wangxinglu/prj/few-shot/data/imagenet-raw/,
-               shuffle: false,
-               allow_io_fail: *allow ,
+               shuffle: true,
+               allow_io_fail: *allow,
                thread_num: *nthread,
                shuffle_epoch_num: 10
                }
@@ -105,10 +105,10 @@ init_missing: true
 load_from: $HOME/prj/few-shot/models/resnet101/model.1k.parrots
 loggers:
 - {type: local}
-- args: {password: wxl123, url: 'http://pavi.parrotsdnn.org/log', username: luzai, instance_id: 6ec5bf9402ec4c5b838bece5453651f1}
+- args: {password: wxl123, url: 'http://pavi.parrotsdnn.org/log', username: luzai}
   type: pavi
 max_iter: 160000
-model: {yaml: ../meta/res10k-flatten.yaml}
+model: {yaml: ../meta/res10k.flatten.2048.yaml}
 record_best: {factor: -1, field: accuracy_top5, val_flow: val}
 snapshot_interval: 5000
 work_dir: .
