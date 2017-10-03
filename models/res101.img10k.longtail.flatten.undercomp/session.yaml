@@ -41,8 +41,10 @@ flows:
 #          addr: 127.0.0.1:2333
 #          delim: " "
       - {expr: data = decode(data)}
-      - attr: {size: 256}
-        expr: data = resize(data)
+      - attr: {area_ratios: '0.08:1', aspect_ratio_lb: 0.75, fix_corner: false, mode: multi_scale_area}
+        expr: data = crop(data)
+#      - attr: {size: 256}
+#        expr: data = resize(data)
       - {expr: data = flip(data)}
       - attr: {ratio: 0.5, rotate_lb: -10, rotate_ub: 10}
         expr: data = rotate(data)
@@ -103,7 +105,7 @@ init_missing: true
 load_from: $HOME/prj/few-shot/models/resnet101/model.1k.parrots
 loggers:
 - {type: local}
-- args: {password: wxl123, url: 'http://pavi.parrotsdnn.org/log', username: luzai}
+- args: {password: wxl123, url: 'http://pavi.parrotsdnn.org/log', username: luzai,instance_id: 9dd31b60ac994d2ab5ce256f723d35bb}
   type: pavi
 max_iter: 160000
 model: {yaml: ../meta/res10k.undercomp.yaml}

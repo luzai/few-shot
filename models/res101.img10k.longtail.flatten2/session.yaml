@@ -15,7 +15,7 @@ extra:
   custom_paths: [$HOME/prj/few-shot/src]
 flows:
 - train:
-    batch_size: &bs 100
+    batch_size: &bs 108
     devices: &gpu gpu(6:8)
     feeder:
       num_thread: &nthread 64
@@ -41,8 +41,10 @@ flows:
 #          addr: 127.0.0.1:2333
 #          delim: " "
       - {expr: data = decode(data)}
-      - attr: {size: 256}
-        expr: data = resize(data)
+      - attr: {area_ratios: '0.08:1', aspect_ratio_lb: 0.75, fix_corner: false, mode: multi_scale_area}
+        expr: data = crop(data)
+#      - attr: {size: 256}
+#        expr: data = resize(data)
       - {expr: data = flip(data)}
       - attr: {ratio: 0.5, rotate_lb: -10, rotate_ub: 10}
         expr: data = rotate(data)
