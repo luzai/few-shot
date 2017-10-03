@@ -14,7 +14,6 @@ def plt_per_cls_acc(lb, pred):
     # plt.plot(cnts*np.diag(conf)/cnts)
 
 
-
 def softmax(x):
     # return np.exp(x) / np.sum(np.exp(x), axis=1).reshape(-1, 1)
     x = np.array(x)
@@ -23,24 +22,20 @@ def softmax(x):
     return ex / ex.sum(axis=1).reshape(-1, 1)
 
 
-def load_model():
+@chdir_to_root
+def load_model(path='/home/wangxinglu/prj/few-shot/models/res101.img1k.longtail3/'):
     import parrots
     import string, os
     from parrots.env import Environ
     import parrots.dnn as dnn
     import yaml
 
-    os.chdir('/home/wangxinglu/prj/few-shot/models/res101.img1k.longtail3/')
+    os.chdir(path)
     session_file = './session.yaml'
-    model_file = "./model.yaml"
-    param_file = "snapshots/iter.best.parrots"
 
-    mapping = dict(gpu='2:4', bs=8 * 2, )
-
-    # read model file
-    with open(model_file) as fin:
-        model_text = fin.read()
     # read session file
+    mapping = dict(gpu='2:4', bs=8 * 2,HOME='/home/wangxinglu' )
+
     with open(session_file, 'r') as fcfg:
         cfg_templ_in = fcfg.read()
     cfg_templ = string.Template(cfg_templ_in)
@@ -49,8 +44,12 @@ def load_model():
 
     cfg_text = yaml.dump(yaml.load(cfg_text))
 
-    # yaml.load(model_text)
-    # yaml.load(cfg_text)
+    model_file = yaml.load(cfg_text)["model"]["yaml"]
+    param_file = "snapshots/iter.best.parrots"
+
+    # read model file
+    with open(model_file) as fin:
+        model_text = fin.read()
 
     # create model
     model = dnn.Model.from_yaml_text(model_text)
@@ -154,11 +153,7 @@ def params_to_shapes(params, return_str=False):
         return {k: str(v.shape) for k, v in params.iteritems()}
 
 
-
-
 if __name__ == '__main__':
-
-
     specf1 = root_path + '/models/meta/model.yaml'
     # root_path + '/models/res101.img1k/session.yaml'
     modelf = '/mnt/gv7/16winter/16winter/ijcai/resnet101/model.parrots'
@@ -170,4 +165,3 @@ if __name__ == '__main__':
 
     t = get_params(specf2, modelf2)
     tt = get_params(specf3, modelf3)
-

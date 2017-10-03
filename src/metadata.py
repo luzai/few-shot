@@ -1,6 +1,7 @@
 from xml.etree import ElementTree
 from utils import *
 
+
 def _read(file, delimiter=None):
     mapping_ = np.genfromtxt(file, delimiter=delimiter, dtype='str')
     mapping = {}
@@ -39,8 +40,6 @@ config.base_url = u"http://www.image-net.org/api/xml/"
 config.structure_released = root_path + "/data/structure_released.xml"
 
 graph = nx.DiGraph()
-
-
 
 with file(config.structure_released, "r") as fp:
     tree_xml = ElementTree.parse(fp)
@@ -124,7 +123,7 @@ def tag_tree(tree_):
         depth = nx.shortest_path_length(tree_, "fall11", node)
         max_depth = max(depth, max_depth)
         all_depth.append(depth)
-        nchild = len(list((tree_.successors(node)) ) )
+        nchild = len(list((tree_.successors(node))))
         all_nchild.append(nchild)
         # if not nchild == 0:
         tree_.add_node(node, depth=depth, nchild=nchild)
@@ -144,8 +143,8 @@ def slim_tree(tree_, condition=None):
     os.chdir('data')
 
     new_tree = nx.DiGraph()
-    if isinstance(condition,basestring):
-        condition=eval(condition)
+    if isinstance(condition, basestring):
+        condition = eval(condition)
 
     for node in nx.dfs_preorder_nodes(tree_, 'fall11'):
         hist = nx.shortest_path(tree_, "fall11", node)

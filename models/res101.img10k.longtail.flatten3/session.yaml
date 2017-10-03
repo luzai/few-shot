@@ -1,12 +1,12 @@
 epoch:
 - args:
-    iter_num: 1000
-    log_interval: 10
+    iter_num: 50000
+    log_interval: 200
     log_vars: [loss, accuracy_top1, accuracy_top5]
   flow: train
   policy: iterate
 - args:
-    iter_num: 208
+    iter_num: 5000
     log_vars: [loss, accuracy_top1, accuracy_top5]
   flow: val
   policy: iterate
@@ -24,7 +24,7 @@ flows:
       pipeline:
       - attr: {listfile: /home/wangxinglu/prj/few-shot/data/imglst/img10k.train.txt,
                prefix: /home/wangxinglu/prj/few-shot/data/imagenet-raw/,
-               shuffle: false,
+               shuffle: true,
                allow_io_fail: &allow true,
                thread_num: *nthread,
                shuffle_epoch_num: 10

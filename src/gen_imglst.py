@@ -28,7 +28,10 @@ def find_child(tree_, node, chk=True):
     return res
 
 
-def cls_sample(num, prob):
+def cls_sample(num, prob=None):
+    np.random.seed(64)
+    if prob is None:
+        prob = [1.35, 0.7, 1.35]
     # leaves = {}
     # for node in tf.gfile.ListDirectory(prefix):
     #     leaves[node] = len(tf.gfile.ListDirectory(prefix + '/' + node))

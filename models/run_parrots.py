@@ -27,6 +27,11 @@ def isin(l1, l2):
 
 
 while isin(['backtrace', 'core dump', 'exception'], (out + err).lower()):
-    p = subprocess.Popen('parrots -d resume .')
+    p = subprocess.Popen('parrots -d resume .',
+                         shell=True,
+                         stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE,
+                         env=env
+                         )
     out, err = p.communicate()
     print 'out', out, 'err', err
