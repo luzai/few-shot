@@ -71,7 +71,7 @@ flows:
       num_preprocess: 1000
       buffer_size: *buffer_size
       pipeline:
-      - attr: {listfile: /home/wangxinglu/prj/few-shot/data/imglst/img10k.test.txt,
+      - attr: {listfile: /home/wangxinglu/prj/few-shot/data/imglst/img10k.test.smpl,
                prefix: /home/wangxinglu/prj/few-shot/data/imagenet-raw/,
                shuffle: true,
                allow_io_fail: *allow,

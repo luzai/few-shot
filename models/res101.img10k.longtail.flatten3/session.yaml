@@ -15,8 +15,8 @@ extra:
   custom_paths: [$HOME/prj/few-shot/src]
 flows:
 - train:
-    batch_size: &bs 208
-    devices: &gpu gpu(0:4)
+    batch_size: &bs 108
+    devices: &gpu gpu(4:6)
     feeder:
       num_thread: &nthread 64
       num_preprocess: &npre 4096
