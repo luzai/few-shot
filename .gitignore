@@ -6,6 +6,9 @@ cifar-100-python/
 .idea/
 parrots/
 caffe/
+*.pkl
+*.csv
+*.gml
 
 ### TeX template
 

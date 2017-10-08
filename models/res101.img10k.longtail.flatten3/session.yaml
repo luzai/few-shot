@@ -1,6 +1,6 @@
 epoch:
 - args:
-    iter_num: 50000
+    iter_num: 5000
     log_interval: 200
     log_vars: [loss, accuracy_top1, accuracy_top5]
   flow: train

@@ -7,10 +7,7 @@ fn='/mnt/nfs1703/test/prj/few-shot/data/imagenet10k.no1k'
 l = read_list(fn)
 l[:10]
 
-stat_info(l)
 
-
-stat_info(l)
 def stat_info(imagenet1k):
     nimgs=[]
     for node in imagenet1k:
@@ -36,3 +33,4 @@ def stat_info(imagenet1k):
     axes[1].plot(nimgs[nimgs<3048])
 #     plt.yscale('log')
     return nimgs
+stat_info(l)

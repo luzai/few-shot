@@ -1,6 +1,7 @@
 from utils import *
 import utils
-
+import matplotlib
+matplotlib.style.use('ggplot')
 
 def find_leaves(tree_, node, chk=True):
     res = []
@@ -18,15 +19,6 @@ def find_child_recursive(tree_, node):
     for node in nx.dfs_preorder_nodes(tree_, node):
         res.add(node)
     return res
-
-
-import matplotlib
-
-matplotlib.style.use('ggplot')
-
-from IPython.core.interactiveshell import InteractiveShell
-
-InteractiveShell.ast_node_interactivity = "all"
 
 nimgs = unpickle('d.pkl')
 nimgs = {k: len(v) for k, v in nimgs.iteritems()}

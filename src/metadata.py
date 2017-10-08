@@ -172,7 +172,7 @@ def vis_tree(tree_):
 
 @chdir_to_root
 def dir2tree():
-    os.chdir('./data')
+    os.chdir('./data/imagenet-raw')
     tree_ = nx.DiGraph()
     i = 0
     for root, dirs, files in os.walk('./fall11'):
@@ -187,8 +187,34 @@ def dir2tree():
     return tree_
 
 
+def find_child(tree_, node, chk=True):
+    res = []
+    try:
+        for node in nx.dfs_preorder_nodes(tree_, node):
+            imagepath = get_imagepath(node).strip('.tar')
+            if tree_.node[node]['nchild'] != 0: continue
+            if chk and osp.exists(imagepath) and tree_.node[node]['nchild'] == 0:
+                res.append(node)
+            elif not chk:
+                res.append(node)
+    except Exception as inst:
+        print inst, 'wrong'
+    return res
+
+
+@chdir_to_root
+def dir_to_contain():
+    os.chdir('./data/imagenet-raw')
+    d={}
+    for name in glob.glob('n*'):
+        d[name] = os.listdir(name)
+    return d
+
 tree = ori_tree = tag_tree(tree)
 
-# tree = ori_tree
-# tree2=slim_tree(tree,condition='imagenet1k')
-# pass
+if __name__ == '__main__':
+    # d=dir_to_contain()
+    # pickle(d,'d.pkl')
+    tree =slim_tree(tree,imagenet10k)
+    from IPython import embed
+    embed()

@@ -41,8 +41,12 @@ def load_model(path='/home/wangxinglu/prj/few-shot/models/res101.img1k.longtail3
     cfg_templ = string.Template(cfg_templ_in)
 
     cfg_text = cfg_templ.substitute(mapping)
-
     cfg_text = yaml.dump(yaml.load(cfg_text))
+    import IPython
+    IPython.embed()
+    print cfg_text['flows'][1]['val']['feeder']['pipeline'][0]['attr']['shuffle']
+
+    cfg_text['flows'][1]['val']['feeder']['pipeline'][0]['attr']['shuffle']=False
 
     model_file = yaml.load(cfg_text)["model"]["yaml"]
     param_file = "snapshots/iter.best.parrots"

@@ -37,7 +37,7 @@ tf.app.flags.DEFINE_integer('num_threads', 128,# 64
 # each synset contained in the file to an integer (based on the alphabetical
 # ordering). See below for details.
 tf.app.flags.DEFINE_string('labels_file',
-                           utils.root_path+'/data/imagenet10k.no1k',
+                           utils.root_path+'/data/imagenet22k.txt',
                            'Labels file')
 
 # This file containing mapping from syn
@@ -553,5 +553,5 @@ def main(unused_argv):
 
 
 if __name__ == '__main__':
-    utils.init_dev(4)
+    utils.init_dev(7)
     tf.app.run()

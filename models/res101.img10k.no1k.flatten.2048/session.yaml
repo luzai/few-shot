@@ -1,7 +1,7 @@
 epoch:
 - args:
-    iter_num: 50000
-    log_interval: 10
+    iter_num: 5000
+    log_interval: 200
     log_vars: [loss, accuracy_top1, accuracy_top5]
   flow: train
   policy: iterate
@@ -15,8 +15,8 @@ extra:
   custom_paths: [$HOME/prj/few-shot/src]
 flows:
 - train:
-    batch_size: &bs 108
-    devices: &gpu gpu(0:2)
+    batch_size: &bs 80
+    devices: &gpu gpu(0:4)
     feeder:
       num_thread: &nthread 64
       num_preprocess: &npre 4096

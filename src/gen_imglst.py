@@ -13,20 +13,6 @@ num = 10000
 np.random.seed(64)
 
 
-def find_child(tree_, node, chk=True):
-    res = []
-    try:
-        for node in nx.dfs_preorder_nodes(tree_, node):
-            imagepath = get_imagepath(node).strip('.tar')
-            if tree_.node[node]['nchild'] != 0: continue
-            if chk and osp.exists(imagepath) and tree_.node[node]['nchild'] == 0:
-                res.append(node)
-            elif not chk:
-                res.append(node)
-    except Exception as inst:
-        print inst, 'wrong'
-    return res
-
 
 def cls_sample(num, prob=None):
     np.random.seed(64)
