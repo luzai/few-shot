@@ -1,0 +1,324 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import argparse
+import logging
+import os
+import sys
+import time
+
+import colorlog
+
+parrots_home = os.environ.get('PARROTS_HOME')
+if parrots_home is None:
+    parrots_home = os.path.join(os.path.expanduser("~"), '.parrots')
+sys.path.append(os.path.join(parrots_home, 'parrots/python'))
+
+
+class ParrotsTask(object):
+    def __init__(self, args):
+        self.args = args
+        self.env_path = args.env_path
+        if args.seed is None:
+            base.set_seed(int(1000000 * time.time()))
+        else:
+            base.set_seed(args.seed)
+        if args.debug:
+            base.set_debug_log(True)
+        self.cmd = args.cmd
+        if self.cmd == 'env':
+            self.operation = args.op
+            if self.operation == 'init':
+                self.overwrite = args.force
+        elif self.cmd == 'train':
+            self.session_file = os.path.abspath(args.session_file)
+            self.max_iter = args.max_iter
+            self.snapshot_interval = args.snapshot_interval
+            self.overwrite = args.force
+        elif self.cmd == 'resume':
+            self.resume_from = os.path.abspath(args.resume_from)
+            self.resume_snapshot = args.resume_snapshot
+            self.max_iter = args.max_iter
+            self.snapshot_interval = args.snapshot_interval
+            self.overwrite = True
+        elif self.cmd == 'extract':
+            self.session_file = os.path.abspath(args.session_file)
+            self.out_filename = args.out_filename
+            self.num = args.num
+            self.overwrite = args.force
+        logging.root.setLevel(logging.DEBUG)
+        self.set_stream_logger(logging.INFO)
+
+    def set_stream_logger(self, log_level=logging.INFO):
+        sh = colorlog.StreamHandler()
+        sh.setLevel(log_level)
+        sh.setFormatter(
+            colorlog.ColoredFormatter(
+                '%(asctime)s %(log_color)s%(levelname)s%(reset)s %(message)s'))
+        logging.root.addHandler(sh)
+
+    def set_file_logger(self, work_dir, log_level=logging.DEBUG):
+        fh = logging.FileHandler(os.path.join(work_dir, 'log.txt'))
+        fh.setLevel(log_level)
+        fh.setFormatter(
+            logging.Formatter('%(asctime)s %(levelname)s %(message)s'))
+        logging.root.addHandler(fh)
+
+    def env_init(self, overwrite):
+        environ = Environ(self.env_path)
+        environ.create_file(overwrite=overwrite)
+        environ.set('HOME', parrots_home)
+        environ.set('GEMS', os.path.join(parrots_home, 'parrots.gems'))
+        environ.write()
+
+    def env_show(self):
+        environ = Environ(self.env_path)
+        if len(environ.map) > 0:
+            for k, v in environ.map.items():
+                print('{}: {}'.format(k, v))
+        else:
+            logging.warn('Parrots environment is empty.')
+
+    def env_set(self, key, val):
+        environ = Environ(self.env_path)
+        try:
+            val = int(val)
+        except:
+            try:
+                val = float(val)
+            except:
+                pass
+        environ.set(key, val)
+        environ.write()
+
+    def env_del(self, key):
+        environ = Environ(self.env_path)
+        environ.remove(key)
+        environ.write()
+
+    def resume_settings(self):
+        self.work_dir = self.resume_from
+        ensure_dir_exist(self.work_dir,
+                         'The resume directory %s does not exist.')
+        self.session_file = os.path.join(self.work_dir, 'session.yaml')
+        ensure_file_exist(self.session_file,
+                          'The session file %s does not exist.')
+        self.resume_snapshot = os.path.join(self.work_dir, 'snapshots',
+                                            self.resume_snapshot)
+        ensure_file_exist(self.resume_snapshot,
+                          'The snapshot file %s does not exist.')
+
+    def resume(self):
+        ensure_dir_writable(self.runner.work_dir, self.overwrite,
+                            'The work dir "%s" is not empty, add '
+                            '"-f" if you want to overwrite it.')
+        snapshot_dir = os.path.join(self.runner.work_dir, 'snapshots')
+        if not os.path.isdir(snapshot_dir):
+            os.makedirs(snapshot_dir)
+        with DirLocker(self.runner.work_dir) as locker:
+            # set logger
+            self.set_file_logger(self.runner.work_dir)
+            # check if the dir has been locked
+            if not locker.acquired:
+                logging.error('The working directory is locked! Please check'
+                              ' it and delete the .lock file if you are sure'
+                              ' that the directory is available.')
+                sys.exit()
+
+            # backup the previous best snapshot if it exists
+            best_snap_path = os.path.join(self.runner.work_dir, 'snapshots',
+                                          'iter.best.parrots')
+            if os.path.isfile(best_snap_path):
+                backup_name = os.path.join(
+                    self.runner.work_dir, 'snapshots',
+                    time.strftime('%m_%d_%H_%M_%S') + '.best.parrots')
+                os.rename(best_snap_path, backup_name)
+            self.runner.setup(self.resume_snapshot)
+            logging.info('resume from directory %s', self.runner.work_dir)
+            # log model info
+            logging.info("model name: %s", self.runner.model.name)
+            logging.debug(self.runner.model.to_yaml_text())
+            # run
+            self.runner.run()
+
+    def train(self):
+        ensure_dir_writable(self.runner.work_dir, self.overwrite,
+                            'The work dir "%s" is not empty, add '
+                            '"-f" if you want to overwrite it.')
+        snapshot_dir = os.path.join(self.runner.work_dir, 'snapshots')
+        if not os.path.isdir(snapshot_dir):
+            os.makedirs(snapshot_dir)
+        with DirLocker(self.runner.work_dir) as locker:
+            # set logger
+            self.set_file_logger(self.runner.work_dir, logging.DEBUG)
+            # check if the dir has been locked
+            if not locker.acquired:
+                logging.error('The working directory is locked! Please check'
+                              ' it and delete the .lock file if you are sure'
+                              ' that the directory is available.')
+                sys.exit()
+
+            # write the model file to work dir
+            model_bak = os.path.join(self.runner.work_dir, 'model.yaml')
+            with open(model_bak, 'w') as fout:
+                fout.write(self.runner.model.to_yaml_text())
+            # write the session config file to work dir
+            session_bak = os.path.join(self.runner.work_dir, 'session.yaml')
+            self.runner.config.dump(session_bak, model={'yaml': 'model.yaml'})
+            self.runner.setup()
+            # log model info
+            logging.info("model name: %s", self.runner.model.name)
+            logging.debug(self.runner.model.to_yaml_text())
+            # run!
+            self.runner.run()
+
+    def extract(self):
+        self.runner.setup(use_logger=False)
+        extractor = Extractor(self.runner)
+        extractor.extract(self.out_filename, self.num, self.overwrite)
+
+    def execute(self):
+        if self.cmd == 'env':
+            if self.operation == 'init':
+                self.env_init(self.overwrite)
+            elif self.operation == 'show':
+                self.env_show()
+            elif self.operation == 'set':
+                self.env_set(self.args.key, self.args.val)
+            elif self.operation == 'del':
+                self.env_del(self.args.key)
+            else:
+                logging.error('invalid env operation.')
+        else:
+            if self.cmd == 'resume':
+                self.resume_settings()
+            self.runner = Runner(self.session_file, self.args)
+            if self.cmd == 'train':
+                self.train()
+            elif self.cmd == 'resume':
+                self.resume()
+            elif self.cmd == 'extract':
+                self.extract()
+            else:
+                logging.error('invalid parrots task.')
+
+
+# yapf: disable
+def add_parser_train(subparsers):
+    parser_train = subparsers.add_parser('train', help='train models')
+    parser_train.add_argument('session_file', metavar='session.yaml',
+                              help='parrots session config file')
+    parser_train.add_argument('--work_dir', metavar='path',
+                              default='/mnt/nfs1703/test/prj/few-shot/models/res101.img10k.longtail.flatten.2048.retrain',
+                              help='the directory to save runtime status files')
+    parser_train.add_argument('--max_iter', metavar='n', type=int,
+                              help='set the maximum number of iterations',
+                              default=None)
+    parser_train.add_argument('--snapshot_interval', metavar='n', type=int,
+                              help='set the snapshot interval to n',
+                              default=None)
+    parser_train.add_argument('--url', metavar='url', default=None,
+                              help='url of parrots visualization service')
+    parser_train.add_argument('--username', metavar='user', default=None,
+                              help='username of parrots visualization service')
+    parser_train.add_argument('--password', metavar='pass', default=None,
+                              help='password of parrots visualization service')
+    parser_train.add_argument('-f', '--force', action='store_true', default=True,
+                              help='overwrite the work directory')
+
+
+def add_parser_resume(subparsers):
+    parser_resume = subparsers.add_parser('resume',
+                                          help='resume from previous work dirs')
+    parser_resume.add_argument('resume_from', metavar='path',
+                               help='resume from the a work dir')
+    parser_resume.add_argument('--resume_snapshot', metavar='snapshot.parrots',
+                               help='from which snapshot to resume, default '
+                                    'the latest snapshot in resume dir',
+                               default='iter.latest.parrots')
+    parser_resume.add_argument('--max_iter', metavar='n', type=int,
+                               help='set the maximum number of iterations',
+                               default=None)
+    parser_resume.add_argument('--snapshot_interval', metavar='n', type=int,
+                               help='Set the snapshot interval to n',
+                               default=None)
+    parser_resume.add_argument('--url', metavar='url', default=None,
+                               help='url of parrots visualization service')
+    parser_resume.add_argument('--username', metavar='user', default=None,
+                               help='username of parrots visualization service')
+    parser_resume.add_argument('--password', metavar='pass', default=None,
+                               help='password of parrots visualization service')
+    parser_resume.add_argument('--instance_id', metavar='inst_id', default=None,
+                               help='instance id of parrots visualization '
+                                    'service')
+
+
+def add_parser_extract(subparsers):
+    parser_extract = subparsers.add_parser('extract', help='extract features')
+    parser_extract.add_argument('session_file', metavar='session.yaml',
+                                help='The session config file')
+    parser_extract.add_argument('out_filename', metavar='out.mat/out.h5',
+                                help='filename for the output .h5 or .mat file')
+    parser_extract.add_argument('-n', '--num', metavar='N', type=int,
+                                help='num of samples to be extracted features from',
+                                default=None)
+    parser_extract.add_argument('-f', '--force', action='store_true',
+                                help='overwrite the output file')
+
+
+def add_parser_env(subparsers):
+    parser_env = subparsers.add_parser('env',
+                                       help='parrots environment manager')
+    subs = parser_env.add_subparsers(dest='op', help='commands to be chosen')
+    parser_env_init = subs.add_parser(
+        'init', help='init parrots environment variables')
+    parser_env_init.add_argument('-f', '--force', action='store_true',
+                                 help='force to overwrite existing file')
+    parser_env_init = subs.add_parser(
+        'show', help='show parrots environment variables')
+    parser_env_set = subs.add_parser(
+        'set', help='set parrots environment variables')
+    parser_env_set.add_argument('key', metavar='KEY', help='variable key')
+    parser_env_set.add_argument('val', metavar='VAL', help='variable value')
+    parser_env_del = subs.add_parser(
+        'del', help='delete parrots environment variables')
+    parser_env_del.add_argument('key', metavar='KEY', help='variable key')
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='Parrots Command-line Tools')
+    parser.add_argument('--env_path', metavar='path', default=None,
+                        help='parrots env file path')
+    parser.add_argument('--seed', metavar='random number', type=int,
+                        default=None, help='random seed for parrots')
+    parser.add_argument('-d', '--debug', action='store_true',
+                        help='use debug mode', default=True
+                        )
+
+    subparsers = parser.add_subparsers(dest='cmd', help='parrots CLI commands')
+    add_parser_train(subparsers)
+    add_parser_resume(subparsers)
+    add_parser_extract(subparsers)
+    add_parser_env(subparsers)
+
+    return parser.parse_args()
+
+
+# yapf: enable
+
+if __name__ == '__main__':
+    # parse command line arguments
+    args = parse_args()
+    args.cmd = 'train'
+    args.work_dir = '/mnt/nfs1703/test/prj/few-shot/models/res101.img10k.longtail.flatten.2048.retrain'
+    args.session_file = '/mnt/nfs1703/test/prj/few-shot/models/res101.img10k.longtail.flatten.2048.retrain/session.yaml'
+    args.force = True
+    args.debug = True
+    # main entry
+    from parrots import base
+    from parrots import Environ
+    from parrots.dnn import Extractor, Runner
+    from parrots.dnn.utils import *
+
+    parrots_task = ParrotsTask(args)
+    parrots_task.execute()

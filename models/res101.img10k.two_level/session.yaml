@@ -2,34 +2,35 @@ epoch:
 - args:
     iter_num: 5000
     log_interval: 100
-    log_vars: [loss, accuracy_top1, accuracy_top5]
+    log_vars: [loss, accuracy_top1, accuracy_top5, coarse_loss, coarse_accuracy_top1]
   flow: train
   policy: iterate
 - args:
     iter_num: 100
-    log_vars: [loss, accuracy_top1, accuracy_top5]
+    log_vars: [loss, accuracy_top1, accuracy_top5,coarse_loss, coarse_accuracy_top1]
   flow: val
   policy: iterate
 extra:
   custom_modules: [module]
-  custom_paths: [$HOME/prj/few-shot/src]
+  custom_paths: [/home/wangxinglu/prj/few-shot/src]
 flows:
 - train:
-    batch_size: &bs 108
-    devices: &gpu gpu(4:6)
+    batch_size: &bs 60
+    devices: &gpu gpu(2:4)
     feeder:
       num_thread: &nthread 64
       num_preprocess: &npre 4096
       buffer_size: &buffer_size 10240
       pipeline:
-      - attr: {listfile: /home/wangxinglu/prj/few-shot/data/imglst/img10k.train.txt,
+      - attr: {listfile: /home/wangxinglu/prj/few-shot/data/imglst/img10k.train.twolevel,
                prefix: /home/wangxinglu/prj/few-shot/data/imagenet-raw/,
                shuffle: true,
+               pattern: 'file int32 int32',
                allow_io_fail: &allow true,
                thread_num: *nthread,
                shuffle_epoch_num: 10
                }
-        expr: data, label = file_list()
+        expr: data, label, coarse_label = file_list()
 #      - expr: data, label = lz_reader()
 #        attr:
 #          listfile:
@@ -60,9 +61,9 @@ flows:
       updater: {momentum: 0.9, type: sgd}
       weight_decay: 0.0005
     spec:
-      inputs: [data, label]
-      losses: [loss]
-      outputs: [loss, accuracy_top1, accuracy_top5]
+      inputs: [data, label,coarse_label]
+      losses: [ loss * 0.1 ,   coarse_loss * 0.9 ]
+      outputs: [loss, accuracy_top1, accuracy_top5,coarse_loss, coarse_accuracy_top1]
 - val:
     batch_size: *bs
     devices: *gpu
@@ -71,14 +72,15 @@ flows:
       num_preprocess: 1000
       buffer_size: *buffer_size
       pipeline:
-      - attr: {listfile: /home/wangxinglu/prj/few-shot/data/imglst/img10k.test.txt,
+      - attr: {listfile: /home/wangxinglu/prj/few-shot/data/imglst/img10k.test.twolevel,
                prefix: /home/wangxinglu/prj/few-shot/data/imagenet-raw/,
+               pattern: 'file int32 int32',
                shuffle: true,
                allow_io_fail: *allow ,
                thread_num: *nthread,
                shuffle_epoch_num: 10
                }
-        expr: data, label = file_list()
+        expr: data, label,coarse_label = file_list()
 #      - expr: data, label = lz_reader()
 #        attr:
 #          listfile:
@@ -98,17 +100,17 @@ flows:
           offset: [104, 117, 123]
         expr: data = scaleOffset(data)
     spec:
-      inputs: [data, label]
-      losses: [loss]
-      outputs: [loss, accuracy_top1, accuracy_top5,data ,label, luzai.cls, prob]
+      inputs: [data, label,coarse_label]
+      losses: [loss,coarse_loss]
+      outputs: [loss, accuracy_top1, accuracy_top5,data ,label,  prob,coarse_loss, coarse_accuracy_top1]
 init_missing: true
-load_from: $HOME/prj/few-shot/models/resnet101/model.1k.parrots
+load_from: /home/wangxinglu/prj/few-shot/models/resnet101/model.10k.trained
 loggers:
 - {type: local}
-- args: {password: wxl123, url: 'http://pavi.parrotsdnn.org/log', username: luzai, instance_id:  b6e6d0cb3d8c4890b2f5de683650ecf3}
+- args: {password: wxl123, url: 'http://pavi.parrotsdnn.org/log', username: luzai, instance_id: b382483ec03c467983c853e4d7be4e2f }
   type: pavi
 max_iter: 160000
-model: {yaml: ../meta/res10k.flatten.2048.yaml}
+model: {yaml: ../meta/res10k.two_level.yaml}
 record_best: {factor: -1, field: accuracy_top5, val_flow: val}
 snapshot_interval: 5000
 work_dir: .

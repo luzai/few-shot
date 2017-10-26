@@ -1,0 +1,213 @@
+#!/usr/bin/env python
+
+# A python tool to generate a Image for visualizing a model
+
+import argparse
+import graphviz as gviz
+import os
+import sys
+
+parrots_home = os.environ.get('PARROTS_HOME')
+if not parrots_home:
+    parrots_home = os.path.join(os.path.expanduser('~'), '.parrots')
+sys.path.append(os.path.join(parrots_home, 'parrots', 'python'))
+
+from parrots import dnn
+
+
+class NetBlock(object):
+    """Represent a block in a network diagram"""
+
+    def __init__(self, index, kind, name, color):
+        self.index = index
+        self.kind = kind
+        self.name = name
+        self.color = color
+
+
+class NetDiagram(object):
+
+    color_map = dict(
+        input='white',
+        linear='skyblue',
+        pooling='salmon',
+        concat='green',
+        misc='aquamarine',
+        ewise='aquamarine',
+        loss='orange',
+        bn='cyan',
+        eltwise='seagreen')
+
+    layer_kind_map = dict(
+        Convolution='linear',
+        FullyConnected='linear',
+        InnerProduct='linear',
+        Pooling='pooling',
+        Concat='concat',
+        Dropout='ewise',
+        LRN='ewise',
+        ReLU='ewise',
+        Softmax='ewise',
+        SoftmaxWithLoss='loss',
+        Accuracy='loss',
+        BN='bn',
+        Sum='eltwise')
+
+    def __init__(self, name):
+        self._name = name
+        self._blocks = []
+        self._block_map = dict()
+        self._links = []
+
+    @property
+    def name(self):
+        return self._name
+
+    def add_block(self, kind, name, color='royalblue'):
+
+        if name in self._block_map:
+            raise ValueError('Block name {} already existed'.format(name))
+
+        idx = len(self._blocks)
+
+        # add the block
+        blk = NetBlock(idx, kind, name, color)
+        self._blocks.append(blk)
+        self._block_map[name] = blk
+
+    def add_input(self, name):
+        self.add_block('input', name, NetDiagram.color_map['input'])
+
+    def add_layer(self, name, layertype):
+
+        # get color
+        kind = NetDiagram.layer_kind_map.get(layertype)
+        if not kind:
+            color = NetDiagram.color_map['misc']
+        else:
+            color = NetDiagram.color_map[kind]
+        self.add_block('layer', name, color)
+
+    def add_link(self, from_name, to_name):
+
+        fi = self._block_map[from_name].index
+        ti = self._block_map[to_name].index
+        self._links.append((fi, ti))
+
+    @property
+    def size(self):
+        return (self._xmin + self._xmax, self._ymin + self._ymax)
+
+    def make_graph(self, format='pdf'):
+        """Draw on an axis"""
+
+        g = gviz.Digraph(format=format)
+        g.attr('graph', rankdir='BT')
+        for blk in self._blocks:
+            g.node(blk.name, fillcolor=blk.color, style='filled', shape='rect')
+
+        for (fi, ti) in self._links:
+            f_id = self._blocks[fi].name
+            t_id = self._blocks[ti].name
+            g.edge(f_id, t_id)
+
+        return g
+
+    @staticmethod
+    def build_from(model):
+        """Build a network diagram from a DNN model
+
+            Args:
+                model:  a loaded model of class dnn.model
+        """
+
+        assert isinstance(model, dnn.Model)
+
+        dg = NetDiagram(model.name)
+
+        # variable -> latest upstream
+        upstream_map = dict()
+
+        # add layer nodes
+        for layer in model.layer_entries():
+            # add a new layer
+            lid = layer.id
+            dg.add_layer(lid, layer.typename)
+
+            # add link from its dependent layers
+            dep_layer_ids = []
+            for vid in layer.bottom_ids():
+                dep_id = upstream_map.get(vid)
+                if dep_id:
+                    dep_layer_ids.append(dep_id)
+
+            for dep_id in dep_layer_ids:
+                dg.add_link(dep_id, lid)
+
+            # make this layer the latest upstream of its outputs
+            for out_vid in layer.top_ids():
+                upstream_map[out_vid] = lid
+
+        return dg
+
+
+class StoreDict(argparse.Action):
+
+    pairs = {}
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        for kv in values.split(','):
+            k, v = kv.split('=')
+            self.pairs[k] = eval(v)
+        setattr(namespace, self.dest, self.pairs)
+
+
+if __name__ == '__main__':
+
+    # parse command line arguments
+
+    argparser = argparse.ArgumentParser(
+        "visdnn", description="Deep Neural Network (DNN) visualization tool.")
+    argparser.add_argument(
+        'model', help='model filepath or builtin model name')
+    argparser.add_argument(
+        '-o', '--output', help='destination path', default='/tmp/dnn_graph')
+    argparser.add_argument(
+        '--fmt', help='output format (e.g. pdf, png, svg, ...)', default='pdf')
+    argparser.add_argument(
+        '--modelargs',
+        action=StoreDict,
+        metavar='key1=val1,key2=val2...',
+        default={})
+    argparser.add_argument(
+        '-V',
+        '--view',
+        help='open the generated graph image',
+        action="store_true")
+    args = argparser.parse_args()
+
+    # determine model path
+
+    builtin_models = set(['lenet', 'alexnet', 'googlenet', 'vgg16'])
+    if args.model in builtin_models:
+        model_path = os.path.join(parrots_home, 'parrots', 'examples',
+                                  args.model, args.model + '.py')
+    else:
+        model_path = args.model
+
+    if not os.path.isfile(model_path):
+        raise IOError('The model file {} is not found.'.format(model_path))
+
+    # load model
+    print('Loading model from {} ...'.format(model_path))
+    model = dnn.load_model(model_path, **(args.modelargs))
+
+    # build graph
+    netdg = NetDiagram.build_from(model)
+    g = netdg.make_graph(format=args.fmt)
+
+    # output
+    dst_path = args.output
+    to_view = args.view
+    print('Writing graph to {} ...'.format(dst_path))
+    g.render(filename=dst_path, cleanup=True, view=to_view)

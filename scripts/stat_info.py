@@ -1,4 +1,3 @@
-%pwd
 from model_utils import *
 from metadata import *
 from gen_imglst import *

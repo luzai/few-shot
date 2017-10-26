@@ -1,0 +1,69 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import argparse
+import os
+import shutil
+import yaml
+
+
+def upgrade_session(session_file):
+    with open(session_file, 'r') as fin:
+        session_cfg = yaml.load(fin)
+    if isinstance(session_cfg['model'], str):
+        session_cfg['model'] = {'yaml': session_cfg['model']}
+    scheme = session_cfg.pop('scheme')
+    session_cfg['max_iter'] = scheme['max_iter']
+    session_cfg['epoch'] = scheme['epoch']
+    for i, _ in enumerate(session_cfg['epoch']):
+        flow_cfg = session_cfg['epoch'][i]
+        flow_cfg['policy'] = 'iterate'
+        flow_cfg['args'] = {'iter_num': flow_cfg.pop('iter_num')}
+        flow_cfg['args']['log_vars'] = flow_cfg.pop('log_outputs', [])
+        if 'log_interval' in flow_cfg:
+            flow_cfg['args']['log_interval'] = flow_cfg['log_interval']
+            del flow_cfg['log_interval']
+    session_cfg['loggers'] = [{'type': 'local'}]
+    if 'best_snapshot' in session_cfg.get('extra', {}):
+        session_cfg['record_best'] = session_cfg['extra'].pop('best_snapshot')
+        session_cfg['record_best'].pop('save_instantly', None)
+    if 'pavi' in session_cfg.get('extra', {}):
+        pavi_cfg = {'type': 'pavi', 'args': session_cfg['extra'].pop('pavi')}
+        session_cfg['loggers'].append(pavi_cfg)
+    os.rename(session_file, session_file + '.old')
+    with open(session_file, 'w') as fout:
+        yaml.dump(session_cfg, fout)
+
+
+def upgrade_work_dir(work_dir):
+    session_file = os.path.join(work_dir, 'session.yaml')
+    with open(session_file, 'r') as fin:
+        session_cfg = yaml.load(fin)
+    model_file = os.path.basename(session_cfg['model'])
+    if model_file != 'model.yaml':
+        shutil.copy(
+            os.path.join(work_dir, model_file),
+            os.path.join(work_dir, 'model.yaml'))
+    upgrade_session(session_file)
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description='Session or workdir upgrading tool')
+    parser.add_argument(
+        'old_path',
+        metavar='path',
+        default=None,
+        help='path to old work dir or session file')
+    args = parser.parse_args()
+    path = args.old_path
+    if os.path.isdir(path):
+        upgrade_work_dir(path)
+    elif os.path.isfile(path):
+        upgrade_session(path)
+    else:
+        print('{} is neither a file nor directory.'.format(path))
+
+
+if __name__ == '__main__':
+    main()

@@ -1,0 +1,222 @@
+#!/usr/bin/env python
+
+import argparse
+
+parser = argparse.ArgumentParser(description="Convert a Caffe model and its learned parameters into Parrots' format")
+parser.add_argument('--caffe_proto', help='Directory contains compiled Caffe proto: caffe_pb2', default=None)
+parser.add_argument('--model', help='network spec, usually a ProtoBuf text message')
+parser.add_argument('--weights', help='network parameters, usually in a name like *.caffemodel ')
+parser.add_argument('--parrots_spec', help="translated model spec yaml file in Parrots' format")
+parser.add_argument('--parrots_weights', help="translated model parameters stored in Parrots' HDF5 file")
+parser.add_argument('--model_version', help="the version of Caffe's model spec, usually 2", default=2)
+
+args = parser.parse_args()
+
+if args.caffe_proto is not None:
+    import sys
+
+    sys.path.append(args.caffe_proto)
+
+import caffe_pb2
+from google.protobuf import text_format
+from pprint import pprint
+import yaml
+import numpy as np
+
+
+class CaffeVendor(object):
+    def __init__(self, net_name, weight_name, version=2):
+        print "loading model spec..."
+        self._net_pb = caffe_pb2.NetParameter()
+        text_format.Merge(open(net_name).read(), self._net_pb)
+        self._weight_dict = {}
+        self._init_dict = []
+
+        if weight_name is not None:
+            print "loading weights..."
+            self._weight_pb = caffe_pb2.NetParameter()
+            self._weight_pb.ParseFromString(open(weight_name, 'rb').read())
+            layers = self._weight_pb.layer if self._weight_pb.layer else self._weight_pb.layers
+            if not len(layers):
+                print "[Warn] {} does not contain params".format(weight_name)
+            for l in layers:
+                self._weight_dict[l.name] = l
+
+        print "parsing..."
+        self._parse_net(version)
+
+    def _parse_net(self, version):
+        self._name = str(self._net_pb.name)
+        self._layers = self._net_pb.layer if version == 2 else self._net_pb.layers
+        self._parsed_layers = [self._layer2dict(x, version) for x in self._layers]
+
+        self._net_dict = {
+            'name': self._name,
+            'inputs': [],
+            'layers': [],
+            'params': []
+        }
+
+        self._weight_array_dict = {}
+
+        for info, blob, init, is_data in self._parsed_layers:
+            if is_data:
+                for n in info:
+                    self._net_dict['inputs'].append(
+                            {'id': str(n), 'spec': ''}
+                    )
+            elif info is not None:
+                self._net_dict['layers'].append(info)
+
+            self._weight_array_dict.update(blob)
+            for k, v in init.items():
+                self._net_dict['params'].append(
+                            {'id': k.strip('@'), 'learning-policy': v }
+                    )
+
+    @staticmethod
+    def _parse_blob(blob):
+        flat_data = np.array(blob.data)
+        sp = list(blob.shape.dim)
+        if len(sp) == 0:
+            sp = [blob.num, blob.channels, blob.height, blob.width]
+        shaped_data = flat_data.reshape(sp)
+        return shaped_data
+
+    @staticmethod
+    def _parse_filer(filler, param=None):
+        lr = param['lr_mult'] if param and 'lr_mult' in param else 1
+        decay = param['decay_mult'] if param and 'decay_mult' in param else 1
+        if filler.type == "xavier":
+            return {"init": "xavier()", "lr_mult":lr, "decay_mult":decay}
+        elif filler.type == "gaussian":
+            return {"init": "gauss({})".format(filler.std), "lr_mult":lr, "decay_mult":decay}
+        elif filler.type == "constant":
+            return {"init": "fill({})".format(filler.value), "lr_mult":lr, "decay_mult":decay}
+        else:
+            raise NotImplemented
+
+    def _layer2dict(self, layer, version):
+        attr_dict = {}
+        params = []
+        weight_params = []
+        fillers = []
+
+        for field, value in layer.ListFields():
+            if field.name == 'top':
+                tops = [v.replace('-', '_').replace('/', '_') for v in value]
+            elif field.name == 'name':
+                layer_name = str(value).replace('-', '_').replace('/', '_')
+            elif field.name == 'bottom':
+                bottoms = [v.replace('-', '_').replace('/', '_') for v in value]
+            elif field.name == 'include':
+                if value[0].phase == 1 and op == 'Data':
+                    print 'found 1 testing data layer'
+                    return None, dict(), dict(), False
+            elif field.name == 'type':
+                if version == 2:
+                    op = value
+                else:
+                    raise NotImplemented
+            elif field.name == 'param':
+                params = [{k.name: v for k, v in x.ListFields()} for x in value]
+            elif field.name == 'loss_weight':
+                pass
+            else:
+                # other params
+                try:
+                    for f, v in value.ListFields():
+                        if 'filler' in f.name:
+                          continue
+                        elif f.name == 'pool':
+                          attr_dict['mode'] = 'max' if v == 0 else 'ave'
+                        else:
+                          attr_dict[f.name] = v
+
+                    ## get filler options
+                    fillers = filter(lambda x: 'filler' in x[0].name, value.ListFields())
+                except:
+                    print field.name, value
+                    raise
+
+        expr_temp = '{top} = {op}({input}{params})'
+
+        if op == 'BN' and len(params) <= 2:
+            # special treatment for BN's params
+            params.append({})
+        if op == 'Data':
+            return tops, dict(), dict(), True
+        else:
+            # attach weights
+            if layer.name in self._weight_dict:
+                blobs = self._weight_dict[layer.name].blobs
+            else:
+                blobs = []
+
+            blob_dict = {}
+            init_dict = {}
+
+            if len(params) == 0:
+                param_str = ''
+            else:
+                param_str_list = []
+                for i, p in enumerate(params):
+                    if 'name' in p:
+                        param_str_list.append('@' + p['name'].replace('/', '_'))
+                    else:
+                        param_str_list.append('@{}_{}'.format(layer_name, i))
+                    if i < len(blobs):
+                        blob_dict[param_str_list[i]] = self._parse_blob(blobs[i])
+                        if op == 'BN' and i == 2:
+                            # concatenate the mean and std into a single param
+                            blob_dict[param_str_list[i]] = np.concatenate((self._parse_blob(blobs[i]).ravel(), self._parse_blob(blobs[i+1]).ravel()))
+                    if i < len(fillers):
+                        init_dict[param_str_list[i]] = self._parse_filer(fillers[i][1], p)
+                param_str = ', ' + ','.join(param_str_list)
+            expr = expr_temp.format(top=','.join(tops), input=','.join(bottoms), op=op,
+                                    params=param_str)
+
+            out_dict = {
+                'id': layer_name,
+                'expr': expr,
+            }
+
+            if len(attr_dict) > 0:
+                out_dict['attrs'] = attr_dict
+
+            return out_dict, blob_dict, init_dict, False
+
+    @property
+    def text_form(self):
+        return str(self._net_pb)
+
+    @property
+    def info(self):
+        return {
+            'name': self._name,
+            'layers': [x.name for x in self._layers]
+        }
+
+    @property
+    def yaml(self):
+        return yaml.dump(self._net_dict)
+
+    def dump_hdf5_param(self, filename):
+        import h5py
+        out_h5 = h5py.File(filename, 'w')
+
+        for k, v in self._weight_array_dict.items():
+            # save in root path
+            out_h5[k.strip('@') + '@value'] = v
+
+        out_h5.close()
+
+
+# build output
+cv = CaffeVendor(args.model, args.weights, int(args.model_version))
+
+if args.parrots_spec is not None:
+    open(args.parrots_spec, 'w').write(cv.yaml)
+
+if args.parrots_weights is not None:
+    cv.dump_hdf5_param(args.parrots_weights)

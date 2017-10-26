@@ -538,20 +538,20 @@ def main(unused_argv):
         'Please make the FLAGS.num_threads commensurate with '
         'FLAGS.validation_shards')
     print('Saving results to %s' % FLAGS.output_directory)
-
+    with tf.device('/cpu:0'):
     # Build a map from synset to human-readable label.
-    synset_to_human = _build_synset_lookup(FLAGS.imagenet_metadata_file)
-    # Run it!
+        synset_to_human = _build_synset_lookup(FLAGS.imagenet_metadata_file)
+        # Run it!
 
-    utils.rm(FLAGS.output_directory + '/train*', block=True)
-    _process_dataset('train', FLAGS.validation_directory,
-                     FLAGS.validation_shards, synset_to_human)
+        utils.rm(FLAGS.output_directory + '/train*', block=True)
+        _process_dataset('train', FLAGS.validation_directory,
+                         FLAGS.validation_shards, synset_to_human)
 
-    utils.rm(FLAGS.output_directory + '/validation*', block=True)
-    _process_dataset('validation', FLAGS.train_directory, FLAGS.train_shards,
-                     synset_to_human)
+        utils.rm(FLAGS.output_directory + '/validation*', block=True)
+        _process_dataset('validation', FLAGS.train_directory, FLAGS.train_shards,
+                         synset_to_human)
 
 
 if __name__ == '__main__':
-    utils.init_dev(7)
+    utils.init_dev((6,))
     tf.app.run()

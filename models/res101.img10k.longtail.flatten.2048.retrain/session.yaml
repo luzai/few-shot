@@ -12,24 +12,25 @@ epoch:
   policy: iterate
 extra:
   custom_modules: [module]
-  custom_paths: [$HOME/prj/few-shot/src]
+  custom_paths: [/home/wangxinglu/prj/few-shot/src]
 flows:
 - train:
-    batch_size: &bs 108
+    batch_size: &bs 60
     devices: &gpu gpu(4:6)
     feeder:
       num_thread: &nthread 64
       num_preprocess: &npre 4096
       buffer_size: &buffer_size 10240
       pipeline:
-      - attr: {listfile: /home/wangxinglu/prj/few-shot/data/imglst/img10k.train.txt,
+      - attr: {listfile: /home/wangxinglu/prj/few-shot/data/imglst/img10k.train.twolevel,
                prefix: /home/wangxinglu/prj/few-shot/data/imagenet-raw/,
                shuffle: true,
                allow_io_fail: &allow true,
                thread_num: *nthread,
+               pattern: 'file int32 int32',
                shuffle_epoch_num: 10
                }
-        expr: data, label = file_list()
+        expr: data, label,_ = file_list()
 #      - expr: data, label = lz_reader()
 #        attr:
 #          listfile:
@@ -71,14 +72,15 @@ flows:
       num_preprocess: 1000
       buffer_size: *buffer_size
       pipeline:
-      - attr: {listfile: /home/wangxinglu/prj/few-shot/data/imglst/img10k.test.txt,
+      - attr: {listfile: /home/wangxinglu/prj/few-shot/data/imglst/img10k.test.twolevel,
                prefix: /home/wangxinglu/prj/few-shot/data/imagenet-raw/,
+               pattern: 'file int32 int32',
                shuffle: true,
                allow_io_fail: *allow ,
                thread_num: *nthread,
                shuffle_epoch_num: 10
                }
-        expr: data, label = file_list()
+        expr: data, label,_ = file_list()
 #      - expr: data, label = lz_reader()
 #        attr:
 #          listfile:
@@ -102,12 +104,12 @@ flows:
       losses: [loss]
       outputs: [loss, accuracy_top1, accuracy_top5,data ,label, luzai.cls, prob]
 init_missing: true
-load_from: $HOME/prj/few-shot/models/resnet101/model.1k.parrots
+load_from: /home/wangxinglu/prj/few-shot/models/resnet101/model.10k.parrots
 loggers:
 - {type: local}
-- args: {password: wxl123, url: 'http://pavi.parrotsdnn.org/log', username: luzai, instance_id:  b6e6d0cb3d8c4890b2f5de683650ecf3}
+- args: {password: wxl123, url: 'http://pavi.parrotsdnn.org/log', username: luzai}
   type: pavi
-max_iter: 160000
+max_iter: 1600000
 model: {yaml: ../meta/res10k.flatten.2048.yaml}
 record_best: {factor: -1, field: accuracy_top5, val_flow: val}
 snapshot_interval: 5000
