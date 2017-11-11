@@ -1,0 +1,117 @@
+epoch:
+- args:
+    iter_num: 5000
+    log_interval: 100
+    log_vars: [loss, accuracy_top1, accuracy_top5, coarse_loss, coarse_accuracy_top1]
+  flow: train
+  policy: iterate
+- args:
+    iter_num: 100
+    log_vars: [loss, accuracy_top1, accuracy_top5,coarse_loss, coarse_accuracy_top1]
+  flow: val
+  policy: iterate
+extra:
+  custom_modules: [module]
+  custom_paths: [/home/wangxinglu/prj/few-shot/src]
+flows:
+- train:
+    batch_size: &bs 80
+    devices: &gpu gpu(2:4)
+    feeder:
+      num_thread: &nthread 64
+      num_preprocess: &npre 4096
+      buffer_size: &buffer_size 10240
+      pipeline:
+      - attr: {listfile: /home/wangxinglu/prj/few-shot/data/imglst/img10k.train.twolevel,
+               prefix: /home/wangxinglu/prj/few-shot/data/imagenet-raw/,
+               shuffle: true,
+               pattern: 'file int32 int32',
+               allow_io_fail: &allow true,
+               thread_num: *nthread,
+               shuffle_epoch_num: 10
+               }
+        expr: data, label, coarse_label = file_list()
+#      - expr: data, label = lz_reader()
+#        attr:
+#          listfile:
+#            - $HOME/prj/few-shot/data/imglst/img10k.train.disk.txt
+#            - $HOME/prj/few-shot/data/imglst/img10k.train.redis.txt
+#          prefix:
+#            - $HOME/prj/few-shot/data/imagenet-raw
+#            - imagenet
+#          addr: 127.0.0.1:2333
+#          delim: " "
+      - {expr: data = decode(data)}
+      - attr: {area_ratios: '0.08:1', aspect_ratio_lb: 0.75, fix_corner: false, mode: multi_scale_area}
+        expr: data = crop(data)
+#      - attr: {size: 256}
+#        expr: data = resize(data)
+      - {expr: data = flip(data)}
+      - attr: {ratio: 0.5, rotate_lb: -10, rotate_ub: 10}
+        expr: data = rotate(data)
+      - attr: {size: 224}
+        expr: data = resize(data)
+      - attr:
+          offset: [104, 117, 123]
+        expr: data = scaleOffset(data)
+    learn:
+      lr: 0.0005
+      lr_policy: multistep(0.1, 64000,72000,77500)
+      min_lr: 1.0e-05
+      updater: {momentum: 0.9, type: sgd}
+      weight_decay: 0.0005
+    spec:
+      inputs: [data, label,coarse_label]
+      losses: [ loss * 0.1 ,   coarse_loss * 0.9 ]
+      outputs: [loss, accuracy_top1, accuracy_top5,coarse_loss, coarse_accuracy_top1]
+- val:
+    batch_size: *bs
+    devices: *gpu
+    feeder:
+      num_thread: *nthread
+      num_preprocess: 1000
+      buffer_size: *buffer_size
+      pipeline:
+      - attr: {listfile: /home/wangxinglu/prj/few-shot/data/imglst/img10k.test.twolevel,
+               prefix: /home/wangxinglu/prj/few-shot/data/imagenet-raw/,
+               pattern: 'file int32 int32',
+               shuffle: true,
+               allow_io_fail: *allow ,
+               thread_num: *nthread,
+               shuffle_epoch_num: 10
+               }
+        expr: data, label,coarse_label = file_list()
+#      - expr: data, label = lz_reader()
+#        attr:
+#          listfile:
+#            - $HOME/prj/few-shot/data/imglst/img10k.test.disk.txt
+#            - $HOME/prj/few-shot/data/imglst/img10k.test.redis.txt
+#          prefix:
+#            - $HOME/prj/few-shot/data/imagenet-raw
+#            - imagenet
+#          addr: 127.0.0.1:2333
+#          delim: " "
+      - {expr: data = decode(data)}
+      - attr: {size: 256}
+        expr: data = resize(data)
+      - attr: {crop_size: 224}
+        expr: data = crop(data)
+      - attr:
+          offset: [104, 117, 123]
+        expr: data = scaleOffset(data)
+    spec:
+      inputs: [data, label,coarse_label]
+      losses: [loss,coarse_loss]
+      outputs: [loss, accuracy_top1, accuracy_top5,data ,label,  prob,coarse_loss, coarse_accuracy_top1]
+#init_missing: true
+#load_from: /home/wangxinglu/prj/few-shot/models/resnet101/model.10k.trained
+loggers:
+- {type: local}
+- args: {password: wxl123, url: 'http://pavi.parrotsdnn.org/log', username: luzai , instance_id:  a0e7ffb13aa4450abe9056c5ed335d0d
+}
+  type: pavi
+max_iter: 160000
+model: {py: /mnt/nfs1703/test/prj/few-shot/models/meta/model.py}
+record_best: {factor: -1, field: accuracy_top5, val_flow: val}
+snapshot_interval: 5000
+work_dir: .
