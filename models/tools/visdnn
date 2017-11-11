@@ -26,7 +26,6 @@ class NetBlock(object):
 
 
 class NetDiagram(object):
-
     color_map = dict(
         input='white',
         linear='skyblue',
@@ -152,7 +151,6 @@ class NetDiagram(object):
 
 
 class StoreDict(argparse.Action):
-
     pairs = {}
 
     def __call__(self, parser, namespace, values, option_string=None):
@@ -169,11 +167,13 @@ if __name__ == '__main__':
     argparser = argparse.ArgumentParser(
         "visdnn", description="Deep Neural Network (DNN) visualization tool.")
     argparser.add_argument(
-        'model', help='model filepath or builtin model name')
+        '--model', help='model filepath or builtin model name',
+        default='/mnt/nfs1703/test/prj/few-shot/models/meta/res10k.bb.yaml'
+    )
     argparser.add_argument(
-        '-o', '--output', help='destination path', default='/tmp/dnn_graph')
+        '-o', '--output', help='destination path', default='./graph')
     argparser.add_argument(
-        '--fmt', help='output format (e.g. pdf, png, svg, ...)', default='pdf')
+        '--fmt', help='output format (e.g. pdf, png, svg, ...)', default='png')
     argparser.add_argument(
         '--modelargs',
         action=StoreDict,
@@ -183,7 +183,8 @@ if __name__ == '__main__':
         '-V',
         '--view',
         help='open the generated graph image',
-        action="store_true")
+        action="store_true",
+        default=False)
     args = argparser.parse_args()
 
     # determine model path

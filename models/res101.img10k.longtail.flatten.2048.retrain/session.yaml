@@ -15,8 +15,8 @@ extra:
   custom_paths: [/home/wangxinglu/prj/few-shot/src]
 flows:
 - train:
-    batch_size: &bs 60
-    devices: &gpu gpu(4:6)
+    batch_size: &bs 30
+    devices: &gpu gpu(0:1)
     feeder:
       num_thread: &nthread 64
       num_preprocess: &npre 4096
@@ -107,7 +107,7 @@ init_missing: true
 load_from: /home/wangxinglu/prj/few-shot/models/resnet101/model.10k.parrots
 loggers:
 - {type: local}
-- args: {password: wxl123, url: 'http://pavi.parrotsdnn.org/log', username: luzai}
+- args: {password: wxl123, url: 'http://pavi.parrotsdnn.org/log', username: luzai, instance_id: 0a08bf5c9dee4f62b13b02f3be87898b}
   type: pavi
 max_iter: 1600000
 model: {yaml: ../meta/res10k.flatten.2048.yaml}

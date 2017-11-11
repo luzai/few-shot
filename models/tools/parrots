@@ -309,9 +309,14 @@ def parse_args():
 if __name__ == '__main__':
     # parse command line arguments
     args = parse_args()
+    import lz
+    # lz.rm('')
     args.cmd = 'train'
-    args.work_dir = '/mnt/nfs1703/test/prj/few-shot/models/res101.img10k.longtail.flatten.2048.retrain'
-    args.session_file = '/mnt/nfs1703/test/prj/few-shot/models/res101.img10k.longtail.flatten.2048.retrain/session.yaml'
+    args.work_dir = '/mnt/nfs1703/test/prj/few-shot/models/res101.img10k.bb'
+    prefix='/mnt/nfs1703/test/prj/few-shot/models/res101.img10k.bb/'
+    args.session_file = prefix+ 'session.meta.yaml'
+    import os
+    os.chdir(prefix)
     args.force = True
     args.debug = True
     # main entry

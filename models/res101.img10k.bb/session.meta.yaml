@@ -10,9 +10,12 @@ epoch:
     log_vars: [loss, accuracy_top1, accuracy_top5,coarse_loss, coarse_accuracy_top1]
   flow: val
   policy: iterate
+#extra:
+#  custom_modules: [module]
+#  custom_paths: [/home/wangxinglu/prj/few-shot/src]
 extra:
-  custom_modules: [module]
-  custom_paths: [/home/wangxinglu/prj/few-shot/src]
+  custom_modules: [ ]
+  custom_paths: [ ]
 flows:
 - train:
     batch_size: &bs 80

@@ -15,8 +15,8 @@ extra:
   custom_paths: [/home/wangxinglu/prj/few-shot/src]
 flows:
 - train:
-    batch_size: &bs 60
-    devices: &gpu gpu(2:4)
+    batch_size: &bs 98
+    devices: &gpu gpu(6:8)
     feeder:
       num_thread: &nthread 64
       num_preprocess: &npre 4096
@@ -56,13 +56,15 @@ flows:
         expr: data = scaleOffset(data)
     learn:
       lr: 0.0005
-      lr_policy: multistep(0.1, 64000,72000,77500)
+#      lr_policy: multistep(0.1, 64000,72000,77500)
+#      lr_policy: multistep(0.1, 160000, 170000,177500)
+      lr_policy: multistep(0.1, 260000, 270000,277500)
       min_lr: 1.0e-05
       updater: {momentum: 0.9, type: sgd}
       weight_decay: 0.0005
     spec:
       inputs: [data, label,coarse_label]
-      losses: [ loss * 0.1 ,   coarse_loss * 0.9 ]
+      losses: [ loss * 0.9 ,   coarse_loss * 0.1 ]
       outputs: [loss, accuracy_top1, accuracy_top5,coarse_loss, coarse_accuracy_top1]
 - val:
     batch_size: *bs
@@ -107,10 +109,10 @@ init_missing: true
 load_from: /home/wangxinglu/prj/few-shot/models/resnet101/model.10k.trained
 loggers:
 - {type: local}
-- args: {password: wxl123, url: 'http://pavi.parrotsdnn.org/log', username: luzai, instance_id: b382483ec03c467983c853e4d7be4e2f }
+- args: {password: wxl123, url: 'http://pavi.parrotsdnn.org/log', username: luzai, instance_id: 857ec35fff524c179059d3b32633da66}
   type: pavi
-max_iter: 160000
+max_iter: 1600000
 model: {yaml: ../meta/res10k.two_level.yaml}
-record_best: {factor: -1, field: accuracy_top5, val_flow: val}
+record_best: {factor: -1, field: accuracy_top5, val_flow: val, instance_id: }
 snapshot_interval: 5000
 work_dir: .
