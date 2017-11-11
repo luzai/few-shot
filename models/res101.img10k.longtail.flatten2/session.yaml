@@ -12,7 +12,7 @@ epoch:
   policy: iterate
 extra:
   custom_modules: [module]
-  custom_paths: [$HOME/prj/few-shot/src]
+  custom_paths: [/home/wangxinglu/prj/few-shot/src]
 flows:
 - train:
     batch_size: &bs 108
@@ -71,7 +71,7 @@ flows:
       num_preprocess: 1000
       buffer_size: *buffer_size
       pipeline:
-      - attr: {listfile: /home/wangxinglu/prj/few-shot/data/imglst/img10k.test.smpl,
+      - attr: {listfile: /home/wangxinglu/prj/few-shot/data/imglst/img10k.test.txt,
                prefix: /home/wangxinglu/prj/few-shot/data/imagenet-raw/,
                shuffle: true,
                allow_io_fail: *allow,

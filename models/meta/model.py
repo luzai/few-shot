@@ -108,216 +108,6 @@ class BasicBlock(ModuleProto):
         m.output_slots = x.name
 
 
-def create_model(depth=101, input_size=224, num_classes=1000, name=None):
-    cfg = {
-        18: (BasicBlock, [(2, 64), (2, 128), (2, 256), (2, 512)]),
-        34: (BasicBlock, [(3, 64), (4, 128), (6, 256), (3, 512)]),
-        50: (Bottleneck, [(3, 64), (4, 128), (6, 256), (3, 512)]),
-        101: (Bottleneck, [(3, 64), (4, 128), (23, 256), (3, 512)]),
-        '101_10k': (Bottleneck, [(3, 64), (4, 256), (23, 512), (3, 2560)]),
-        152: (Bottleneck, [(3, 64), (8, 128), (36, 256), (3, 512)]),
-        200: (Bottleneck, [(3, 64), (24, 128), (36, 256), (3, 512)]),
-    }
-
-    assert depth in cfg
-
-    if name is None:
-        name = 'resnet-{}'.format(depth)
-    main = GModule(name)
-    inputs = {
-        'data': 'float32({}, {}, 3, _)'.format(input_size, input_size),
-        'label': 'uint32(1, _)'
-    }
-    main.input_slots = tuple(inputs.keys())
-
-    x = main.var('data')
-    x = x.to(Convolution(7, 64, stride=2, pad=3, bias=False), name='conv1')
-    x = x.to(BN(), name='bn1')
-    x = x.to(ReLU(), inplace=True, name='relu1')
-    x = x.to(Pooling('max', 3, stride=2), name='pool1')
-
-    block, params = cfg[depth]
-
-    for i, (num, out_channels) in enumerate(params):
-        stride = 1 if i == 0 else 2
-        preact_branch = 'none' if i == 0 else 'both'
-        x = x.to(block(out_channels, stride, preact_branch, 'conv'),
-                 name='res{}a'.format(i + 2))
-        for j in range(1, num):
-            x = x.to(block(out_channels, 1), name='res{}b{}'.format(i + 2, j))
-
-    num_stages = len(params) + 1
-    x = x.to(BN(), name='bn{}'.format(num_stages))
-    x = x.to(ReLU(), inplace=True, name='relu{}'.format(num_stages))
-    x = x.to(Pooling('ave', 7), name='pool{}'.format(num_stages))
-    x = x.to(Dropout(0.5), inplace=True, name='dropout')
-    x = x.to(FullyConnected(
-        num_classes,
-        # w_policy={'init': 'gauss(0.01)',
-        #           'decay_mult': '1'},
-        # b_policy={'init': 'fill(0)',
-        #           'decay_mult': '1',
-        #           'lr_mult': '1'}
-    ),
-        name='luzai.cls')
-
-    x.to(Softmax(), name='prob')
-    main.vars(x, 'label').to(SoftmaxWithLoss(), name='loss')
-    main.vars(x, 'label').to(Accuracy(1), name='accuracy_top1')
-    main.vars(x, 'label').to(Accuracy(5), name='accuracy_top5')
-    model = main.compile(inputs=inputs, seal=False)
-    model.add_flow('main',
-                   inputs.keys(), ['loss', 'accuracy_top1', 'accuracy_top5'],
-                   ['loss'])
-    model.seal()
-    return main.compile(inputs=inputs)
-
-
-def creat_flatten_model(depth=101, input_size=224, num_classes=1000, name=None, trans_size=1200):
-    cfg = {
-        18: (BasicBlock, [(2, 64), (2, 128), (2, 256), (2, 512)]),
-        34: (BasicBlock, [(3, 64), (4, 128), (6, 256), (3, 512)]),
-        50: (Bottleneck, [(3, 64), (4, 128), (6, 256), (3, 512)]),
-        101: (Bottleneck, [(3, 64), (4, 128), (23, 256), (3, 512)]),
-        152: (Bottleneck, [(3, 64), (8, 128), (36, 256), (3, 512)]),
-        200: (Bottleneck, [(3, 64), (24, 128), (36, 256), (3, 512)]),
-    }
-
-    assert depth in cfg
-
-    if name is None:
-        name = 'resnet-{}'.format(depth)
-    main = GModule(name)
-    inputs = {
-        'data': 'float32({}, {}, 3, _)'.format(input_size, input_size),
-        'label': 'uint32(1, _)'
-    }
-    main.input_slots = tuple(inputs.keys())
-
-    x = main.var('data')
-    x = x.to(Convolution(7, 64, stride=2, pad=3, bias=False), name='conv1')
-    x = x.to(BN(), name='bn1')
-    x = x.to(ReLU(), inplace=True, name='relu1')
-    x = x.to(Pooling('max', 3, stride=2), name='pool1')
-
-    block, params = cfg[depth]
-
-    for i, (num, out_channels) in enumerate(params):
-        stride = 1 if i == 0 else 2
-        preact_branch = 'none' if i == 0 else 'both'
-        x = x.to(block(out_channels, stride, preact_branch, 'conv'),
-                 name='res{}a'.format(i + 2))
-        for j in range(1, num):
-            x = x.to(block(out_channels, 1), name='res{}b{}'.format(i + 2, j))
-
-    num_stages = len(params) + 1
-    x = x.to(BN(), name='bn{}'.format(num_stages))
-    x = x.to(ReLU(), inplace=True, name='relu{}'.format(num_stages))
-
-    x = x.to(Convolution(3, trans_size, pad=0, bias=False, stride=2), name='luzai.conv')
-    x = x.to(BN(), name='luzai.bn')
-    x = x.to(ReLU(), inplace=True, name='luzai.relu')
-
-    # x = x.to(Pooling('ave', 7), name='pool{}'.format(num_stages))
-
-    x = x.to(Dropout(0.5), inplace=True, name='dropout')
-    x = x.to(FullyConnected(
-        num_classes,
-        # w_policy={'init': 'gauss(0.01)',
-        #           'decay_mult': '1'},
-        # b_policy={'init': 'fill(0)',
-        #           'decay_mult': '1',
-        #           'lr_mult': '1'}
-    ),
-        name='luzai.cls')
-    x.to(Softmax(), name='prob')
-    main.vars(x, 'label').to(SoftmaxWithLoss(), name='loss')
-    main.vars(x, 'label').to(Accuracy(1, ), name='accuracy_top1')
-    main.vars(x, 'label').to(Accuracy(5, ), name='accuracy_top5')
-    model = main.compile(inputs=inputs, seal=False)
-    model.add_flow('main',
-                   inputs.keys(), ['loss', 'accuracy_top1', 'accuracy_top5'],
-                   ['loss'])
-    model.seal()
-    return main.compile(inputs=inputs)
-
-
-def creat_b_model(depth=101, input_size=224, num_classes=1000, name=None, trans_size=1200):
-    cfg = {
-        18: (BasicBlock, [(2, 64), (2, 128), (2, 256), (2, 512)]),
-        34: (BasicBlock, [(3, 64), (4, 128), (6, 256), (3, 512)]),
-        50: (Bottleneck, [(3, 64), (4, 128), (6, 256), (3, 512)]),
-        101: (Bottleneck, [(3, 64), (4, 128), (23, 256), (3, 512)]),
-    }
-
-    assert depth in cfg
-
-    if name is None:
-        name = 'resnet-{}'.format(depth)
-    main = GModule(name)
-    inputs = {
-        'data': 'float32({}, {}, 3, _)'.format(input_size, input_size),
-        'label': 'uint32(1, _)',
-        'coarse_label': 'uint32(1,_)'
-    }
-    main.input_slots = tuple(inputs.keys())
-
-    x = main.var('data')
-    x = x.to(Convolution(7, 64, stride=2, pad=3, bias=False), name='conv1')
-    x = x.to(BN(), name='bn1')
-    x = x.to(ReLU(), inplace=True, name='relu1')
-    x = x.to(Pooling('max', 3, stride=2), name='pool1')
-
-    block, params = cfg[depth]
-
-    for i, (num, out_channels) in enumerate(params):
-        stride = 1 if i == 0 else 2
-        preact_branch = 'none' if i == 0 else 'both'
-        x = x.to(block(out_channels, stride, preact_branch, 'conv'),
-                 name='res{}a'.format(i + 2))
-        for j in range(1, num):
-            x = x.to(block(out_channels, 1), name='res{}b{}'.format(i + 2, j))
-        if i == 2:
-            branch = x
-            branch = branch.to(block(512, 2, 'both', 'conv'), name='luzai.res{}a'.format(i + 2))
-            for j in range(1, 2):
-                branch = branch.to(block(512, 1, 'both', 'conv'), name='luzai.res{}b{}'.format(i + 2, j))
-            branch = branch.to(BN(), name='luzai.bn{}'.format(len(params) + 1))
-            branch = branch.to(ReLU(), inplace=True, name='luzai.relu{}'.format(len(params) + 1))
-            branch = branch.to(Pooling('ave', 7), name='luzai.pool{}'.format(len(params) + 1))
-            branch = branch.to(Dropout(0.5), inplace=True, name='luzai.dp')
-            branch = branch.to(FullyConnected(1000), name='luzai.coarse.cls')
-
-            main.vars(branch, 'coarse_label').to(SoftmaxWithLoss(), name='coarse_loss')
-            main.vars(branch, 'coarse_label').to(Accuracy(5), name='coarse_accuracy_top1')
-
-    num_stages = len(params) + 1
-    x = x.to(BN(), name='bn{}'.format(num_stages))
-    x = x.to(ReLU(), inplace=True, name='relu{}'.format(num_stages))
-
-    x = x.to(Convolution(3, trans_size, pad=0, bias=False, stride=2), name='luzai.conv')
-    x = x.to(BN(), name='luzai.bn')
-    x = x.to(ReLU(), inplace=True, name='luzai.relu')
-
-    # x = x.to(Pooling('ave', 7), name='pool{}'.format(num_stages))
-
-    x = x.to(Dropout(0.5), inplace=True, name='dropout')
-    x = x.to(FullyConnected(
-        num_classes,
-    ),
-        name='luzai.cls')
-    x.to(Softmax(), name='prob')
-    main.vars(x, 'label').to(SoftmaxWithLoss(), name='loss')
-    main.vars(x, 'label').to(Accuracy(1, ), name='accuracy_top1')
-    main.vars(x, 'label').to(Accuracy(5, ), name='accuracy_top5')
-    model = main.compile(inputs=inputs, seal=False)
-    model.add_flow('main',
-                   inputs.keys(), ['loss', 'accuracy_top1', 'accuracy_top5', 'coarse_loss', 'coarse_accuracy_top1'],
-                   ['loss', 'coarse_loss'])
-    model.seal()
-    return main.compile(inputs=inputs)
-
-
 def creat_bb_model(depth=101, input_size=224, num_classes=1000, name=None, trans_size=1200):
     cfg = {
         18: (BasicBlock, [(2, 64), (2, 128), (2, 256), (2, 512)]),
@@ -368,7 +158,9 @@ def creat_bb_model(depth=101, input_size=224, num_classes=1000, name=None, trans
             branch = branch.to(FullyConnected(1000), name='luzai.coarse.cls')
 
             main.vars(branch, 'coarse_label').to(SoftmaxWithLoss(), name='coarse_loss')
-            main.vars(branch, 'coarse_label').to(Accuracy(5), name='coarse_accuracy_top1')
+            main.vars(branch, 'coarse_label').to(Accuracy(5), name='coarse_accuracy_top5')
+            main.vars(branch, 'coarse_label').to(Accuracy(1), name='coarse_accuracy_top1')
+
 
             x = x1
 
@@ -379,7 +171,7 @@ def creat_bb_model(depth=101, input_size=224, num_classes=1000, name=None, trans
                 x = x.to(block(out_channels, 1), name='luzai.main.res{}b{}'.format(i + 2, j))
 
     num_stages = len(params) + 1
-    x = x.to(BN(), name='bn{}'.format(num_stages))
+    x = x.to(BN(), name='luzai.main.bn{}'.format(num_stages))
     x = x.to(ReLU(), inplace=True, name='relu{}'.format(num_stages))
 
     x = x.to(Convolution(3, trans_size, pad=0, bias=False, stride=2), name='luzai.conv')
@@ -399,11 +191,16 @@ def creat_bb_model(depth=101, input_size=224, num_classes=1000, name=None, trans
     main.vars(x, 'label').to(Accuracy(5, ), name='accuracy_top5')
     model = main.compile(inputs=inputs, seal=False)
     model.add_flow('main',
-                   inputs.keys(), ['loss', 'accuracy_top1', 'accuracy_top5', 'coarse_loss', 'coarse_accuracy_top1'],
+                   inputs.keys(), ['loss', 'accuracy_top1', 'accuracy_top5', 'coarse_loss', 'coarse_accuracy_top1','coarse_accuracy_top5'],
                    ['loss', 'coarse_loss'])
     model.seal()
-    return main.compile(inputs=inputs)
+    return model
 
-model = creat_bb_model(depth=101, num_classes=10000, trans_size=2048)
-res10kbb=model
+
+create_model = creat_bb_model
+
+if __name__ == '__main__':
+    model = creat_bb_model(depth=101, num_classes=10000, trans_size=2048)
+    res10kbb=model
+
 
